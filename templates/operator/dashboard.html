@@ -1,0 +1,3327 @@
+{% extends "base.html" %}
+
+{% block title %}Operator Dashboard - TransportWatch{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="{{ url_for('static', filename='js/https_redirect.js') }}"></script>
+<!-- Mobile viewport optimization -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<style>
+    /* MOBILE-FIRST RESPONSIVE DESIGN FOR OPERATOR DASHBOARD */
+    
+    /* Base mobile styles */
+    .vehicle-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* Ensure maximum 3 cards per line */
+    @media (min-width: 1200px) {
+        .vehicle-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    @media (min-width: 768px) and (max-width: 1199px) {
+        .vehicle-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 767px) {
+        .vehicle-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .status-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 16px;
+    }
+    
+    .location-update {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .location-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .location-map {
+        height: 300px;
+        width: 100%;
+        border-radius: 8px;
+        margin-top: 16px;
+    }
+
+    .accuracy-indicator {
+        font-size: 0.875rem;
+        margin-top: 4px;
+    }
+
+    .accuracy-high {
+        color: var(--success-color);
+    }
+
+    .accuracy-medium {
+        color: var(--warning-color);
+    }
+
+    .accuracy-low {
+        color: var(--error-color);
+    }
+
+    .vehicle-status-info {
+        margin-top: 8px;
+    }
+
+    .vehicle-status-info .badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    .vehicle-status-badges {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-end;
+    }
+
+    .vehicle-status-badges .badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    .route-info {
+        background-color: rgba(0, 123, 255, 0.1);
+        border: 1px solid rgba(0, 123, 255, 0.2);
+        border-radius: 4px;
+        padding: 8px 12px;
+    }
+    
+    /* Make vehicle cards compact, allow taller content (maps) without overflow */
+    .vehicle-grid .card {
+        max-width: 350px;
+        min-height: 340px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 16px;
+        overflow: hidden;
+    }
+    
+    .vehicle-grid .card h3 {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+    }
+    
+    .vehicle-grid .card p {
+        font-size: 0.9rem;
+        margin-bottom: 12px;
+    }
+    
+    .vehicle-grid .card .vehicle-status-info {
+        margin-bottom: 12px;
+    }
+    
+    .vehicle-grid .card .vehicle-status-info .badge {
+        font-size: 0.7rem;
+        padding: 3px 6px;
+        margin-bottom: 4px;
+        display: inline-block;
+    }
+    
+    /* Search and Filter Section Styling */
+    .vehicle-search-section .card {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+    }
+    
+    .vehicle-search-section .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    
+    .vehicle-search-section .form-control,
+    .vehicle-search-section .form-select {
+        font-size: 0.875rem;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+    }
+    
+    .vehicle-search-section .form-control:focus,
+    .vehicle-search-section .form-select:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    .vehicle-search-section .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    /* Filter Tags Styling */
+    .filter-tag {
+        background-color: #e3f2fd;
+        color: #1976d2;
+        border: 1px solid #bbdefb;
+        border-radius: 16px;
+        padding: 4px 12px;
+        font-size: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .filter-tag .remove-filter {
+        cursor: pointer;
+        color: #1976d2;
+        font-weight: bold;
+        font-size: 0.875rem;
+    }
+    
+    .filter-tag .remove-filter:hover {
+        color: #1565c0;
+    }
+    
+    /* Responsive adjustments for search section */
+    @media (max-width: 768px) {
+        .vehicle-search-section .row {
+            margin: 0;
+        }
+        
+        .vehicle-search-section .col-md-2,
+        .vehicle-search-section .col-md-4 {
+            margin-bottom: 1rem;
+        }
+    }
+    
+    /* Route Map Container Styling */
+    .route-map-container {
+        margin: 12px 0;
+    }
+    
+    .route-map {
+        width: 100%;
+        height: 170px; /* increase height to avoid overflow and make it longer */
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        background-color: #f8f9fa;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .route-map .leaflet-container {
+        height: 100%;
+        width: 100%;
+    }
+    
+    .route-map .leaflet-control-zoom {
+        display: none;
+    }
+    
+    .route-map .leaflet-control-attribution {
+        display: none;
+    }
+    
+    /* Route Map Loading State */
+    .route-map.loading::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+    }
+    
+    .route-map.loading::after {
+        content: 'Loading route...';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #6c757d;
+        font-size: 0.8rem;
+        z-index: 2;
+    }
+
+    /* Distance badge on the small map */
+    .route-distance-badge {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        border-radius: 12px;
+        z-index: 5;
+        pointer-events: none;
+    }
+
+    .route-info small {
+        color: #495057;
+        font-weight: 500;
+    }
+
+    .search-container {
+        position: relative;
+        margin-bottom: 16px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        min-height: 44px;
+    }
+
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--background-color);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1001;
+        display: none;
+    }
+
+    .search-result-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .search-result-item:hover {
+        background-color: var(--hover-color);
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+        width: 100%;
+    }
+    
+    .page-header h1 {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.5rem;
+    }
+    
+    .header-actions {
+        display: flex;
+        gap: 16px;
+    }
+    
+    /* Enhanced Mobile responsive styles */
+    @media (max-width: 768px) {
+        .vehicle-grid {
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .status-controls {
+            gap: 4px;
+            flex-direction: column;
+        }
+        
+        .location-controls {
+            gap: 4px;
+            flex-direction: column;
+        }
+        
+        .header-actions {
+            gap: 8px;
+        }
+        
+        .page-header h1 {
+            font-size: 1.3rem;
+        }
+        
+        /* Touch-friendly improvements */
+        .btn {
+            min-height: 44px;
+            font-size: 1rem;
+            padding: 0.75rem 1rem;
+        }
+        
+        .form-control, .form-select {
+            min-height: 44px;
+            font-size: 1rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .vehicle-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .page-header h1 {
+            font-size: 1.2rem;
+            margin-bottom: 0;
+            text-align: center;
+        }
+        
+        .header-actions {
+            width: 100%;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .header-actions .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .status-controls {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .status-controls .btn {
+            flex: 1;
+            min-width: 100px;
+            min-height: 44px;
+        }
+        
+        .location-controls {
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .location-map {
+            height: 250px;
+        }
+        
+        /* Improve card spacing on mobile */
+        .card {
+            margin-bottom: 1rem;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .card-header h5 {
+            font-size: 1.1rem;
+        }
+    }
+
+    /* Live Map Modal Styles */
+    .live-map-container {
+        display: flex;
+        flex-direction: row;
+        gap: 16px;
+        width: 100%;
+    }
+    
+    #live-map {
+        flex: 1;
+        height: 500px;
+        min-height: 300px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background-color: #f0f0f0;
+    }
+    
+    .live-map-sidebar {
+        width: 300px;
+        overflow-y: auto;
+    }
+    
+    .live-map-sidebar .card {
+        padding: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .live-map-sidebar h3 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+        .live-map-container {
+            flex-direction: column;
+        }
+        
+        #live-map {
+            width: 100%;
+            height: 350px;
+        }
+        
+        .live-map-sidebar {
+            width: 100%;
+            margin-top: 16px;
+        }
+        
+        .live-map-sidebar .card {
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+        
+        #liveMapModal .modal-content {
+            width: 95%;
+            padding: 12px;
+            max-height: 95vh;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        #live-map {
+            height: 300px;
+        }
+        
+        .live-map-sidebar .card {
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+        
+        #liveMapModal .modal-content {
+            width: 95%;
+            padding: 12px;
+            max-height: 95vh;
+        }
+    }
+
+    /* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    width: 90%;
+    max-width: 1200px;
+    height: auto;
+    max-height: 90vh;
+    padding: 24px;
+    overflow-y: auto;
+    position: relative;
+    z-index: 2001;
+}
+
+/* Fix for buttons and checkboxes appearing above modals */
+.modal-open .btn,
+.modal-open input[type="checkbox"],
+.modal-open input[type="radio"] {
+    z-index: auto !important;
+}
+
+/* Fix for the Live Map and Location buttons in the modal */
+#locationModal .modal-content .btn,
+#liveMapModal .modal-content .btn {
+    z-index: 2002 !important;
+}
+
+/* Fix for the specific buttons appearing above modals */
+button[onclick*="showLiveMapModal"],
+.modal-open button[onclick*="showLiveMapModal"],
+.modal-open a[href*="manage_drivers"] {
+    z-index: 1 !important;
+}
+
+/* Ensure header buttons are behind modals */
+.header-actions .btn {
+    position: relative;
+    z-index: 1 !important;
+}
+
+/* Ensure modal buttons work properly */
+.modal button, 
+.modal input[type="checkbox"], 
+.modal input[type="radio"] {
+    position: relative;
+    z-index: 2002 !important;
+}
+
+/* Special fix for checkboxes in modals */
+.modal-content input[type="checkbox"],
+.modal-content input[type="radio"] {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    z-index: 2002 !important;
+}
+
+/* Ensure buttons outside modal are behind modal when modal is open */
+body:has(.modal[style*="display: flex"]) .header-actions .btn,
+body:has(.modal[style*="display: flex"]) .live-map-sidebar .btn {
+    z-index: 1 !important;
+}
+
+/* Additional fix for modal z-index hierarchy */
+.modal {
+    z-index: 2000 !important;
+}
+
+.modal-backdrop {
+    z-index: 1999 !important;
+}
+
+.modal-content {
+    z-index: 2001 !important;
+}
+
+/* Ensure all content outside modals stays behind */
+body:has(.modal[style*="display: flex"]) *:not(.modal):not(.modal-backdrop):not(.modal-content):not(.toast-container):not(.toast) {
+    z-index: 1 !important;
+}
+
+/* Ensure modal backdrop is behind the modal content */
+.modal-backdrop {
+    z-index: 1999 !important;
+}
+
+/* Toast container should always be on top */
+.toast-container {
+    position: fixed !important;
+    bottom: 1rem !important;
+    right: 1rem !important;
+    z-index: 9999 !important;
+    pointer-events: none !important;
+}
+
+/* Individual toasts should have pointer events */
+.toast {
+    pointer-events: auto !important;
+    z-index: 9999 !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-tachometer-alt"></i> <span>Operator Dashboard</span></h1>
+    <div class="header-actions">
+        <button class="btn btn-primary" onclick="showLiveMapModal()">
+            <i class="fas fa-map-marked-alt"></i> <span class="btn-text">Live Map</span>
+        </button>
+
+        <a href="{{ url_for('operator.manage_drivers_page') }}" class="btn btn-primary">
+            <i class="fas fa-users"></i> <span class="btn-text">Manage Drivers</span>
+        </a>
+        <a href="{{ url_for('operator.manage_vehicles') }}" class="btn btn-primary">
+            <i class="fas fa-bus"></i> <span class="btn-text">Manage Vehicles</span>
+        </a>
+    </div>
+</div>
+
+<!-- Quick Access Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs me-2"></i>Quick Management Access
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <a href="{{ url_for('operator.manage_vehicles') }}" class="btn btn-outline-info w-100 mb-2">
+                            <i class="fas fa-bus me-2"></i>Assign Drivers to Vehicles
+                        </a>
+                        <small class="text-muted">Manage vehicle-driver assignments and view current status</small>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('operator.manage_drivers_page') }}" class="btn btn-outline-info w-100 mb-2">
+                            <i class="fas fa-users me-2"></i>Manage Driver Accounts
+                        </a>
+                        <small class="text-muted">Create, activate, and manage driver accounts</small>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('operator.manage_vehicles') }}" class="btn btn-outline-info w-100 mb-2">
+                            <i class="fas fa-cog me-2"></i>Vehicle Management
+                        </a>
+                        <small class="text-muted">Manage vehicles, assign drivers, and set routes</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vehicle Search and Filter Section -->
+<div class="vehicle-search-section mb-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">
+                <i class="fas fa-search me-2"></i>Search & Filter Vehicles
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- Search Input -->
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="vehicleSearch" class="form-label">Search Vehicles</label>
+                        <input type="text" id="vehicleSearch" class="form-control" placeholder="Search by name, type, route, or driver...">
+                    </div>
+                </div>
+                
+                <!-- Vehicle Type Filter -->
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="typeFilter" class="form-label">Vehicle Type</label>
+                        <select id="typeFilter" class="form-select">
+                            <option value="">All Types</option>
+                            <option value="van">Van</option>
+                            <option value="bus">Bus</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Status Filter -->
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="statusFilter" class="form-label">Status</label>
+                        <select id="statusFilter" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="delayed">Delayed</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Occupancy Filter -->
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="occupancyFilter" class="form-label">Occupancy</label>
+                        <select id="occupancyFilter" class="form-select">
+                            <option value="">All</option>
+                            <option value="vacant">Vacant</option>
+                            <option value="partial">Partial</option>
+                            <option value="full">Full</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Clear Filters Button -->
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label class="form-label">&nbsp;</label>
+                        <button id="clearFilters" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-times me-2"></i>Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Active Filters Display -->
+            <div id="activeFilters" class="mt-3" style="display: none;">
+                <small class="text-muted">Active filters:</small>
+                <div id="filterTags" class="d-flex flex-wrap gap-2 mt-1"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="vehicle-grid">
+    {% if vehicles %}
+    {% for vehicle in vehicles %}
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+                <h3>
+                    {{ vehicle.registration_number }}
+                    {% if vehicle.assigned_driver %}
+                    - {{ vehicle.assigned_driver.username }}
+                    {% endif %}
+                </h3>
+                <p>
+                    <i class="fas {% if vehicle.vehicle_type == 'bus' %}fa-bus{% else %}fa-van-shuttle{% endif %}"></i>
+                    {{ vehicle.vehicle_type|title }}
+                </p>
+                <div class="vehicle-status-info">
+                    <span class="badge {% if vehicle.occupancy_status == 'full' %}bg-danger{% elif vehicle.occupancy_status == 'partial' %}bg-warning{% else %}bg-success{% endif %} me-2">
+                        <i class="fas fa-users"></i> {{ vehicle.occupancy_status|title }}
+                    </span>
+                    <span class="badge {% if vehicle.status == 'active' %}bg-success{% elif vehicle.status == 'delayed' %}bg-warning{% else %}bg-secondary{% endif %} me-2">
+                        <i class="fas fa-circle"></i> {{ vehicle.status|title }}
+                    </span>
+                    {% if vehicle.has_active_trip %}
+                    <span class="badge bg-info">
+                        <i class="fas fa-route"></i> In Transit
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="vehicle-status-badges">
+                <span class="badge {% if vehicle.occupancy_status == 'full' %}bg-danger{% elif vehicle.occupancy_status == 'partial' %}bg-warning{% else %}bg-success{% endif %}">
+                    <i class="fas fa-users"></i> {{ vehicle.occupancy_status|title }}
+                </span>
+            </div>
+        </div>
+        
+        <div style="margin-top: 10px; margin-bottom: 10px;">
+            {% if vehicle.route %}
+            <div class="route-info mb-2">
+                <small class="text-muted">
+                    <i class="fas fa-route"></i> Route: {{ vehicle.route }}
+                </small>
+            </div>
+            
+            <!-- Route Map Container -->
+            <div class="route-map-container mb-2">
+                <div id="routeMap-{{ vehicle.id }}" class="route-map" 
+                     data-route="{{ vehicle.route }}"
+                     data-vehicle-id="{{ vehicle.id }}"
+                     data-route-info="{{ vehicle.route_info if vehicle.route_info else '' }}">
+                </div>
+                <small class="text-muted d-block mt-1">
+                    <i class="fas fa-map-marker-alt"></i> Route visualization
+                </small>
+            </div>
+            {% endif %}
+            
+            <div class="d-flex gap-2 mb-2">
+                <button class="btn btn-warning btn-sm" onclick="showRouteOverrideModal({{ vehicle.id }}, '{{ vehicle.registration_number }}', {{ (vehicle.route if vehicle.route else "No route set")|tojson }})">
+                    <i class="fas fa-route"></i> Route
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="card" style="grid-column: 1 / -1; text-align: center;">
+        <p>No vehicles added yet. Use the "Manage Vehicles" button to add vehicles.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Route Override Modal -->
+<div id="routeOverrideModal" class="modal" style="display: none;">
+    <div class="modal-content card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2><i class="fas fa-route"></i> Route Override</h2>
+            <button class="btn" onclick="hideRouteOverrideModal()" style="padding: 4px 8px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="mb-3">
+            <h5 id="routeVehicleTitle">Vehicle: <span id="routeVehicleName"></span></h5>
+            <p class="text-muted">Current Route: <span id="currentRouteDisplay"></span></p>
+        </div>
+        
+        <form id="routeOverrideForm" onsubmit="handleRouteOverride(event)">
+            <input type="hidden" id="routeVehicleId" name="vehicle_id">
+            
+            <div class="form-group">
+                <label class="form-label">Route Settings</label>
+                <div class="route-selection">
+                    <!-- Default Route Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Quick Route Selection</label>
+                        <select id="default-route-select" class="form-input" onchange="handleDefaultRouteSelection()">
+                            <option value="">-- Select Default Route --</option>
+                            <option value="brookes-point-to-puerto-princesa">Brooke's Point to Puerto Princesa</option>
+                            <option value="puerto-princesa-to-brookes-point">Puerto Princesa to Brooke's Point</option>
+                            <option value="brookes-point-to-bataraza">Brooke's Point to Bataraza</option>
+                            <option value="bataraza-to-brookes-point">Bataraza to Brooke's Point</option>
+                            <option value="rio-tuba-to-brookes-point">Rio Tuba to Brooke's Point</option>
+                            <option value="brookes-point-to-rio-tuba">Brooke's Point to Rio Tuba</option>
+                        </select>
+                        <small class="text-muted">Selecting a default route will clear any existing custom route</small>
+                    </div>
+                    
+                    <div class="search-container">
+                        <label class="form-label">Starting Point (A)</label>
+                        <input type="text" id="route-point-a" class="form-input" placeholder="Search for starting point..."
+                            autocomplete="off">
+                        <div id="point-a-results" class="search-results"></div>
+                    </div>
+                    
+                    <div class="search-container" style="margin-top: 10px;">
+                        <label class="form-label">Destination (B)</label>
+                        <input type="text" id="route-point-b" class="form-input" placeholder="Search for destination..."
+                            autocomplete="off">
+                        <div id="point-b-results" class="search-results"></div>
+                    </div>
+                    
+                    <div id="route-map" style="height: 300px; width: 100%; margin-top: 16px; border-radius: 8px; border: 1px solid var(--border-color);"></div>
+                    
+                    <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <button type="button" class="btn btn-secondary" onclick="clearRoute()">
+                            <i class="fas fa-trash"></i> Clear Route
+                        </button>
+                        <span id="route-distance" style="font-size: 0.9rem; color: var(--text-secondary);"></span>
+                    </div>
+                    
+                    <div id="route-status" style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);">
+                        Please select both starting point and destination
+                    </div>
+                </div>
+                
+                <!-- Hidden input to store the route data -->
+                <input type="hidden" id="route" name="route">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">
+                <i class="fas fa-save"></i> Update Route
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Location Selection Modal -->
+<div id="locationModal" class="modal" style="display: none;">
+    <div class="modal-content card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="margin: 0;"><i class="fas fa-map-marker-alt"></i> Select Vehicle Location</h2>
+            <button class="btn" onclick="hideLocationModal()" style="padding: 4px 8px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" 
+                   id="location-search" 
+                   class="form-input" 
+                   placeholder="Search for a location or address..."
+                   autocomplete="off">
+            <div id="search-results" class="search-results"></div>
+        </div>
+        
+        <p style="margin: 12px 0; color: var(--secondary-color);">
+            Click on the map to select the vehicle's location or search above
+        </p>
+        
+        <div id="location-map" class="location-map"></div>
+        
+        <div style="display: flex; gap: 16px; margin-top: 16px;">
+            <button class="btn btn-secondary" onclick="hideLocationModal()" style="flex: 1;">
+                Cancel
+            </button>
+            <button class="btn btn-primary" onclick="confirmLocation()" style="flex: 1;">
+                Update Location
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Live Map Modal -->
+<div id="liveMapModal" class="modal" style="display: none;">
+    <div class="modal-content card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="margin: 0;"><i class="fas fa-map-marked-alt"></i> Live Tracking Map</h2>
+            <button class="btn" onclick="hideLiveMapModal()" style="padding: 4px 8px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="live-map-container">
+            <div id="live-map" style="display: block;"></div>
+            
+            <div class="live-map-sidebar">
+                <div class="card">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h3><i class="fas fa-bus"></i> Your Vehicles</h3>
+                        <a href="{{ url_for('operator.manage_vehicles') }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-cog me-1"></i>Manage
+                        </a>
+                    </div>
+                    <div id="vehicleListLiveMap"></div>
+                </div>
+                
+                <div class="card">
+                    <h3><i class="fas fa-user"></i> Nearby Commuters</h3>
+                    <div id="commuterList" style="word-break: break-word;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+// Toast notification function
+function showToast(title, message, type = 'info') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        // Set a very high z-index to ensure it appears above modals
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast align-items-center text-white bg-${type === 'info' ? 'primary' : type === 'error' ? 'danger' : type}`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+    // Ensure toast itself has high z-index
+    toastEl.style.zIndex = '9999';
+    
+    toastEl.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <strong>${title}</strong>: ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+    
+    // Add to container
+    toastContainer.appendChild(toastEl);
+    
+    // Initialize and show toast
+    const toast = new bootstrap.Toast(toastEl, {
+        autohide: true,
+        delay: 5000
+    });
+    toast.show();
+}
+
+let locationMap;
+let locationMarker;
+let selectedLocation;
+let currentVehicleId;
+let searchTimeout;
+// Store last selected locations for each vehicle
+let vehicleLocations = {};
+
+// Live map variables
+let liveMap;
+let vehicleMarkers = {};
+let commuterMarkers = {};
+let refreshInterval;
+
+// Route selection variables
+let routeMap;
+let routeMarkerA;
+let routeMarkerB;
+let routeLine;
+let pointA;
+let pointB;
+
+// Continuous location tracking for drivers
+let watchPositionId = null;
+let lastReportedPosition = null;
+const MIN_DISTANCE_CHANGE = 10; // meters
+const MIN_TIME_INTERVAL = 5000; // 5 seconds
+
+// Store route polylines by vehicle id
+const routePolylines = {};
+
+function showRouteOverrideModal(vehicleId, vehicleName, currentRoute) {
+    // Set modal content
+    document.getElementById('routeVehicleId').value = vehicleId;
+    document.getElementById('routeVehicleName').textContent = vehicleName;
+    document.getElementById('currentRouteDisplay').textContent = currentRoute;
+    
+    // Show modal
+    document.getElementById('routeOverrideModal').style.display = 'flex';
+    
+    // Initialize the route map after the modal is visible
+    setTimeout(initRouteMap, 100);
+}
+
+function hideRouteOverrideModal() {
+    document.getElementById('routeOverrideModal').style.display = 'none';
+}
+
+function initRouteMap() {
+    // If map was already initialized, just resize it
+    if (routeMap) {
+        routeMap.invalidateSize();
+        return;
+    }
+    
+    // Initialize the map
+    routeMap = L.map('route-map').setView([0, 0], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(routeMap);
+    
+    // Try to center on user's current location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const latLng = [position.coords.latitude, position.coords.longitude];
+                routeMap.setView(latLng, 13);
+            },
+            (error) => {
+                console.error('Error getting location:', error);
+            }
+        );
+    }
+    
+    // Set up search handlers for point A and B
+    setupSearchHandler('route-point-a', 'point-a-results', setPointA);
+    setupSearchHandler('route-point-b', 'point-b-results', setPointB);
+    
+    // Click on map to set points
+    routeMap.on('click', (e) => {
+        console.log('Map clicked at:', e.latlng);
+        console.log('Current state - pointA:', pointA, 'pointB:', pointB);
+        
+        // If point A not set, set it first
+        if (!pointA) {
+            console.log('Setting point A');
+            setPointA(e.latlng);
+            reverseGeocode(e.latlng, 'route-point-a');
+        } 
+        // If A is set but B isn't, set B
+        else if (!pointB) {
+            console.log('Setting point B');
+            setPointB(e.latlng);
+            reverseGeocode(e.latlng, 'route-point-b');
+        } 
+        // If both are set, replace B with new point
+        else {
+            console.log('Replacing point B');
+            setPointB(e.latlng);
+            reverseGeocode(e.latlng, 'route-point-b');
+        }
+    });
+}
+
+function setupSearchHandler(inputId, resultsId, setPointCallback) {
+    const searchInput = document.getElementById(inputId);
+    const resultsContainer = document.getElementById(resultsId);
+    
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const query = e.target.value.trim();
+        
+        if (query.length < 3) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            searchPlace(query, resultsContainer, setPointCallback);
+        }, 500);
+    });
+    
+    // Close search results when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest(`#${inputId}`) && !e.target.closest(`#${resultsId}`)) {
+            resultsContainer.style.display = 'none';
+        }
+    });
+}
+
+async function searchPlace(query, resultsContainer, setPointCallback) {
+    console.log('searchPlace called with:', { query, resultsContainer, setPointCallback });
+    
+    try {
+        const response = await fetch(`/api/geocode/search?q=${encodeURIComponent(query)}`);
+        console.log('Geocoding response:', response);
+        
+        const data = await response.json();
+        console.log('Geocoding data:', data);
+        
+        resultsContainer.innerHTML = '';
+        
+        if (data.length === 0) {
+            resultsContainer.innerHTML = '<div class="search-result-item">No results found</div>';
+            resultsContainer.style.display = 'block';
+            return;
+        }
+        
+        data.forEach(result => {
+            console.log('Processing result:', result);
+            const div = document.createElement('div');
+            div.className = 'search-result-item';
+            div.textContent = result.display_name;
+            div.addEventListener('click', () => {
+                console.log('Result clicked:', result);
+                const latLng = { lat: parseFloat(result.lat), lng: parseFloat(result.lon) };
+                console.log('Parsed latLng:', latLng);
+                setPointCallback(latLng);
+                resultsContainer.style.display = 'none';
+            });
+            
+            resultsContainer.appendChild(div);
+        });
+        
+        resultsContainer.style.display = 'block';
+    } catch (error) {
+        console.error('Error searching location:', error);
+    }
+}
+
+function reverseGeocode(latlng, inputId) {
+    console.log('reverseGeocode called with:', { latlng, inputId });
+    
+    fetch(`/api/geocode/reverse?lat=${latlng.lat}&lon=${latlng.lng}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Reverse geocoding response:', data);
+            if (data.display_name) {
+                document.getElementById(inputId).value = data.display_name;
+                console.log('Set input value to:', data.display_name);
+            }
+        })
+        .catch(error => console.error('Error reverse geocoding:', error));
+}
+
+function setPointA(latlng) {
+    console.log('setPointA called with:', latlng);
+    pointA = latlng;
+    
+    if (routeMarkerA) {
+        routeMarkerA.setLatLng(latlng);
+    } else {
+        routeMarkerA = L.marker(latlng, {
+            icon: L.divIcon({
+                html: '<i class="fas fa-map-pin" style="color: #2196F3; font-size: 24px;"></i>',
+                iconSize: [24, 24],
+                iconAnchor: [12, 24],
+                className: 'route-marker-a'
+            })
+        }).addTo(routeMap).bindPopup('Starting Point');
+    }
+    
+    console.log('Calling updateRouteDisplay from setPointA...');
+    updateRouteDisplay();
+}
+
+function setPointB(latlng) {
+    console.log('setPointB called with:', latlng);
+    pointB = latlng;
+    
+    if (routeMarkerB) {
+        routeMarkerB.setLatLng(latlng);
+    } else {
+        routeMarkerB = L.marker(latlng, {
+            icon: L.divIcon({
+                html: '<i class="fas fa-flag-checkered" style="color: #F44336; font-size: 24px;"></i>',
+                iconSize: [24, 24],
+                iconAnchor: [12, 24],
+                className: 'route-marker-b'
+            })
+        }).addTo(routeMap).bindPopup('Destination');
+    }
+    
+    console.log('Calling updateRouteDisplay from setPointB...');
+    updateRouteDisplay();
+}
+
+function updateRouteDisplay() {
+    console.log('updateRouteDisplay called with:', { pointA, pointB });
+    
+    // Update the route line if both points are set
+    if (pointA && pointB) {
+        console.log('Both points set, calculating route...');
+        // Use OSRM API to get a road-following route between the two points
+        const osrmApiUrl = `https://router.project-osrm.org/route/v1/driving/${pointA.lng},${pointA.lat};${pointB.lng},${pointB.lat}?overview=full&geometries=geojson`;
+        console.log('OSRM API URL:', osrmApiUrl);
+        
+        fetch(osrmApiUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                    console.log('OSRM API response successful:', data);
+                    
+                    // Get the route geometry from OSRM response
+                    const routeCoordinates = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                    console.log('Route coordinates:', routeCoordinates);
+                    
+                    // Create or update the route line
+                    if (routeLine) {
+                        routeLine.setLatLngs(routeCoordinates);
+                    } else {
+                        routeLine = L.polyline(routeCoordinates, {
+                            color: '#2196F3',
+                            weight: 5,
+                            opacity: 0.8
+                        }).addTo(routeMap);
+                    }
+                    
+                    // Fit the map to the route
+                    routeMap.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
+                    
+                    // Calculate and display route distance
+                    const distance = data.routes[0].distance; // in meters
+                    document.getElementById('route-distance').textContent = `Distance: ${(distance/1000).toFixed(1)}km`;
+                    console.log('Route distance:', distance);
+                    
+                    // Update the hidden route input with formatted route name
+                    console.log('Calling generateRouteName...');
+                    generateRouteName();
+                    
+                    // Update route status
+                    document.getElementById('route-status').textContent = 'Route ready!';
+                    document.getElementById('route-status').style.color = 'var(--success-color)';
+                    console.log('Route status updated to ready');
+                } else {
+                    // Fallback to straight line if API call fails
+                    console.log('OSRM API failed, falling back to straight line');
+                    drawStraightLine();
+                    console.error('Failed to get route from OSRM API:', data);
+                }
+            })
+            .catch(error => {
+                // Fallback to straight line if API call fails
+                console.log('OSRM API error, falling back to straight line:', error);
+                drawStraightLine();
+                console.error('Error fetching route from OSRM:', error);
+            });
+    }
+}
+
+function drawStraightLine() {
+    // Create a straight line between points for fallback
+    const latlngs = [
+        [pointA.lat, pointA.lng],
+        [pointB.lat, pointB.lng]
+    ];
+    
+    if (routeLine) {
+        routeLine.setLatLngs(latlngs);
+    } else {
+        routeLine = L.polyline(latlngs, {
+            color: '#2196F3',
+            weight: 5,
+            opacity: 0.8
+        }).addTo(routeMap);
+    }
+    
+    // Fit the map to the route
+    routeMap.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
+    
+    // Calculate and display route distance
+    const distance = calculateDistance(pointA, pointB);
+    document.getElementById('route-distance').textContent = `Distance: ${(distance/1000).toFixed(1)}km`;
+    
+    // Update the hidden route input with formatted route name
+    console.log('Calling generateRouteName from drawStraightLine...');
+    generateRouteName();
+    
+    // Update route status
+    document.getElementById('route-status').textContent = 'Route ready!';
+    document.getElementById('route-status').style.color = 'var(--success-color)';
+    console.log('Route status updated to ready from drawStraightLine');
+}
+
+function calculateDistance(pos1, pos2) {
+    // Simple Haversine formula to calculate distance between two points
+    const R = 6371e3; // Earth radius in meters
+    const φ1 = pos1.lat * Math.PI/180;
+    const φ2 = pos2.lat * Math.PI/180;
+    const Δφ = (pos2.lat - pos1.lat) * Math.PI/180;
+    const Δλ = (pos2.lng - pos1.lng) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in meters
+}
+
+function clearRoute() {
+    // Remove markers and line from map
+    if (routeMarkerA) routeMap.removeLayer(routeMarkerA);
+    if (routeMarkerB) routeMap.removeLayer(routeMarkerB);
+    if (routeLine) routeMap.removeLayer(routeLine);
+    
+    // Reset variables
+    routeMarkerA = null;
+    routeMarkerB = null;
+    routeLine = null;
+    pointA = null;
+    pointB = null;
+    
+    // Clear input fields and hidden route value
+    document.getElementById('route-point-a').value = '';
+    document.getElementById('route-point-b').value = '';
+    document.getElementById('route').value = '';
+    document.getElementById('route-distance').textContent = '';
+    
+    // Reset route status
+    document.getElementById('route-status').textContent = 'Please select both starting point and destination';
+    document.getElementById('route-status').style.color = 'var(--text-secondary)';
+}
+
+function generateRouteName() {
+    // Get place names from input fields
+    const pointAName = document.getElementById('route-point-a').value;
+    const pointBName = document.getElementById('route-point-b').value;
+    
+    console.log('generateRouteName called with:', { pointAName, pointBName, pointA, pointB });
+    
+    let routeName = "";
+    
+    if (pointAName && pointBName) {
+        // Try to extract locality names for shorter route names
+        const pointALocality = extractLocality(pointAName);
+        const pointBLocality = extractLocality(pointBName);
+        
+        routeName = `${pointALocality} to ${pointBLocality}`;
+    } else {
+        // Fallback to coordinates if no names are available
+        routeName = `${pointA.lat.toFixed(4)},${pointA.lng.toFixed(4)} to ${pointB.lat.toFixed(4)},${pointB.lng.toFixed(4)}`;
+    }
+    
+    console.log('Generated route name:', routeName);
+    
+    // Store route data in JSON format in the hidden input
+    const routeData = {
+        name: routeName,
+        points: [
+            [pointA.lat, pointA.lng],
+            [pointB.lat, pointB.lng]
+        ]
+    };
+    
+    document.getElementById('route').value = routeName;
+    console.log('Set route input value to:', routeName);
+    console.log('Route input element:', document.getElementById('route'));
+}
+
+function extractLocality(address) {
+    console.log('extractLocality called with:', address);
+    
+    // Try to extract a city or locality name from the address
+    const parts = address.split(',').map(p => p.trim());
+    console.log('Address parts:', parts);
+    
+    // Usually the first or second part contains the locality name
+    if (parts.length > 1) {
+        const locality = parts[0];
+        console.log('Extracted locality:', locality);
+        return locality;
+    }
+    
+    console.log('No parts found, returning original address:', address);
+    return address;
+}
+
+// Default route definitions with coordinates
+const DEFAULT_ROUTES = {
+    'brookes-point-to-puerto-princesa': {
+        name: "Brooke's Point to Puerto Princesa",
+        start: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" },
+        end: { lat: 9.7406, lng: 118.7397, name: "Puerto Princesa, Palawan, Philippines" }
+    },
+    'puerto-princesa-to-brookes-point': {
+        name: "Puerto Princesa to Brooke's Point",
+        start: { lat: 9.7406, lng: 118.7397, name: "Puerto Princesa, Palawan, Philippines" },
+        end: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" }
+    },
+    'brookes-point-to-bataraza': {
+        name: "Brooke's Point to Bataraza",
+        start: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" },
+        end: { lat: 8.6737, lng: 117.6544, name: "Bataraza, Palawan, Philippines" }
+    },
+    'bataraza-to-brookes-point': {
+        name: "Bataraza to Brooke's Point",
+        start: { lat: 8.6737, lng: 117.6544, name: "Bataraza, Palawan, Philippines" },
+        end: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" }
+    },
+    'rio-tuba-to-brookes-point': {
+        name: "Rio Tuba to Brooke's Point",
+        start: { lat: 8.6737, lng: 117.6544, name: "Rio Tuba, Palawan, Philippines" },
+        end: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" }
+    },
+    'brookes-point-to-rio-tuba': {
+        name: "Brooke's Point to Rio Tuba",
+        start: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" },
+        end: { lat: 8.6737, lng: 117.6544, name: "Rio Tuba, Palawan, Philippines" }
+    }
+};
+
+function handleDefaultRouteSelection() {
+    const selectElement = document.getElementById('default-route-select');
+    const selectedValue = selectElement.value;
+    
+    if (!selectedValue) {
+        return; // No route selected
+    }
+    
+    const routeData = DEFAULT_ROUTES[selectedValue];
+    if (!routeData) {
+        console.error('Unknown route selected:', selectedValue);
+        return;
+    }
+    
+    console.log('Default route selected:', routeData);
+    
+    // Clear existing route
+    clearRoute();
+    
+    // Set the route points
+    pointA = { lat: routeData.start.lat, lng: routeData.start.lng };
+    pointB = { lat: routeData.end.lat, lng: routeData.end.lng };
+    
+    // Update input fields
+    document.getElementById('route-point-a').value = routeData.start.name;
+    document.getElementById('route-point-b').value = routeData.end.name;
+    
+    // Update route display
+    updateRouteDisplay();
+    
+    // Show success message
+    showToast('Route Set', `Default route "${routeData.name}" has been selected`, 'success');
+}
+
+async function handleRouteOverride(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    // Check if vehicle ID is set
+    const vehicleId = formData.get('vehicle_id');
+    if (!vehicleId) {
+        showToast('Error', 'Vehicle ID not found', 'error');
+        return;
+    }
+    
+    // Check if route is selected
+    const routeValue = document.getElementById('route').value;
+    if (!routeValue) {
+        showToast('Error', 'Please select both starting point and destination for the route', 'error');
+        return;
+    }
+    
+    // Debug: Log the form data
+    console.log('Vehicle ID:', vehicleId);
+    console.log('Route value:', routeValue);
+    console.log('Form data:', Object.fromEntries(formData));
+    console.log('Point A:', pointA);
+    console.log('Point B:', pointB);
+    
+    try {
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+        submitBtn.disabled = true;
+        
+        console.log('Sending route update request');
+        const response = await fetch(`/operator/vehicle/${vehicleId}/route`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                route: routeValue,
+                start_point: pointA ? `${pointA.lat},${pointA.lng}` : null,
+                end_point: pointB ? `${pointB.lat},${pointB.lng}` : null
+            })
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (response.ok) {
+            showToast('Success', 'Route updated successfully!', 'success');
+            // Close modal
+            hideRouteOverrideModal();
+            // Delay reload to show the success message
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showToast('Error', data.error || 'Failed to update route', 'error');
+            // Reset button state
+            submitBtn.innerHTML = originalBtnText;
+            submitBtn.disabled = false;
+        }
+    } catch (error) {
+        console.error('Error details:', error);
+        console.error('Error stack:', error.stack);
+        showToast('Error', 'An error occurred while updating the route', 'error');
+        // Reset button state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Route';
+        submitBtn.disabled = false;
+    }
+}
+
+async function updateVehicleStatus(vehicleId, status) {
+    try {
+        const formData = new FormData();
+        formData.append('status', status);
+        
+        // Show loading toast
+        showToast('Processing', `Updating vehicle status to ${status}...`, 'info');
+        
+        const response = await fetch(`/operator/vehicle/${vehicleId}/update`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (response.ok) {
+            showToast('Success', `Vehicle status updated to ${status}!`, 'success');
+            // Delay reload to show the success message
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showToast('Error', data.error || 'Failed to update vehicle status', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Error', 'An error occurred while updating the vehicle status', 'error');
+    }
+}
+
+async function searchLocation(query) {
+    try {
+        const response = await fetch(`/api/geocode/search?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        
+        const resultsContainer = document.getElementById('search_results');
+        resultsContainer.innerHTML = '';
+        
+        if (data.length === 0) {
+            resultsContainer.innerHTML = '<div class="search-result-item">No results found</div>';
+            resultsContainer.style.display = 'block';
+            return;
+        }
+        
+        data.forEach(result => {
+            const div = document.createElement('div');
+            div.className = 'search-result-item';
+            div.textContent = result.display_name;
+            div.addEventListener('click', () => {
+                const latLng = [parseFloat(result.lat), parseFloat(result.lon)];
+                locationMap.setView(latLng, 16);
+                
+                if (locationMarker) {
+                    locationMarker.setLatLng(latLng);
+                } else {
+                    locationMarker = L.marker(latLng).addTo(locationMap);
+                }
+                
+                selectedLocation = { lat: latLng[0], lng: latLng[1] };
+                // Store the selected location for this vehicle
+                vehicleLocations[currentVehicleId] = selectedLocation;
+                
+                resultsContainer.style.display = 'none';
+                document.getElementById('location-search').value = result.display_name;
+            });
+            
+            resultsContainer.appendChild(div);
+        });
+        
+        resultsContainer.style.display = 'block';
+    } catch (error) {
+        console.error('Error searching location:', error);
+    }
+}
+
+function showLocationModal(vehicleId) {
+    currentVehicleId = vehicleId;
+    document.getElementById('locationModal').style.display = 'flex';
+    
+    // Initialize map if not already done
+    if (!locationMap) {
+        // Default to a central location if no previous selection
+        let initialView = [0, 0];
+        let initialZoom = 13;
+        
+        // If we have a stored location for this vehicle, use it
+        if (vehicleLocations[vehicleId]) {
+            initialView = [vehicleLocations[vehicleId].lat, vehicleLocations[vehicleId].lng];
+            initialZoom = 16;
+            selectedLocation = vehicleLocations[vehicleId];
+        }
+        
+        locationMap = L.map('location-map').setView(initialView, initialZoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(locationMap);
+        
+        // Add click handler
+        locationMap.on('click', (e) => {
+            selectedLocation = e.latlng;
+            // Store the selected location for this vehicle
+            vehicleLocations[currentVehicleId] = selectedLocation;
+            
+            if (locationMarker) {
+                locationMarker.setLatLng(selectedLocation);
+            } else {
+                locationMarker = L.marker(selectedLocation).addTo(locationMap);
+            }
+            
+            // Reverse geocode the clicked location
+            fetch(`/api/geocode/reverse?lat=${selectedLocation.lat}&lon=${selectedLocation.lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.display_name) {
+                        document.getElementById('location-search').value = data.display_name;
+                    }
+                })
+                .catch(error => console.error('Error reverse geocoding:', error));
+        });
+        
+        // Add search input handler
+        const searchInput = document.getElementById('location-search');
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length < 3) {
+                document.getElementById('search-results').style.display = 'none';
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => searchLocation(query), 500);
+        });
+        
+        // Close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                document.getElementById('search-results').style.display = 'none';
+            }
+        });
+    } else {
+        // Map already initialized, check if we have a stored location for this vehicle
+        if (vehicleLocations[vehicleId]) {
+            locationMap.setView([vehicleLocations[vehicleId].lat, vehicleLocations[vehicleId].lng], 16);
+            selectedLocation = vehicleLocations[vehicleId];
+            
+            // Update or create marker
+            if (locationMarker) {
+                locationMarker.setLatLng(selectedLocation);
+            } else {
+                locationMarker = L.marker(selectedLocation).addTo(locationMap);
+            }
+        }
+    }
+    
+    // Force a map resize to handle any container size changes
+    setTimeout(() => {
+        locationMap.invalidateSize();
+        
+        // If no stored location for this vehicle and map was just initialized or has default view,
+        // try to center on user's current location
+        if ((!vehicleLocations[vehicleId] || 
+            (locationMap.getCenter().lat === 0 && locationMap.getCenter().lng === 0)) && 
+            navigator.geolocation) {
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const latLng = [position.coords.latitude, position.coords.longitude];
+                    locationMap.setView(latLng, 15);
+                    
+                    // Place marker at current location
+                    selectedLocation = { lat: latLng[0], lng: latLng[1] };
+                    
+                    if (locationMarker) {
+                        locationMarker.setLatLng(selectedLocation);
+                    } else {
+                        locationMarker = L.marker(selectedLocation).addTo(locationMap);
+                    }
+                    
+                    // Reverse geocode the current location
+                    fetch(`/api/geocode/reverse?lat=${latLng[0]}&lon=${latLng[1]}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.display_name) {
+                                document.getElementById('location-search').value = data.display_name;
+                            }
+                        })
+                        .catch(error => console.error('Error reverse geocoding:', error));
+                },
+                (error) => {
+                    console.error('Error getting location:', error);
+                }
+            );
+        }
+    }, 100);
+}
+
+function hideLocationModal() {
+    document.getElementById('locationModal').style.display = 'none';
+}
+
+async function confirmLocation() {
+    if (!selectedLocation || !currentVehicleId) {
+        showToast('Error', 'Please select a location on the map', 'error');
+        return;
+    }
+    
+    try {
+        // Show loading toast
+        showToast('Processing', 'Updating vehicle location...', 'info');
+        
+        const formData = new FormData();
+        formData.append('latitude', selectedLocation.lat);
+        formData.append('longitude', selectedLocation.lng);
+        
+        const response = await fetch(`/operator/vehicle/${currentVehicleId}/update`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (response.ok) {
+            // Store the confirmed location for this vehicle
+            vehicleLocations[currentVehicleId] = selectedLocation;
+            
+            document.getElementById(`last-updated-${currentVehicleId}`).textContent = 
+                new Date(data.location.last_updated).toLocaleString();
+            hideLocationModal();
+            showToast('Success', 'Vehicle location updated successfully!', 'success');
+        } else {
+            showToast('Error', data.error || 'Failed to update location', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Error', 'An error occurred while updating the location', 'error');
+    }
+}
+
+function updateLocation(vehicleId) {
+    if (!navigator.geolocation) {
+        showToast('Error', 'Geolocation is not supported by your browser', 'error');
+        return;
+    }
+    
+    const accuracyIndicator = document.getElementById(`accuracy-${vehicleId}`);
+    accuracyIndicator.textContent = 'Getting location...';
+    accuracyIndicator.className = 'accuracy-indicator';
+    
+    // Set a timeout to handle cases where geolocation takes too long
+    const locationTimeout = setTimeout(() => {
+        accuracyIndicator.textContent = 'Location request timed out. Trying again with lower accuracy...';
+        accuracyIndicator.className = 'accuracy-indicator accuracy-low';
+        
+        // Try again with lower accuracy settings
+        navigator.geolocation.getCurrentPosition(
+            handlePositionSuccess,
+            handlePositionError,
+            { enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 }
+        );
+    }, 10000);
+    
+    // Function to handle successful position acquisition
+    async function handlePositionSuccess(position) {
+        clearTimeout(locationTimeout);
+        
+        try {
+            // Update accuracy indicator
+            const accuracy = position.coords.accuracy;
+            let accuracyClass = 'accuracy-high';
+            let accuracyText = 'High accuracy';
+            
+            if (accuracy > 100) {
+                accuracyClass = 'accuracy-low';
+                accuracyText = 'Low accuracy';
+            } else if (accuracy > 30) {
+                accuracyClass = 'accuracy-medium';
+                accuracyText = 'Medium accuracy';
+            }
+            
+            accuracyIndicator.textContent = `${accuracyText} (±${Math.round(accuracy)}m)`;
+            accuracyIndicator.className = `accuracy-indicator ${accuracyClass}`;
+            
+            const formData = new FormData();
+            formData.append('latitude', position.coords.latitude);
+            formData.append('longitude', position.coords.longitude);
+            
+            const response = await fetch(`/operator/vehicle/${vehicleId}/update`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                document.getElementById(`last-updated-${vehicleId}`).textContent = 
+                    new Date(data.location.last_updated).toLocaleString();
+                    
+                // Store this location for future reference
+                vehicleLocations[vehicleId] = { 
+                    lat: position.coords.latitude, 
+                    lng: position.coords.longitude 
+                };
+            } else {
+                showToast('Error', data.error || 'Failed to update location', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error', 'An error occurred while updating the location', 'error');
+            accuracyIndicator.textContent = 'Failed to update location';
+            accuracyIndicator.className = 'accuracy-indicator accuracy-low';
+        }
+    }
+    
+    // Function to handle position errors
+    function handlePositionError(error) {
+        clearTimeout(locationTimeout);
+        
+        console.error('Error getting location:', error);
+        let errorMessage = 'Error getting location';
+        
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                errorMessage = 'Location permission denied';
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMessage = 'Location unavailable';
+                break;
+            case error.TIMEOUT:
+                errorMessage = 'Location request timed out';
+                break;
+        }
+        
+        showToast('Error', errorMessage, 'error');
+        accuracyIndicator.textContent = errorMessage;
+        accuracyIndicator.className = 'accuracy-indicator accuracy-low';
+    }
+    
+    // Start the geolocation request with high accuracy first
+    navigator.geolocation.getCurrentPosition(
+        handlePositionSuccess,
+        handlePositionError,
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+// Add event listeners for status and location buttons
+document.addEventListener('DOMContentLoaded', () => {
+    // Status button listeners
+    document.querySelectorAll('.status-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const vehicleId = button.dataset.vehicle;
+            const status = button.dataset.status;
+            updateVehicleStatus(vehicleId, status);
+        });
+    });
+
+    // GPS location button listeners
+    document.querySelectorAll('.location-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const vehicleId = button.dataset.vehicle;
+            updateLocation(vehicleId);
+        });
+    });
+
+    // Manual location button listeners
+    document.querySelectorAll('.manual-location-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const vehicleId = button.dataset.vehicle;
+            showLocationModal(vehicleId);
+        });
+    });
+});
+
+// Close modals when clicking outside
+document.addEventListener('click', (event) => {
+            if (event.target.id === 'routeOverrideModal') {
+            hideRouteOverrideModal();
+        } else if (event.target.id === 'locationModal') {
+        hideLocationModal();
+    } else if (event.target.id === 'liveMapModal') {
+        hideLiveMapModal();
+    }
+});
+
+// Live Map Functions
+function showLiveMapModal() {
+    const modal = document.getElementById('liveMapModal');
+    modal.style.display = 'flex';
+    
+    // Initialize the map after the modal is visible
+    setTimeout(() => {
+        console.log("Modal is now visible, initializing map");
+        initLiveMap();
+    }, 100);
+}
+
+function hideLiveMapModal() {
+    document.getElementById('liveMapModal').style.display = 'none';
+    // Clear the refresh interval when closing the modal
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
+}
+
+function initLiveMap() {
+    console.log("Initializing live map");
+    
+    // Make sure the map container is visible and has dimensions
+    const mapContainer = document.getElementById('live-map');
+    
+    // Check if map container exists
+    if (!mapContainer) {
+        console.error("Map container not found!");
+        return;
+    }
+    
+    console.log("Map container dimensions:", mapContainer.offsetWidth, mapContainer.offsetHeight);
+    
+    // Initialize map if not already done
+    if (!liveMap) {
+        // Force a layout recalculation
+        void mapContainer.offsetWidth;
+        void mapContainer.offsetHeight;
+        
+        try {
+            // Initialize the map
+            liveMap = L.map('live-map').setView([0, 0], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(liveMap);
+            
+            console.log("Map initialized successfully");
+            
+            // Try to center on user's location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const latLng = [position.coords.latitude, position.coords.longitude];
+                        liveMap.setView(latLng, 13);
+                        console.log("Map centered on user location");
+                    },
+                    (error) => {
+                        console.error('Error getting location:', error);
+                    }
+                );
+            }
+        } catch (error) {
+            console.error("Error initializing map:", error);
+        }
+    }
+    
+    // Force a map resize to handle any container size changes
+    setTimeout(() => {
+        console.log("Invalidating map size");
+        if (liveMap) {
+            liveMap.invalidateSize(true);
+            console.log("Map size invalidated");
+        }
+        
+        // Adjust layout for mobile devices
+        adjustLiveMapForMobile();
+    }, 500);  // Increased timeout to give more time for rendering
+    
+    // Load vehicles and commuters
+    loadLiveMapData();
+    
+    // Set up refresh interval (every 10 seconds)
+    if (!refreshInterval) {
+        refreshInterval = setInterval(loadLiveMapData, 10000);
+    }
+    
+    // Add resize listener for responsive adjustments
+    window.addEventListener('resize', adjustLiveMapForMobile);
+}
+
+// Function to adjust live map layout for mobile devices
+function adjustLiveMapForMobile() {
+    // Force map to recalculate its size
+    if (liveMap) {
+        setTimeout(() => liveMap.invalidateSize(true), 100);
+    }
+}
+
+async function loadLiveMapData() {
+    try {
+        // Load vehicles
+        const vehicleResponse = await fetch('/api/vehicles/operator');
+        const vehicleData = await vehicleResponse.json();
+        
+        updateVehiclesOnLiveMap(vehicleData.vehicles);
+        
+        // Load commuters
+        const commuterResponse = await fetch('/api/commuters/nearby');
+        const commuterData = await commuterResponse.json();
+        
+        updateCommutersOnLiveMap(commuterData.commuters);
+    } catch (error) {
+        console.error('Error loading live map data:', error);
+    }
+}
+
+function updateVehiclesOnLiveMap(vehicles) {
+    const vehicleList = document.getElementById('vehicleListLiveMap');
+    vehicleList.innerHTML = '';
+    
+    if (vehicles.length === 0) {
+        vehicleList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--secondary-color);">No active vehicles</div>';
+        return;
+    }
+    
+    vehicles.forEach(vehicle => {
+        // Skip vehicles with invalid coordinates
+        if (!vehicle.latitude || !vehicle.longitude) {
+            return;
+        }
+        
+        // Get a displayed name for the vehicle
+        const vehicleName = vehicle.registration_number || vehicle.vehicle_number || `Vehicle #${vehicle.id}`;
+        
+        // Update or create marker
+        const position = [vehicle.latitude, vehicle.longitude];
+        if (vehicleMarkers[vehicle.id]) {
+            vehicleMarkers[vehicle.id].setLatLng(position);
+            // Update popup content if it exists
+            if (vehicleMarkers[vehicle.id]._popup) {
+                vehicleMarkers[vehicle.id]._popup.setContent(createVehiclePopupContent(vehicle));
+            }
+        } else {
+            const icon = L.divIcon({
+                html: `<i class="fas fa-${vehicle.vehicle_type === 'bus' ? 'bus' : 'van-shuttle'}" 
+                      style="color: ${vehicle.status === 'delayed' ? 'var(--error-color)' : 'var(--success-color)'};
+                      font-size: 24px;"></i>`,
+                className: 'vehicle-marker',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+            
+            vehicleMarkers[vehicle.id] = L.marker(position, {icon: icon})
+                .addTo(liveMap)
+                .bindPopup(createVehiclePopupContent(vehicle));
+        }
+        
+        // Draw the route if it exists
+        if (vehicle.route) {
+            drawVehicleRoute(vehicle.id, vehicle.route);
+        }
+        
+        // Add to list
+        const item = document.createElement('div');
+        item.className = 'vehicle-item';
+        item.style.padding = '12px';
+        item.style.borderBottom = '1px solid var(--border-color)';
+        item.style.cursor = 'pointer';
+        
+        item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div>
+                    <strong>${vehicleName}</strong>
+                    <div style="font-size: 0.875rem; color: var(--secondary-color);">
+                        <i class="fas fa-route"></i> ${vehicle.route || 'No route set'}
+                    </div>
+                </div>
+                <span class="vehicle-status status-${vehicle.status}">
+                    ${vehicle.status}
+                </span>
+            </div>
+        `;
+        
+        item.addEventListener('click', () => {
+            liveMap.setView(position, 15);
+            vehicleMarkers[vehicle.id].openPopup();
+            showVehicleRoute(vehicle.id);
+        });
+        
+        vehicleList.appendChild(item);
+    });
+    
+    // Remove markers for vehicles no longer active
+    Object.keys(vehicleMarkers).forEach(id => {
+        if (!vehicles.find(v => v.id === parseInt(id) && v.latitude && v.longitude)) {
+            liveMap.removeLayer(vehicleMarkers[id]);
+            delete vehicleMarkers[id];
+            
+            // Remove route as well
+            if (routePolylines[id]) {
+                liveMap.removeLayer(routePolylines[id]);
+                delete routePolylines[id];
+            }
+        }
+    });
+}
+
+// Helper function to create popup content for vehicles
+function createVehiclePopupContent(vehicle) {
+    // Get a displayed name for the vehicle
+    const vehicleName = vehicle.registration_number || vehicle.vehicle_number || `Vehicle #${vehicle.id}`;
+    
+    return `
+        <div style="min-width: 200px;">
+            <strong>${vehicleName}</strong><br>
+            <div style="margin-top: 8px;">
+                <strong>Route:</strong> ${vehicle.route || 'Not set'}<br>
+                <strong>Status:</strong> ${vehicle.status}<br>
+                <strong>Last updated:</strong> ${formatTimestamp(vehicle.last_updated)}
+            </div>
+            <button class="btn btn-primary view-route-btn" 
+                    style="margin-top: 8px; width: 100%; padding: 6px;"
+                    onclick="showVehicleRoute(${vehicle.id})">
+                <i class="fas fa-route"></i> View Route
+            </button>
+        </div>
+    `;
+}
+
+// Add this function to show vehicle routes when clicked
+function showVehicleRoute(vehicleId) {
+    // Show loading state
+    console.log(`Loading route for vehicle ${vehicleId}...`);
+    
+    // Fetch the latest vehicle data
+    fetch(`/api/vehicles/${vehicleId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status} ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Vehicle data received:", data);
+            
+            if (data.success && data.vehicle) {
+                // Check if vehicle has route information
+                const vehicle = data.vehicle;
+                
+                if (vehicle.route) {
+                    // Draw the route on the map
+                    drawVehicleRoute(vehicleId, vehicle.route);
+                    
+                    // If there's a marker for this vehicle, make sure it's visible
+                    if (vehicleMarkers[vehicleId]) {
+                        const position = vehicleMarkers[vehicleId].getLatLng();
+                        // If we have a route polyline, fit the map to the route bounds
+                        if (routePolylines[vehicleId]) {
+                            liveMap.fitBounds(routePolylines[vehicleId].getBounds(), {
+                                padding: [50, 50]
+                            });
+                        } else {
+                            // Otherwise center on the vehicle
+                            liveMap.setView(position, 15);
+                        }
+                    }
+                } else {
+                    // No route set
+                    showToast('Info', 'No route information available for this vehicle.', 'info');
+                }
+            } else {
+                showToast('Error', data.error || 'Could not retrieve vehicle information', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error getting vehicle details:', error);
+            showToast('Error', `Error retrieving vehicle information: ${error.message}`, 'error');
+        });
+}
+
+// Helper function to format timestamps
+function formatTimestamp(timestamp) {
+    if (!timestamp) return 'Never';
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+}
+
+function updateCommutersOnLiveMap(commuters) {
+    const commuterList = document.getElementById('commuterList');
+    commuterList.innerHTML = '';
+    
+    if (commuters.length === 0) {
+        commuterList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--secondary-color);">No commuters nearby</div>';
+        return;
+    }
+    
+    commuters.forEach(commuter => {
+        // Skip commuters with invalid coordinates
+        if (!commuter.latitude || !commuter.longitude) {
+            return;
+        }
+        
+        // Update or create marker
+        const position = [commuter.latitude, commuter.longitude];
+        if (commuterMarkers[commuter.id]) {
+            commuterMarkers[commuter.id].setLatLng(position);
+        } else {
+            const icon = L.divIcon({
+                html: `<i class="fas fa-user" style="color: var(--primary-color); font-size: 20px;"></i>`,
+                className: 'commuter-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+            
+            commuterMarkers[commuter.id] = L.marker(position, {icon: icon})
+                .addTo(liveMap)
+                .bindPopup(`
+                    <strong>Commuter</strong><br>
+                    Last updated: ${new Date(commuter.last_updated).toLocaleString()}
+                `);
+        }
+        
+        // Add to list
+        const item = document.createElement('div');
+        item.className = 'commuter-item';
+        item.style.padding = '12px';
+        item.style.borderBottom = '1px solid var(--border-color)';
+        item.style.cursor = 'pointer';
+        
+        item.innerHTML = `
+            <div>
+                <strong>Commuter #${commuter.id}</strong>
+                <div style="font-size: 0.875rem; color: var(--secondary-color);">
+                    <i class="fas fa-clock"></i> ${new Date(commuter.last_updated).toLocaleString()}
+                </div>
+            </div>
+        `;
+        
+        item.addEventListener('click', () => {
+            liveMap.setView(position, 15);
+            commuterMarkers[commuter.id].openPopup();
+        });
+        
+        commuterList.appendChild(item);
+    });
+    
+    // Remove markers for commuters no longer nearby
+    Object.keys(commuterMarkers).forEach(id => {
+        if (!commuters.find(c => c.id === parseInt(id) && c.latitude && c.longitude)) {
+            liveMap.removeLayer(commuterMarkers[id]);
+            delete commuterMarkers[id];
+        }
+    });
+}
+
+// Continuous location tracking for drivers
+function startContinuousLocationTracking() {
+    if (navigator.geolocation) {
+        // Show tracking indicator
+        const statusElement = document.getElementById('tracking-status');
+        if (statusElement) {
+            statusElement.textContent = 'Tracking active';
+            statusElement.classList.add('active');
+        }
+        
+        // Get the vehicle ID before starting tracking
+        const vehicleId = getCurrentActiveVehicle();
+        if (!vehicleId) {
+            console.error('No active vehicle found for tracking');
+            if (statusElement) {
+                statusElement.textContent = 'No vehicle to track';
+                statusElement.classList.add('error');
+            }
+            return;
+        }
+        
+        console.log(`Starting continuous tracking for vehicle ${vehicleId}`);
+        
+        // Set a timeout to handle cases where geolocation takes too long
+        const locationTimeout = setTimeout(() => {
+            console.log('Location request timed out. Trying again with lower accuracy...');
+            if (statusElement) {
+                statusElement.textContent = 'Tracking with lower accuracy';
+                statusElement.classList.remove('active');
+                statusElement.classList.add('warning');
+            }
+            
+            // Try again with lower accuracy settings
+            if (watchPositionId !== null) {
+                navigator.geolocation.clearWatch(watchPositionId);
+            }
+            
+            watchPositionId = navigator.geolocation.watchPosition(
+                handlePositionSuccess,
+                handlePositionError,
+                { 
+                    enableHighAccuracy: false, 
+                    timeout: 15000, 
+                    maximumAge: 30000 
+                }
+            );
+        }, 10000);
+        
+        // Start watching position with high accuracy
+        watchPositionId = navigator.geolocation.watchPosition(
+            handlePositionSuccess,
+            handlePositionError,
+            {
+                enableHighAccuracy: true,
+                maximumAge: 5000,
+                timeout: 10000
+            }
+        );
+        
+        // Function to handle successful position acquisition
+        function handlePositionSuccess(position) {
+            clearTimeout(locationTimeout);
+            
+            const currentPosition = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy
+            };
+            
+            // Update status with accuracy information
+            if (statusElement && currentPosition.accuracy) {
+                let accuracyClass = 'active';
+                let accuracyText = 'Tracking active';
+                
+                if (currentPosition.accuracy > 100) {
+                    accuracyClass = 'error';
+                    accuracyText = 'Low accuracy';
+                } else if (currentPosition.accuracy > 30) {
+                    accuracyClass = 'warning';
+                    accuracyText = 'Medium accuracy';
+                }
+                
+                statusElement.textContent = accuracyText;
+                statusElement.className = 'tracking-status ' + accuracyClass;
+            }
+            
+            // Only send updates if position changed significantly or enough time passed
+            if (!lastReportedPosition || 
+                calculateDistance(lastReportedPosition, currentPosition) > MIN_DISTANCE_CHANGE ||
+                (lastReportedPosition.timestamp && (Date.now() - lastReportedPosition.timestamp) > MIN_TIME_INTERVAL)) {
+                
+                // Update the timestamp
+                currentPosition.timestamp = Date.now();
+                
+                // Get the current vehicle ID (it might have changed)
+                const currentVehicleId = getCurrentActiveVehicle();
+                
+                // Send the location update
+                updateVehicleLocation(currentVehicleId, currentPosition.lat, currentPosition.lng, currentPosition.accuracy);
+                
+                // Update the vehicle marker on the live map if it's open
+                if (liveMap && vehicleMarkers) {
+                    if (currentVehicleId && vehicleMarkers[currentVehicleId]) {
+                        vehicleMarkers[currentVehicleId].setLatLng([currentPosition.lat, currentPosition.lng]);
+                        liveMap.panTo([currentPosition.lat, currentPosition.lng]);
+                    }
+                }
+                
+                // Save as last reported position
+                lastReportedPosition = currentPosition;
+            }
+        }
+        
+        // Function to handle position errors
+        function handlePositionError(error) {
+            clearTimeout(locationTimeout);
+            
+            console.error('Error getting location:', error);
+            const statusElement = document.getElementById('tracking-status');
+            if (statusElement) {
+                statusElement.textContent = 'Tracking error';
+                statusElement.classList.remove('active');
+                statusElement.classList.remove('warning');
+                statusElement.classList.add('error');
+            }
+        }
+    }
+}
+
+// Update vehicle location (replaces sendLocationUpdate)
+function updateVehicleLocation(vehicleId, latitude, longitude, accuracy) {
+    if (!vehicleId) {
+        console.error('No vehicle ID provided for location update');
+        return;
+    }
+    
+    console.log(`Updating location for vehicle ${vehicleId}: ${latitude}, ${longitude}`);
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('latitude', latitude);
+    formData.append('longitude', longitude);
+    formData.append('accuracy', accuracy);
+    
+    // Send update to server
+    fetch(`/operator/vehicle/${vehicleId}/update`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log(`Location updated for vehicle ${vehicleId}`);
+            // Update the last updated timestamp in the UI
+            const lastUpdatedElement = document.getElementById(`last-updated-${vehicleId}`);
+            if (lastUpdatedElement) {
+                lastUpdatedElement.textContent = new Date(data.location.last_updated).toLocaleString();
+            }
+            
+            // Store this location for future reference
+            vehicleLocations[vehicleId] = { lat: latitude, lng: longitude };
+        } else {
+            console.error('Error updating location:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error sending location update:', error);
+    });
+}
+
+function calculateDistance(pos1, pos2) {
+    // Simple Haversine formula to calculate distance between two points
+    const R = 6371e3; // Earth radius in meters
+    const φ1 = pos1.lat * Math.PI/180;
+    const φ2 = pos2.lat * Math.PI/180;
+    const Δφ = (pos2.lat - pos1.lat) * Math.PI/180;
+    const Δλ = (pos2.lng - pos1.lng) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in meters
+}
+
+// Add tracking controls to the UI
+function addTrackingControls() {
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'tracking-controls';
+    controlsDiv.innerHTML = `
+        <div class="card" style="margin-bottom: 16px;">
+            <div style="background-color: var(--primary-color); color: white; padding: 10px 16px; border-radius: 8px 8px 0 0; display: flex; align-items: center;">
+                <h5 style="margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-satellite-dish"></i> Live Location Tracking
+                </h5>
+            </div>
+            <div style="padding: 12px 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                    <span id="tracking-status" style="font-size: 0.9rem; padding: 4px 8px; border-radius: 4px; background-color: var(--hover-color);">Tracking inactive</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="tracking-toggle" style="margin: 0; width: 16px; height: 16px;">
+                        <label for="tracking-toggle" style="margin: 0; font-size: 0.9rem;">Enable tracking</label>
+                    </div>
+                </div>
+                <div class="tracking-info">
+                    <p style="margin: 8px 0 0 0;"><small style="color: var(--text-secondary); font-size: 0.8rem;">When active, your vehicle's location will be continuously updated on the map.</small></p>
+                    <p style="margin: 8px 0 0 0;"><small id="tracking-vehicle-info" style="font-size: 0.8rem;">No vehicle selected for tracking</small></p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Insert after the heading, before the vehicle grid
+    const heading = document.querySelector('.page-header');
+    heading.parentNode.insertBefore(controlsDiv, heading.nextSibling);
+    
+    // Add event listener to the toggle
+    document.getElementById('tracking-toggle').addEventListener('change', function(e) {
+        if (e.target.checked) {
+            // Get the current active vehicle
+            const vehicleId = getCurrentActiveVehicle();
+            if (vehicleId) {
+                // Update the tracking info
+                const vehicleInfo = document.getElementById('tracking-vehicle-info');
+                const vehicleElement = document.querySelector(`[data-vehicle="${vehicleId}"]`);
+                if (vehicleElement) {
+                    const vehicleCard = vehicleElement.closest('.card');
+                    const vehicleNumber = vehicleCard.querySelector('h3').textContent;
+                    vehicleInfo.textContent = `Tracking vehicle: ${vehicleNumber}`;
+                    vehicleInfo.style.color = 'var(--success-color)';
+                }
+                startContinuousLocationTracking();
+            } else {
+                showToast('Error', 'No vehicle available for tracking. Please add a vehicle first.', 'error');
+                e.target.checked = false;
+            }
+        } else {
+            stopContinuousLocationTracking();
+            // Reset the tracking info
+            const vehicleInfo = document.getElementById('tracking-vehicle-info');
+            vehicleInfo.textContent = 'No vehicle selected for tracking';
+            vehicleInfo.style.color = '';
+        }
+    });
+    
+    // Add styles for tracking status
+    const style = document.createElement('style');
+    style.textContent = `
+        #tracking-status.active {
+            background-color: var(--success-color) !important;
+            color: white !important;
+            font-weight: bold;
+        }
+        
+        #tracking-status.warning {
+            background-color: var(--warning-color) !important;
+            color: white !important;
+            font-weight: bold;
+        }
+        
+        #tracking-status.error {
+            background-color: var(--error-color) !important;
+            color: white !important;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 480px) {
+            .tracking-controls .card > div:last-child {
+                padding: 10px !important;
+            }
+            
+            #tracking-status {
+                font-size: 0.8rem !important;
+                padding: 3px 6px !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Call this function when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
+    
+    // Add tracking controls to the UI
+    // addTrackingControls(); // Removed Live Location Tracking card
+});
+
+// Send location update to server for the active vehicle
+function sendLocationUpdate(latitude, longitude) {
+    // Find the active vehicle ID (the one that's currently being tracked)
+    const activeVehicleId = getCurrentActiveVehicle();
+    
+    if (!activeVehicleId) {
+        console.error('No active vehicle selected for tracking');
+        return;
+    }
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('latitude', latitude);
+    formData.append('longitude', longitude);
+    
+    // Send update to server
+    fetch(`/operator/vehicle/${activeVehicleId}/update`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log(`Location updated for vehicle ${activeVehicleId}`);
+            // Update the last updated timestamp in the UI
+            const lastUpdatedElement = document.getElementById(`last-updated-${activeVehicleId}`);
+            if (lastUpdatedElement) {
+                lastUpdatedElement.textContent = new Date(data.location.last_updated).toLocaleString();
+            }
+        } else {
+            console.error('Error updating location:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error sending location update:', error);
+    });
+}
+
+// Get the currently active vehicle for tracking
+function getCurrentActiveVehicle() {
+    // First, check if we're in the location modal with a specific vehicle
+    if (currentVehicleId) {
+        return currentVehicleId;
+    }
+    
+    // Next, try to find a vehicle with 'active' status
+    const statusElements = document.querySelectorAll('.vehicle-status.status-active');
+    if (statusElements.length > 0) {
+        for (const statusElement of statusElements) {
+            // Find the closest card and then find the button with data-vehicle
+            const card = statusElement.closest('.card');
+            if (card) {
+                const button = card.querySelector('[data-vehicle]');
+                if (button) {
+                    return button.dataset.vehicle;
+                }
+            }
+        }
+    }
+    
+    // If no active vehicle found, use the first vehicle in the list
+    const vehicleButtons = document.querySelectorAll('[data-vehicle]');
+    if (vehicleButtons.length > 0) {
+        return vehicleButtons[0].dataset.vehicle;
+    }
+    
+    return null;
+}
+
+// Stop continuous location tracking
+function stopContinuousLocationTracking() {
+    if (watchPositionId !== null) {
+        navigator.geolocation.clearWatch(watchPositionId);
+        watchPositionId = null;
+        
+        const statusElement = document.getElementById('tracking-status');
+        if (statusElement) {
+            statusElement.textContent = 'Tracking stopped';
+            statusElement.classList.remove('active');
+        }
+    }
+}
+
+// Function to draw a route for a vehicle
+function drawVehicleRoute(vehicleId, routeName) {
+    // Remove existing route if any
+    if (routePolylines[vehicleId] && liveMap) {
+        liveMap.removeLayer(routePolylines[vehicleId]);
+        delete routePolylines[vehicleId];
+    }
+    
+    // Skip if map not initialized or invalid route
+    if (!liveMap || !routeName) return;
+    
+    console.log(`Drawing route for vehicle ${vehicleId}: ${routeName}`);
+
+    // Define common routes with coordinates
+    const routes = {
+        "Bataraza to Brooke's Point": [
+            [8.6737, 117.6544], // Bataraza coordinates
+            [8.7803, 117.6843], // Intermediate point
+            [8.7894, 117.7012], // Intermediate point
+            [8.7979, 117.8302], // Brooke's Point coordinates
+        ],
+        "Puerto Princesa to El Nido": [
+            [9.7406, 118.7397], // Puerto Princesa
+            [10.1152, 119.3138], // Intermediate point
+            [10.5512, 119.4917], // Intermediate point
+            [11.1923, 119.4120] // El Nido
+        ],
+        "Taytay to San Vicente": [
+            [10.8285, 119.5270], // Taytay 
+            [10.6885, 119.3752], // Intermediate point
+            [10.5207, 119.2964] // San Vicente
+        ],
+        // Add more predefined routes as needed
+    };
+    
+    // Get coordinates for the specified route
+    let coordinates = routes[routeName];
+    
+    // If not a predefined route, try to parse it as "A to B" format
+    if (!coordinates) {
+        const routeParts = routeName.split(' to ');
+        if (routeParts.length === 2) {
+            // Try to get the vehicle position for the start point if available
+            const vehicle = vehicleMarkers[vehicleId];
+            let origin, destination;
+            
+            // Function to fetch route from OSRM
+            const fetchRouteFromOSRM = (startPoint, endPoint) => {
+                const osrmApiUrl = `https://router.project-osrm.org/route/v1/driving/${startPoint.lng},${startPoint.lat};${endPoint.lng},${endPoint.lat}?overview=full&geometries=geojson`;
+                
+                fetch(osrmApiUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                            // Get the coordinates from the response
+                            const routeCoordinates = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                            
+                            // Draw the route with these coordinates
+                            updateRoutePolyline(vehicleId, routeCoordinates);
+                        } else {
+                            console.error('Failed to get route from OSRM:', data);
+                            // Fall back to a straight line if needed
+                            if (startPoint && endPoint) {
+                                const fallbackCoords = [
+                                    [startPoint.lat, startPoint.lng],
+                                    [endPoint.lat, endPoint.lng]
+                                ];
+                                updateRoutePolyline(vehicleId, fallbackCoords);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching route from OSRM:', error);
+                        // Fall back to a straight line
+                        if (startPoint && endPoint) {
+                            const fallbackCoords = [
+                                [startPoint.lat, startPoint.lng],
+                                [endPoint.lat, endPoint.lng]
+                            ];
+                            updateRoutePolyline(vehicleId, fallbackCoords);
+                        }
+                    });
+            };
+            
+            if (vehicle) {
+                // If the vehicle has a current position, use it as the starting point
+                const vehiclePos = vehicle.getLatLng();
+                origin = { lat: vehiclePos.lat, lng: vehiclePos.lng };
+                
+                // Get the destination coordinates through geocoding
+                fetchGeocode(routeParts[1])
+                    .then(destCoords => {
+                        if (destCoords) {
+                            // Once we have both origin and destination, fetch the route
+                            fetchRouteFromOSRM(origin, destCoords);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error geocoding destination:", err);
+                    });
+            } else {
+                // Try to get coordinates for both origin and destination through geocoding
+                Promise.all([
+                    fetchGeocode(routeParts[0]),
+                    fetchGeocode(routeParts[1])
+                ]).then(results => {
+                    if (results[0] && results[1]) {
+                        const [originCoords, destCoords] = results;
+                        // Once we have both coordinates, fetch the route
+                        fetchRouteFromOSRM(originCoords, destCoords);
+                    }
+                }).catch(err => {
+                    console.error("Error geocoding route points:", err);
+                });
+            }
+            
+            // Return early since we're handling the route asynchronously
+            return;
+        }
+    }
+    
+    // Draw the route if coordinates exist (for predefined routes)
+    if (coordinates && coordinates.length > 1) {
+        updateRoutePolyline(vehicleId, coordinates);
+    }
+}
+
+// Helper function to update route polyline with coordinates
+function updateRoutePolyline(vehicleId, coordinates) {
+    if (!liveMap) return;
+    
+    if (routePolylines[vehicleId]) {
+        routePolylines[vehicleId].setLatLngs(coordinates);
+    } else {
+        routePolylines[vehicleId] = L.polyline(coordinates, {
+            color: '#2196F3',
+            weight: 5,
+            opacity: 0.8
+        }).addTo(liveMap);
+    }
+}
+
+// Helper function to get coordinates from a place name
+async function fetchGeocode(placeName) {
+    try {
+        const response = await fetch(`/api/geocode/search?q=${encodeURIComponent(placeName)}&limit=1`);
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+            return {
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon)
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('Error geocoding:', error);
+        return null;
+    }
+}
+
+// Vehicle Search and Filter System
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSearchAndFilters();
+    initializeRouteMaps();
+});
+
+function initializeSearchAndFilters() {
+    const searchInput = document.getElementById('vehicleSearch');
+    const typeFilter = document.getElementById('typeFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const occupancyFilter = document.getElementById('occupancyFilter');
+    const clearFiltersBtn = document.getElementById('clearFilters');
+    
+    // Add event listeners
+    if (searchInput) searchInput.addEventListener('input', filterVehicles);
+    if (typeFilter) typeFilter.addEventListener('change', filterVehicles);
+    if (statusFilter) statusFilter.addEventListener('change', filterVehicles);
+    if (occupancyFilter) occupancyFilter.addEventListener('change', filterVehicles);
+    if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', clearAllFilters);
+    
+    // Initialize filter display
+    updateActiveFiltersDisplay();
+}
+
+function filterVehicles() {
+    const searchTerm = document.getElementById('vehicleSearch')?.value.toLowerCase() || '';
+    const typeFilter = document.getElementById('typeFilter')?.value || '';
+    const statusFilter = document.getElementById('statusFilter')?.value || '';
+    const occupancyFilter = document.getElementById('occupancyFilter')?.value || '';
+    
+    const vehicleCards = document.querySelectorAll('.vehicle-grid .card');
+    let visibleCount = 0;
+    
+    vehicleCards.forEach(card => {
+        let shouldShow = true;
+        
+        // Get vehicle data from the card
+        const vehicleName = card.querySelector('h3')?.textContent.toLowerCase() || '';
+        const vehicleType = card.querySelector('p')?.textContent.toLowerCase() || '';
+        const statusBadges = card.querySelectorAll('.vehicle-status-info .badge');
+        const occupancyBadge = card.querySelector('.vehicle-status-badges .badge');
+        
+        // Extract status and occupancy from badges
+        let status = '';
+        let occupancy = '';
+        
+        statusBadges.forEach(badge => {
+            const badgeText = badge.textContent.toLowerCase();
+            if (badgeText.includes('active') || badgeText.includes('inactive') || badgeText.includes('delayed')) {
+                status = badgeText.includes('active') ? 'active' : 
+                        badgeText.includes('delayed') ? 'delayed' : 'inactive';
+            }
+        });
+        
+        if (occupancyBadge) {
+            const occupancyText = occupancyBadge.textContent.toLowerCase();
+            if (occupancyText.includes('vacant')) occupancy = 'vacant';
+            else if (occupancyText.includes('partial')) occupancy = 'partial';
+            else if (occupancyText.includes('full')) occupancy = 'full';
+        }
+        
+        // Apply search filter
+        if (searchTerm && !vehicleName.includes(searchTerm) && !vehicleType.includes(searchTerm)) {
+            shouldShow = false;
+        }
+        
+        // Apply type filter
+        if (typeFilter && !vehicleType.includes(typeFilter)) {
+            shouldShow = false;
+        }
+        
+        // Apply status filter
+        if (statusFilter && status !== statusFilter) {
+            shouldShow = false;
+        }
+        
+        // Apply occupancy filter
+        if (occupancyFilter && occupancy !== occupancyFilter) {
+            shouldShow = false;
+        }
+        
+        // Show/hide card
+        if (shouldShow) {
+            card.style.display = 'block';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Update active filters display
+    updateActiveFiltersDisplay();
+    
+    // Show no results message if needed
+    showNoResultsMessage(visibleCount === 0);
+}
+
+function updateActiveFiltersDisplay() {
+    const activeFilters = document.getElementById('activeFilters');
+    const filterTags = document.getElementById('filterTags');
+    
+    if (!activeFilters || !filterTags) return;
+    
+    const filters = [];
+    const searchTerm = document.getElementById('vehicleSearch')?.value || '';
+    const typeFilter = document.getElementById('typeFilter')?.value || '';
+    const statusFilter = document.getElementById('statusFilter')?.value || '';
+    const occupancyFilter = document.getElementById('occupancyFilter')?.value || '';
+    
+    if (searchTerm) filters.push({ type: 'search', value: searchTerm, label: `Search: "${searchTerm}"` });
+    if (typeFilter) filters.push({ type: 'type', value: typeFilter, label: `Type: ${typeFilter}` });
+    if (statusFilter) filters.push({ type: 'status', value: statusFilter, label: `Status: ${statusFilter}` });
+    if (occupancyFilter) filters.push({ type: 'occupancy', value: occupancyFilter, label: `Occupancy: ${occupancyFilter}` });
+    
+    if (filters.length > 0) {
+        activeFilters.style.display = 'block';
+        filterTags.innerHTML = '';
+        
+        filters.forEach(filter => {
+            const tag = document.createElement('span');
+            tag.className = 'filter-tag';
+            tag.innerHTML = `
+                ${filter.label}
+                <span class="remove-filter" onclick="removeFilter('${filter.type}')">&times;</span>
+            `;
+            filterTags.appendChild(tag);
+        });
+    } else {
+        activeFilters.style.display = 'none';
+    }
+}
+
+function removeFilter(filterType) {
+    switch (filterType) {
+        case 'search':
+            document.getElementById('vehicleSearch').value = '';
+            break;
+        case 'type':
+            document.getElementById('typeFilter').value = '';
+            break;
+        case 'status':
+            document.getElementById('statusFilter').value = '';
+            break;
+        case 'occupancy':
+            document.getElementById('occupancyFilter').value = '';
+            break;
+    }
+    
+    filterVehicles();
+}
+
+function clearAllFilters() {
+    document.getElementById('vehicleSearch').value = '';
+    document.getElementById('typeFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('occupancyFilter').value = '';
+    
+    filterVehicles();
+}
+
+function showNoResultsMessage(show) {
+    let noResultsDiv = document.getElementById('noResultsMessage');
+    
+    if (show) {
+        if (!noResultsDiv) {
+            noResultsDiv = document.createElement('div');
+            noResultsDiv.id = 'noResultsMessage';
+            noResultsDiv.className = 'text-center py-4';
+            noResultsDiv.innerHTML = `
+                <div class="text-muted">
+                    <i class="fas fa-search fa-2x mb-3"></i>
+                    <h5>No vehicles found</h5>
+                    <p>Try adjusting your search criteria or filters.</p>
+                </div>
+            `;
+        }
+        
+        const vehicleGrid = document.querySelector('.vehicle-grid');
+        if (vehicleGrid && !vehicleGrid.contains(noResultsDiv)) {
+            vehicleGrid.appendChild(noResultsDiv);
+        }
+    } else {
+        if (noResultsDiv) {
+            noResultsDiv.remove();
+        }
+    }
+}
+
+// Route Map System
+function initializeRouteMaps() {
+    const routeMaps = document.querySelectorAll('.route-map');
+    
+    routeMaps.forEach(mapContainer => {
+        const vehicleId = mapContainer.dataset.vehicleId;
+        const route = mapContainer.dataset.route;
+        const routeInfo = mapContainer.dataset.routeInfo;
+        
+        if (route && route !== 'No route set') {
+            createRouteMap(mapContainer, vehicleId, route, routeInfo);
+        }
+    });
+}
+
+function createRouteMap(container, vehicleId, route, routeInfo) {
+    // Add loading state
+    container.classList.add('loading');
+    
+    try {
+        // Parse route info if available
+        let origin = '';
+        let destination = '';
+        
+        if (routeInfo) {
+            try {
+                const routeData = JSON.parse(routeInfo);
+                origin = routeData.origin || '';
+                destination = routeData.destination || '';
+            } catch (e) {
+                // If JSON parsing fails, try to extract from route string
+                if (route.includes(' → ')) {
+                    const parts = route.split(' → ');
+                    origin = parts[0].trim();
+                    destination = parts[1].trim();
+                }
+            }
+        } else if (route.includes(' → ')) {
+            const parts = route.split(' → ');
+            origin = parts[0].trim();
+            destination = parts[1].trim();
+        }
+        
+        if (origin && destination) {
+            // Create map with route visualization
+            createMapWithRoute(container, origin, destination, vehicleId);
+        } else {
+            // Create simple map with route text
+            createSimpleMap(container, route, vehicleId);
+            container.classList.remove('loading');
+        }
+    } catch (error) {
+        console.error('Error creating route map:', error);
+        createSimpleMap(container, route, vehicleId);
+        container.classList.remove('loading');
+    }
+}
+
+function createMapWithRoute(container, origin, destination, vehicleId) {
+    // Initialize map
+    const map = L.map(container, {
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false
+    });
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: ''
+    }).addTo(map);
+    
+    // Geocode origin and destination
+    Promise.all([
+        geocodeAddress(origin),
+        geocodeAddress(destination)
+    ]).then(([originCoords, destCoords]) => {
+        if (originCoords && destCoords) {
+            // Add markers
+            const originMarker = L.marker(originCoords).addTo(map);
+            const destMarker = L.marker(destCoords).addTo(map);
+
+            // Try to fetch a road-following route via OSRM
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${originCoords[1]},${originCoords[0]};${destCoords[1]},${destCoords[0]}?overview=full&geometries=geojson`;
+            fetch(osrmUrl)
+                .then(r => r.json())
+                .then(routeData => {
+                    if (routeData && routeData.routes && routeData.routes.length > 0) {
+                        const route = routeData.routes[0];
+                        const coords = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+                        L.polyline(coords, { color: '#007bff', weight: 3, opacity: 0.9 }).addTo(map);
+                        const bounds = L.latLngBounds(coords);
+                        map.fitBounds(bounds, { padding: [10, 10] });
+
+                        // Distance badge
+                        const km = (route.distance / 1000).toFixed(1);
+                        const badge = document.createElement('div');
+                        badge.className = 'route-distance-badge';
+                        badge.textContent = `${km} km`;
+                        container.appendChild(badge);
+                    } else {
+                        // Fallback straight line
+                        const line = L.polyline([originCoords, destCoords], { color: '#007bff', weight: 3, opacity: 0.8 }).addTo(map);
+                        const bounds = L.latLngBounds([originCoords, destCoords]);
+                        map.fitBounds(bounds, { padding: [10, 10] });
+                    }
+                })
+                .catch(() => {
+                    // Fallback straight line on error
+                    const line = L.polyline([originCoords, destCoords], { color: '#007bff', weight: 3, opacity: 0.8 }).addTo(map);
+                    const bounds = L.latLngBounds([originCoords, destCoords]);
+                    map.fitBounds(bounds, { padding: [10, 10] });
+                });
+
+            // Popups
+            originMarker.bindPopup(`<b>Origin:</b> ${origin}`);
+            destMarker.bindPopup(`<b>Destination:</b> ${destination}`);
+
+        } else {
+            createSimpleMap(container, `${origin} → ${destination}`, vehicleId);
+        }
+
+        container.classList.remove('loading');
+    }).catch(error => {
+        console.error('Error geocoding route:', error);
+        createSimpleMap(container, `${origin} → ${destination}`, vehicleId);
+        container.classList.remove('loading');
+    });
+}
+
+function createSimpleMap(container, route, vehicleId) {
+    // Create a simple map display when geocoding fails
+    container.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+            <div style="text-align: center; padding: 16px;">
+                <i class="fas fa-route" style="font-size: 1.5rem; color: #6c757d; margin-bottom: 8px;"></i>
+                <div style="font-size: 0.8rem; color: #6c757d; line-height: 1.3;">
+                    <strong>Route:</strong><br>
+                    ${route}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function geocodeAddress(address) {
+    return fetch(`/operator/geocode?q=${encodeURIComponent(address)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.length > 0) {
+                const result = data[0];
+                return [parseFloat(result.lat), parseFloat(result.lon)];
+            }
+            return null;
+        })
+        .catch(error => {
+            console.error('Geocoding error:', error);
+            return null;
+        });
+}
+
+// Function to refresh route maps (useful when new vehicles are added)
+function refreshRouteMaps() {
+    initializeRouteMaps();
+}
+</script>
+
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    width: 90%;
+    max-width: 1200px;
+    height: auto;
+    max-height: 90vh;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.location-map {
+    height: 400px;
+    width: 100%;
+    border-radius: 8px;
+    margin: 16px 0;
+    border: 1px solid var(--border-color);
+}
+
+.search-container {
+    position: relative;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1001;
+    display: none;
+}
+
+.search-result-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover {
+    background-color: var(--hover-color);
+}
+
+/* Mobile responsive modal styles */
+@media (max-width: 768px) {
+    .modal-content {
+        padding: 16px;
+        width: 95%;
+    }
+    
+    .location-map {
+        height: 350px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content {
+        padding: 12px;
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .location-map {
+        height: 300px;
+        margin: 12px 0;
+    }
+}
+</style>
+{% endblock %} 

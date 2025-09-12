@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: drive-monitoring
+    env: python
+    runtime: python3.11
+    pythonVersion: 3.11.8
+    buildCommand: pip install --prefer-binary -r requirements.txt
+    startCommand: |
+      echo "Testing database connection..." &&
+      python test_db.py &&
+      echo "Checking database structure..." &&
+      python check_db.py &&
+      echo "Running database migrations..." &&
+      python run_migrations.py &&
+      echo "Adding missing columns directly (backup approach)..." &&
+      python add_missing_columns.py &&
+      echo "Updating vehicle locations from logs..." &&
+      python update_vehicle_locations.py &&
+      echo "Setting vehicles with coordinates to active status..." &&
+      python set_vehicles_active.py &&
+      echo "Starting web server..." &&
+      gunicorn --worker-class gunicorn.workers.sync.SyncWorker -w 1 --preload --timeout 120 --keep-alive 65 --log-level info wsgi:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: drive-monitoring-db
+          property: connectionString
+      - key: FLASK_APP
+        value: wsgi.py
+      - key: PYTHONUNBUFFERED
+        value: true
+      - key: FLASK_ENV
+        value: production
+      - key: SOCKETIO_PING_TIMEOUT
+        value: 60
+      - key: SOCKETIO_PING_INTERVAL
+        value: 25
+      - key: SOCKETIO_ASYNC_MODE
+        value: "threading"
+      - key: SOCKETIO_CORS_ALLOWED_ORIGINS
+        value: "*"
+      - key: GUNICORN_TIMEOUT
+        value: 120
+
+databases:
+  - name: drive-monitoring-db
+    databaseName: drive_monitoring
+    plan: free
+    ipAllowList: []

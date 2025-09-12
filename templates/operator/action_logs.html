@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+
+{% block title %}Operator Action Logs - TransportWatch{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-list me-2"></i>Driver Action Logs
+        </h1>
+        <div>
+            <button class="btn btn-outline-primary me-2" onclick="loadLogs()">
+                <i class="fas fa-sync-alt me-2"></i>Refresh
+            </button>
+            <button class="btn btn-outline-success" onclick="exportLogs()">
+                <i class="fas fa-download me-2"></i>Export CSV
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Filter Logs
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="driverFilter" class="form-label">Driver</label>
+                    <select class="form-select" id="driverFilter">
+                        <option value="">All Drivers</option>
+                        {% for driver in drivers %}
+                        <option value="{{ driver.id }}">{{ driver.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="vehicleFilter" class="form-label">Vehicle</label>
+                    <select class="form-select" id="vehicleFilter">
+                        <option value="">All Vehicles</option>
+                        {% for vehicle in vehicles %}
+                        <option value="{{ vehicle.id }}">{{ vehicle.registration_number }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="startDate" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="endDate" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="endDate">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Action Types</label>
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="actionTypes" id="allActions" value="all" checked>
+                        <label class="btn btn-outline-secondary" for="allActions">All</label>
+                        
+                        <input type="radio" class="btn-check" name="actionTypes" id="occupancyActions" value="occupancy_change">
+                        <label class="btn btn-outline-info" for="occupancyActions">Occupancy</label>
+                        
+                        <input type="radio" class="btn-check" name="actionTypes" id="routeStartActions" value="route_start">
+                        <label class="btn btn-outline-success" for="routeStartActions">Route Start</label>
+                        
+                        <input type="radio" class="btn-check" name="actionTypes" id="routeAbortActions" value="route_abort">
+                        <label class="btn btn-outline-danger" for="routeAbortActions">Route Abort</label>
+                        
+                        <input type="radio" class="btn-check" name="actionTypes" id="boardActions" value="passenger_board">
+                        <label class="btn btn-outline-success" for="boardActions">Board</label>
+                        
+                        <input type="radio" class="btn-check" name="actionTypes" id="alightActions" value="passenger_alight">
+                        <label class="btn btn-outline-secondary" for="alightActions">Alight</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <button class="btn btn-secondary me-2" onclick="resetFilters()">
+                        <i class="fas fa-undo me-2"></i>Reset
+                    </button>
+                    <button class="btn btn-primary" onclick="applyFilters()">
+                        <i class="fas fa-search me-2"></i>Apply Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Entries Section -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Log Entries
+            </h5>
+            <span class="badge bg-primary" id="logCount">0 logs</span>
+        </div>
+        <div class="card-body p-0">
+            <div id="logsContainer">
+                <!-- Logs will be loaded here -->
+            </div>
+            <div id="pagination" class="d-flex justify-content-center p-3">
+                <!-- Pagination will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentPage = 1;
+    let logCount = 0;
+    
+    // Load logs when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        loadLogs();
+    });
+    
+    function loadLogs(page = 1) {
+        currentPage = page;
+        const logsContainer = document.getElementById('logsContainer');
+        
+        // Show loading state
+        logsContainer.innerHTML = `
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading logs...</p>
+            </div>
+        `;
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        params.append('page', page);
+        
+        const driverId = document.getElementById('driverFilter').value;
+        const vehicleId = document.getElementById('vehicleFilter').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const actionTypes = document.querySelector('input[name="actionTypes"]:checked').value;
+        
+        if (driverId) params.append('driver_id', driverId);
+        if (vehicleId) params.append('vehicle_id', vehicleId);
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        if (actionTypes) params.append('action_types', actionTypes);
+        
+        // Fetch logs from operator endpoint
+        fetch(`/operator/logs/actions/data?${params.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderLogs(data.logs, data.pagination);
+                    updateLogCount(data.pagination.total_count);
+                } else {
+                    logsContainer.innerHTML = `
+                        <div class="alert alert-danger m-3">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            ${data.error || 'An error occurred while loading logs.'}
+                        </div>
+                    `;
+                    updateLogCount(0);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading logs:', error);
+                logsContainer.innerHTML = `
+                    <div class="alert alert-danger m-3">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        An error occurred while loading logs.
+                    </div>
+                `;
+                updateLogCount(0);
+            });
+    }
+    
+    function updateLogCount(count) {
+        logCount = count;
+        const logCountElement = document.getElementById('logCount');
+        logCountElement.textContent = `${count} ${count === 1 ? 'log' : 'logs'}`;
+    }
+    
+    function renderLogs(logs, pagination) {
+        const logsContainer = document.getElementById('logsContainer');
+        
+        if (logs.length === 0) {
+            logsContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <h4>No logs found</h4>
+                    <p>Try adjusting your filters or check back later.</p>
+                </div>
+            `;
+            document.getElementById('pagination').innerHTML = '';
+            return;
+        }
+        
+        let html = '';
+        
+        logs.forEach(log => {
+            const date = new Date(log.created_at);
+            const formattedDate = date.toLocaleDateString();
+            const formattedTime = date.toLocaleTimeString();
+            
+            let actionBadge = '';
+            switch (log.action) {
+                case 'occupancy_change':
+                    actionBadge = '<span class="badge bg-success">Occupancy Change</span>';
+                    break;
+                case 'route_start':
+                    actionBadge = '<span class="badge bg-info">Route Start</span>';
+                    break;
+                case 'route_abort':
+                    actionBadge = '<span class="badge bg-danger">Route Abort</span>';
+                    break;
+                case 'trip_start':
+                    actionBadge = '<span class="badge bg-warning text-dark">Trip Start</span>';
+                    break;
+                case 'trip_end':
+                    actionBadge = '<span class="badge bg-primary">Trip End</span>';
+                    break;
+                case 'passenger_board':
+                    actionBadge = '<span class="badge bg-success">Passenger Board</span>';
+                    break;
+                case 'passenger_alight':
+                    actionBadge = '<span class="badge bg-secondary">Passenger Alight</span>';
+                    break;
+                default:
+                    actionBadge = `<span class="badge bg-secondary">${log.action}</span>`;
+            }
+            
+            // Format metadata
+            let metaDataHtml = '';
+            if (log.meta_data) {
+                try {
+                    const metaData = typeof log.meta_data === 'string' ? JSON.parse(log.meta_data) : log.meta_data;
+                    
+                    if (log.action === 'occupancy_change') {
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Changed from:</strong> ${metaData.old_value || 'N/A'} 
+                                <strong>to:</strong> ${metaData.new_value || 'N/A'}
+                            </div>
+                        `;
+                    } else if (log.action === 'route_start' || log.action === 'route_abort') {
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Route:</strong> ${metaData.route || 'N/A'}
+                            </div>
+                        `;
+                    } else if (log.action === 'vehicle_assigned') {
+                        const assignedBy = metaData.assigned_by || 'Unknown';
+                        const timestamp = metaData.timestamp ? new Date(metaData.timestamp).toLocaleString() : 'N/A';
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Assigned by:</strong> Operator ID ${assignedBy}<br>
+                                <strong>Time:</strong> ${timestamp}
+                            </div>
+                        `;
+                    } else if (log.action === 'passenger_board' || log.action === 'passenger_alight') {
+                        const passengerCount = metaData.passenger_count || metaData.count || 'N/A';
+                        const location = metaData.location || 'N/A';
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Passengers:</strong> ${passengerCount}<br>
+                                <strong>Location:</strong> ${location}
+                            </div>
+                        `;
+                    } else if (log.action === 'trip_start' || log.action === 'trip_end') {
+                        const destination = metaData.destination || metaData.route || 'N/A';
+                        const duration = metaData.duration || 'N/A';
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Destination:</strong> ${destination}<br>
+                                <strong>Duration:</strong> ${duration}
+                            </div>
+                        `;
+                    } else {
+                        // For other actions, show a more user-friendly format
+                        const details = [];
+                        for (const [key, value] of Object.entries(metaData)) {
+                            if (key !== 'timestamp') {
+                                const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                let formattedValue = value;
+                                
+                                // Format timestamp if present
+                                if (key === 'timestamp' || typeof value === 'string' && value.includes('T')) {
+                                    try {
+                                        formattedValue = new Date(value).toLocaleString();
+                                    } catch (e) {
+                                        formattedValue = value;
+                                    }
+                                }
+                                
+                                details.push(`<strong>${formattedKey}:</strong> ${formattedValue}`);
+                            }
+                        }
+                        
+                        if (details.length > 0) {
+                            metaDataHtml = `
+                                <div class="log-meta">
+                                    ${details.join('<br>')}
+                                </div>
+                            `;
+                        }
+                    }
+                } catch (e) {
+                    metaDataHtml = `
+                        <div class="log-meta">
+                            <strong>Details:</strong> ${log.meta_data}
+                        </div>
+                    `;
+                }
+            }
+            
+            html += `
+                <div class="log-entry border-bottom p-3">
+                    <div class="row align-items-center">
+                                                 <div class="col-md-2">
+                             <div class="d-flex align-items-center">
+                                 <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-2" 
+                                      style="width: 40px; height: 40px;">
+                                     <i class="fas fa-user text-white"></i>
+                                 </div>
+                                 <div>
+                                     <strong>${log.driver_username}</strong>
+                                     <br>
+                                     <small class="text-muted">Driver</small>
+                                 </div>
+                             </div>
+                         </div>
+                        <div class="col-md-2">
+                            <div class="text-muted">
+                                <i class="fas fa-car me-1"></i>
+                                ${log.vehicle_registration || 'N/A'}
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            ${actionBadge}
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>
+                                ${formattedDate}
+                            </div>
+                            <div class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                ${formattedTime}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            ${metaDataHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        logsContainer.innerHTML = html;
+        renderPagination(pagination);
+    }
+    
+    function renderPagination(pagination) {
+        const paginationContainer = document.getElementById('pagination');
+        
+        if (pagination.total_pages <= 1) {
+            paginationContainer.innerHTML = '';
+            return;
+        }
+        
+        let html = '<nav><ul class="pagination">';
+        
+        // Previous button
+        if (pagination.page > 1) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="loadLogs(${pagination.page - 1})">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+        }
+        
+        // Page numbers
+        const startPage = Math.max(1, pagination.page - 2);
+        const endPage = Math.min(pagination.total_pages, pagination.page + 2);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            html += `
+                <li class="page-item ${i === pagination.page ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadLogs(${i})">${i}</a>
+                </li>
+            `;
+        }
+        
+        // Next button
+        if (pagination.page < pagination.total_pages) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="loadLogs(${pagination.page + 1})">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+        }
+        
+        html += '</ul></nav>';
+        paginationContainer.innerHTML = html;
+    }
+    
+    function applyFilters() {
+        loadLogs(1);
+    }
+    
+    function resetFilters() {
+        document.getElementById('driverFilter').value = '';
+        document.getElementById('vehicleFilter').value = '';
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        document.getElementById('allActions').checked = true;
+        loadLogs(1);
+    }
+    
+    function exportLogs() {
+        const driverId = document.getElementById('driverFilter').value;
+        const vehicleId = document.getElementById('vehicleFilter').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const actionTypes = document.querySelector('input[name="actionTypes"]:checked').value;
+        
+        const params = new URLSearchParams();
+        if (driverId) params.append('driver_id', driverId);
+        if (vehicleId) params.append('vehicle_id', vehicleId);
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        if (actionTypes) params.append('action_types', actionTypes);
+        
+        window.location.href = `/operator/logs/actions/export?${params.toString()}`;
+    }
+</script>
+
+<style>
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.log-entry:hover {
+    background-color: #f8f9fa;
+}
+
+.log-meta {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.pagination {
+    margin-bottom: 0;
+}
+</style>
+{% endblock %}

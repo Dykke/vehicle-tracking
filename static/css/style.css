@@ -1,0 +1,50 @@
+/* Tracking controls */
+.tracking-controls {
+    margin-bottom: 20px;
+}
+
+.tracking-controls .card {
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.tracking-controls .card-header {
+    border-bottom: 1px solid #eee;
+}
+
+#tracking-status {
+    font-weight: 500;
+}
+
+#tracking-status.active {
+    color: #28a745;
+}
+
+#tracking-status.error {
+    color: #dc3545;
+}
+
+/* User and vehicle markers */
+.user-dot {
+    width: 20px;
+    height: 20px;
+    background-color: #2196F3;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.vehicle-dot {
+    width: 24px;
+    height: 24px;
+    background-color: #4CAF50;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+} 

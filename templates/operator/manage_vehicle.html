@@ -1,0 +1,2362 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Vehicles{% endblock %}
+
+{% block head %}
+<!-- Force cache busting -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- Mobile viewport optimization -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<style>
+    /* MOBILE-FIRST RESPONSIVE DESIGN */
+    
+    /* Base mobile styles */
+    .page-header {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 1rem;
+    }
+    
+    .page-header h2 {
+        font-size: 1.5rem;
+        text-align: center;
+        margin-bottom: 0;
+    }
+    
+    .page-header .btn {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 1rem;
+    }
+    
+    /* Mobile-optimized grid system */
+    @media (max-width: 767.98px) {
+        .col-md-6 {
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .modal-dialog {
+            margin: 0.5rem;
+            max-width: calc(100% - 1rem);
+        }
+        
+        .modal-body {
+            padding: 1rem;
+        }
+        
+        .modal-footer {
+            padding: 0.75rem 1rem;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .modal-footer .btn {
+            width: 100%;
+            margin: 0 !important;
+        }
+        
+        /* Stack form elements vertically on mobile */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        /* Optimize button sizes for touch */
+        .btn {
+            min-height: 44px;
+            font-size: 1rem;
+        }
+        
+        /* Improve table responsiveness */
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+        
+        /* Optimize card spacing */
+        .card {
+            margin-bottom: 1rem;
+        }
+        
+        .card-header h5 {
+            font-size: 1.1rem;
+        }
+    }
+    
+    /* Tablet styles */
+    @media (min-width: 768px) and (max-width: 991.98px) {
+        .page-header {
+            flex-direction: row;
+            align-items: center !important;
+        }
+        
+        .page-header h2 {
+            font-size: 1.75rem;
+            text-align: left;
+            margin-bottom: 0;
+        }
+        
+        .page-header .btn {
+            width: auto;
+        }
+    }
+    
+    /* Desktop styles */
+    @media (min-width: 992px) {
+        .page-header {
+            flex-direction: row;
+            align-items: center !important;
+        }
+        
+        .page-header h2 {
+            font-size: 2rem;
+            text-align: left;
+            margin-bottom: 0;
+        }
+        
+        .page-header .btn {
+            width: auto;
+        }
+    }
+    
+    /* BOOTSTRAP-SPECIFIC Z-INDEX TARGETING */
+    
+    /* Target Bootstrap's modal classes directly */
+    .modal.show {
+        z-index: 99999 !important;
+    }
+    
+    .modal.show .modal-dialog {
+        z-index: 100000 !important;
+    }
+    
+    .modal.show .modal-content {
+        z-index: 100001 !important;
+        border: 3px solid #00ff00 !important; /* Green border for debugging */
+    }
+    
+    /* Target Bootstrap's backdrop */
+    .modal-backdrop.show {
+        z-index: 99998 !important;
+    }
+    
+    /* TARGET THE SPECIFIC PROBLEMATIC DROPDOWNS USING BOOTSTRAP CLASSES */
+    .form-select:focus {
+        z-index: 1 !important;
+        position: relative !important;
+    }
+    
+    /* Force assignment section dropdowns to lowest priority */
+    .card-body .form-select {
+        z-index: 1 !important;
+        position: relative !important;
+    }
+    
+    /* Target Bootstrap's dropdown menu specifically */
+    .dropdown-menu.show {
+        z-index: 1 !important;
+    }
+    
+    /* Additional modal styling */
+    .modal-content {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    /* Debug styling - make assignment section very visible */
+    .card-body {
+        background-color: rgba(0, 255, 0, 0.1) !important; /* Green tint */
+        border: 2px dashed #00ff00 !important; /* Green dashed border */
+    }
+    
+    /* Force all form elements in assignment section to low z-index */
+    .card-body .form-select,
+    .card-body .form-label,
+    .card-body .btn {
+        z-index: 1 !important;
+        position: relative !important;
+    }
+    
+    /* NUCLEAR OPTION: Use CSS transforms to force layering */
+    .card-body {
+        transform: translateZ(0);
+        z-index: 1 !important;
+        isolation: isolate;
+    }
+    
+    .card-body * {
+        transform: translateZ(0);
+        z-index: 1 !important;
+    }
+    
+    /* Force modal to highest layer using transforms */
+    .modal.show {
+        transform: translateZ(99999px);
+        z-index: 99999 !important;
+        isolation: isolate;
+    }
+    
+    .modal.show .modal-dialog {
+        transform: translateZ(100000px);
+        z-index: 100000 !important;
+    }
+    
+    .modal.show .modal-content {
+        transform: translateZ(100001px);
+        z-index: 100001 !important;
+    }
+    
+    /* Create separate stacking contexts */
+    .modal {
+        isolation: isolate;
+    }
+    
+    .card {
+        isolation: isolate;
+    }
+    
+    /* FINAL NUCLEAR OPTION: CSS Custom Properties with !important */
+    :root {
+        --modal-z: 99999 !important;
+        --dropdown-z: 1 !important;
+    }
+    
+    /* Force modal z-index using CSS custom properties */
+    .modal.show {
+        z-index: var(--modal-z);
+    }
+    
+    .modal.show .modal-dialog {
+        z-index: calc(var(--modal-z) + 1);
+    }
+    
+    .modal.show .modal-content {
+        z-index: calc(var(--modal-z) + 2);
+    }
+    
+    /* Force dropdowns to lowest z-index */
+    .card-body .form-select {
+        z-index: var(--dropdown-z) !important;
+    }
+    
+    /* Override any Bootstrap inline styles */
+    .card-body .form-select[style*="z-index"] {
+        z-index: var(--dropdown-z) !important;
+    }
+    
+    /* Touch-friendly improvements */
+    .btn, .form-control, .form-select {
+        touch-action: manipulation;
+    }
+    
+    /* Improved spacing for mobile */
+    .mb-4 {
+        margin-bottom: 1.5rem !important;
+    }
+    
+    @media (max-width: 767.98px) {
+        .mb-4 {
+            margin-bottom: 1rem !important;
+        }
+    }
+
+    .custom-marker {
+        background: transparent;
+        border: none;
+    }
+    
+    .marker-a {
+        background-color: #007bff;
+        color: white;
+        padding: 8px;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .marker-b {
+        background-color: #dc3545;
+        color: white;
+        padding: 8px;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .route-map-container {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    #route-map {
+        height: 400px;
+        width: 100%;
+    }
+    
+    .route-controls {
+        padding: 15px;
+        background: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    .route-input-group {
+        margin-bottom: 15px;
+    }
+    
+    .route-input-group label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 5px;
+    }
+    
+    .route-input-group input {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 8px 12px;
+        width: 100%;
+    }
+    
+    .route-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .route-actions .btn {
+        flex: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4 page-header">
+                <h2><i class="fas fa-bus me-2"></i>Vehicle Management</h2>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+                    <i class="fas fa-plus me-2"></i>Add New Vehicle
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicle Assignment Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-link me-2"></i>Vehicle-Driver Assignments
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Unassigned Vehicles -->
+                        <div class="col-12 col-md-6">
+                            <h6 class="text-muted mb-3">Unassigned Vehicles</h6>
+                            <div id="unassignedVehicles" class="border rounded p-3" style="min-height: 200px;">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Driver Selection -->
+                        <div class="col-12 col-md-6">
+                            <h6 class="text-muted mb-3">Assign to Driver</h6>
+                            <div class="border rounded p-3" style="position: relative; z-index: 1;">
+                                <div class="mb-3">
+                                    <label for="driverSelect" class="form-label">Select Driver</label>
+                                    <select class="form-select" id="driverSelect" style="position: relative; z-index: 1;">
+                                        <option value="">Choose a driver...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="vehicleSelect" class="form-label">Select Vehicle</label>
+                                    <select class="form-select" id="vehicleSelect" style="position: relative; z-index: 1;">
+                                        <option value="">Choose a vehicle...</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-success w-100" id="assignBtn" disabled style="position: relative; z-index: 1;">
+                                    <i class="fas fa-link me-2"></i>Assign Vehicle to Driver
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Assignments Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>Current Assignments
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="currentAssignments">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin"></i> Loading assignments...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Vehicle Modal -->
+<div class="modal fade" id="addVehicleModal" tabindex="-1" aria-labelledby="addVehicleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addVehicleModalLabel">Add New Vehicle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addVehicleForm">
+                    <div class="mb-3">
+                        <label for="vehicleNumber" class="form-label">Vehicle Registration Number</label>
+                        <input type="text" class="form-control" id="vehicleNumber" required 
+                               placeholder="Enter vehicle registration number">
+                    </div>
+                    <div class="mb-3">
+                        <label for="vehicleType" class="form-label">Vehicle Type</label>
+                        <select class="form-select" id="vehicleType" required>
+                            <option value="">Select type...</option>
+                            <option value="bus">Bus</option>
+                            <option value="van">Van</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="capacity" class="form-label">Capacity</label>
+                        <input type="number" class="form-control" id="capacity" min="1" required 
+                               placeholder="Enter passenger capacity">
+                    </div>
+                    
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveVehicleBtn" onclick="saveVehicle()">Save Vehicle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmationTitle">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="confirmationMessage">
+                Are you sure you want to proceed?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmButton">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Route Override Modal -->
+<div class="modal fade" id="routeOverrideModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-route me-2"></i>Route Override
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6 id="routeVehicleTitle">Vehicle: <span id="routeVehicleName"></span></h6>
+                    <p class="text-muted mb-0">Current Route: <span id="currentRouteDisplay"></span></p>
+                </div>
+                
+                <form id="routeOverrideForm">
+                    <input type="hidden" id="routeVehicleId" name="vehicle_id">
+                    
+                    <!-- Default Route Selection -->
+                    <div class="mb-3">
+                        <label for="default-route-select" class="form-label">Quick Route Selection</label>
+                        <select id="default-route-select" class="form-control" onchange="handleDefaultRouteSelection()">
+                            <option value="">-- Select Default Route --</option>
+                            <option value="brookes-point-to-puerto-princesa">Brooke's Point to Puerto Princesa</option>
+                            <option value="puerto-princesa-to-brookes-point">Puerto Princesa to Brooke's Point</option>
+                            <option value="brookes-point-to-bataraza">Brooke's Point to Bataraza</option>
+                            <option value="bataraza-to-brookes-point">Bataraza to Brooke's Point</option>
+                            <option value="rio-tuba-to-brookes-point">Rio Tuba to Brooke's Point</option>
+                            <option value="brookes-point-to-rio-tuba">Brooke's Point to Rio Tuba</option>
+                        </select>
+                        <small class="text-muted">Selecting a default route will clear any existing custom route</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="route-point-a" class="form-label">Starting Point (A)</label>
+                                <input type="text" id="route-point-a" class="form-control" 
+                                       placeholder="Enter origin location" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="route-point-b" class="form-label">Destination (B)</label>
+                                <input type="text" id="route-point-b" class="form-control" 
+                                       placeholder="Enter destination location" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                    
+                                         <div id="route-map" style="height: 300px; width: 100%; margin-top: 16px; border-radius: 8px; border: 1px solid #dee2e6;"></div>
+                     
+                     <div class="alert alert-info mt-3 mb-3">
+                         <i class="fas fa-info-circle me-2"></i>
+                         <strong>Tip:</strong> You can either type locations in the fields above, or click directly on the map to set your route points. The first click sets point A (start), the second click sets point B (destination).
+                     </div>
+                     
+                     <div class="d-flex justify-content-between align-items-center mt-3">
+                         <button type="button" class="btn btn-secondary" onclick="clearRoute()">
+                             <i class="fas fa-trash me-2"></i>Clear Route
+                         </button>
+                         <small class="text-muted d-block mt-1">⚠️ This will remove the current route</small>
+                         <span id="route-distance" class="text-muted"></span>
+                     </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveRoute()" id="saveRouteBtn">
+                    <i class="fas fa-save me-2"></i>Save Route
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Script execution verification
+    console.log('🚀 SCRIPT TAG EXECUTING IMMEDIATELY');
+    console.log('🚀 Timestamp:', new Date().toISOString());
+    console.log('🚀 Document ready state:', document.readyState);
+    
+    // Frontend authentication debugging
+    function debugFrontendAuth() {
+        console.log('🔍 Frontend Auth Debug:');
+        console.log('   - Current URL:', window.location.href);
+        console.log('   - localStorage keys:', Object.keys(localStorage));
+        console.log('   - sessionStorage keys:', Object.keys(sessionStorage));
+        console.log('   - Cookies:', document.cookie);
+        console.log('   - Is on login page?', window.location.pathname === '/login');
+    }
+    
+    // Call debugging on page load
+    debugFrontendAuth();
+    
+    // GLOBAL VARIABLES - Available immediately
+    let pendingAction = null;
+    let drivers = [];
+    let unassignedVehicles = [];
+    
+    // Request management to prevent race conditions
+    let pendingRequests = new Map();
+    let requestDebounceTimers = new Map();
+    let isLoading = false;
+    
+
+
+    // Script loaded successfully
+    console.log('=== VEHICLE MANAGEMENT SCRIPT LOADED ===');
+    console.log('Timestamp:', new Date().toISOString());
+    
+    // Utility function to manage requests and prevent race conditions
+    async function makeRequest(url, options = {}, requestId = null) {
+        const requestKey = requestId || url;
+        
+        // Cancel any pending request with the same key
+        if (pendingRequests.has(requestKey)) {
+            console.log(`🔄 Cancelling previous request: ${requestKey}`);
+            pendingRequests.get(requestKey).abort();
+        }
+        
+        // Create abort controller for this request
+        const controller = new AbortController();
+        pendingRequests.set(requestKey, controller);
+        
+        try {
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal
+            });
+            
+            // Remove from pending requests
+            pendingRequests.delete(requestKey);
+            
+            return response;
+        } catch (error) {
+            // Remove from pending requests
+            pendingRequests.delete(requestKey);
+            
+            if (error.name === 'AbortError') {
+                console.log(`⏹️ Request cancelled: ${requestKey}`);
+                throw new Error('Request cancelled');
+            }
+            
+            throw error;
+        }
+    }
+    
+    // Debounced request function
+    function debouncedRequest(fn, delay = 300) {
+        return function(...args) {
+            const requestId = args.join('-');
+            
+            // Clear existing timer
+            if (requestDebounceTimers.has(requestId)) {
+                clearTimeout(requestDebounceTimers.get(requestId));
+            }
+            
+            // Set new timer
+            const timer = setTimeout(() => {
+                requestDebounceTimers.delete(requestId);
+                fn.apply(this, args);
+            }, delay);
+            
+            requestDebounceTimers.set(requestId, timer);
+        };
+    }
+    
+    // Define saveVehicle function for vehicle creation
+    async function saveVehicle() {
+        console.log('🔥 saveVehicle() function called!');
+        
+        // Prevent multiple rapid submissions
+        const saveButton = document.querySelector('#addVehicleModal .btn-primary');
+        if (saveButton && saveButton.disabled) {
+            console.log('⚠️ Save button already disabled, preventing duplicate submission');
+            return;
+        }
+        
+        // Disable save button to prevent multiple submissions
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving...';
+        }
+        
+        try {
+            // Get form elements
+            const vehicleNumberInput = document.getElementById('vehicleNumber');
+            const vehicleTypeSelect = document.getElementById('vehicleType');
+            const capacityInput = document.getElementById('capacity');
+            
+
+            
+            // Validate form elements exist
+            if (!vehicleNumberInput || !vehicleTypeSelect || !capacityInput) {
+                console.error('❌ Required form elements not found');
+                showToast('Error', 'Form elements not found', 'error');
+                return;
+            }
+            
+            // Validate form data
+            if (!vehicleNumberInput.value.trim()) {
+                showToast('Error', 'Vehicle registration number is required', 'error');
+                vehicleNumberInput.focus();
+                return;
+            }
+            
+            if (!vehicleTypeSelect.value) {
+                showToast('Error', 'Please select a vehicle type', 'error');
+                vehicleTypeSelect.focus();
+                return;
+            }
+            
+            if (!capacityInput.value || capacityInput.value < 1) {
+                showToast('Error', 'Please enter a valid capacity (minimum 1)', 'error');
+                capacityInput.focus();
+                return;
+            }
+            
+            // Prepare form data
+            const formData = {
+                vehicle_number: vehicleNumberInput.value.trim(),
+                vehicle_type: vehicleTypeSelect.value,
+                capacity: capacityInput.value,
+                route: '' // Route is optional, can be set later
+            };
+            
+
+            
+            // Send request to backend
+            const response = await makeRequest('/operator/vehicle/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            }, 'addVehicle');
+            
+            console.log('📥 Response received:', response.status, response.statusText);
+            
+            // Check if response is redirect (authentication issue)
+            if (response.redirected) {
+                console.log('⚠️ Response was redirected - likely authentication issue');
+                showToast('Error', 'Session expired. Please log in again.', 'error');
+                // Redirect to login page
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Check content type to ensure we're getting JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('❌ Response is not JSON:', contentType);
+                console.error('❌ Response text:', await response.text());
+                showToast('Error', 'Server returned invalid response format. Please try again.', 'error');
+                return;
+            }
+            
+            const data = await response.json();
+            console.log('📥 Response data:', data);
+            
+            if (response.ok) {
+                showToast('Success', 'Vehicle added successfully', 'success');
+                
+                // Close modal and reset form
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addVehicleModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                document.getElementById('addVehicleForm').reset();
+                
+                // Reload data with debouncing
+                debouncedRequest(loadUnassignedVehicles, 200)();
+            } else {
+                // Handle specific error types
+                let errorMessage = data.error || 'Failed to add vehicle';
+                
+                // Check for duplicate vehicle error
+                if (errorMessage.includes('already exists')) {
+                    errorMessage = 'Vehicle registration number already exists. Please use a different number.';
+                    // Focus on the vehicle number input for easy correction
+                    vehicleNumberInput.focus();
+                    vehicleNumberInput.select();
+                }
+                
+                showToast('Error', errorMessage, 'error');
+            }
+        } catch (error) {
+            console.error('❌ Error in saveVehicle:', error);
+            
+            // Check if it's a JSON parsing error (likely HTML response)
+            if (error.message.includes('Unexpected token') && error.message.includes('<!DOCTYPE')) {
+                console.error('❌ Received HTML instead of JSON - likely authentication redirect');
+                showToast('Error', 'Session expired. Please log in again.', 'error');
+                // Redirect to login page
+                window.location.href = '/login';
+                return;
+            }
+            
+            showToast('Error', 'Failed to add vehicle: ' + error.message, 'error');
+        } finally {
+            // Re-enable save button
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save Vehicle';
+            }
+        }
+    }
+    
+    // Make saveVehicle function globally accessible
+    window.saveVehicle = saveVehicle;
+    
+
+    
+    // Function to enforce z-index hierarchy using Bootstrap's own mechanisms
+    function enforceZIndexHierarchy() {
+        console.log('🔧 Enforcing z-index hierarchy using Bootstrap approach...');
+        
+        // Use Bootstrap's modal events to set z-index
+        const modal = document.getElementById('addVehicleModal');
+        if (modal) {
+            // Force modal to highest z-index when shown
+            if (modal.classList.contains('show')) {
+                modal.style.zIndex = '99999';
+                console.log('✅ Modal z-index enforced via Bootstrap show class');
+            }
+        }
+        
+        // Force assignment section elements to lowest z-index
+        const assignmentSection = document.querySelector('.card-body');
+        if (assignmentSection) {
+            assignmentSection.style.zIndex = '1';
+            assignmentSection.style.position = 'relative';
+            console.log('✅ Assignment section z-index enforced');
+        }
+        
+        // Force all form elements in assignment section to low z-index
+        const formElements = assignmentSection.querySelectorAll('.form-select, .form-label, .btn');
+        formElements.forEach((element, index) => {
+            element.style.zIndex = '1';
+            element.style.position = 'relative';
+        });
+        console.log(`✅ ${formElements.length} form elements z-index enforced`);
+    }
+    
+    // Global error handler to catch any JavaScript errors
+    window.addEventListener('error', function(e) {
+        console.error('❌ GLOBAL ERROR:', e.error);
+        console.error('Error message:', e.message);
+        console.error('Error filename:', e.filename);
+        console.error('Error line:', e.lineno);
+        console.error('Error column:', e.colno);
+        
+        // Additional debugging information
+        console.error('Error stack:', e.error ? e.error.stack : 'No stack available');
+        console.error('Current URL:', window.location.href);
+        console.error('Document ready state:', document.readyState);
+        
+        // Try to identify the problematic element
+        if (e.target && e.target.tagName) {
+            console.error('Error target element:', e.target.tagName, e.target.className, e.target.id);
+        }
+    });
+    
+    // Global unhandled promise rejection handler
+    
+    // Cleanup function to cancel all pending requests when page is unloaded
+    window.addEventListener('beforeunload', function() {
+        console.log('🧹 Cleaning up pending requests...');
+        
+        // Cancel all pending requests
+        pendingRequests.forEach((controller, key) => {
+            console.log(`⏹️ Cancelling request: ${key}`);
+            controller.abort();
+        });
+        pendingRequests.clear();
+        
+        // Clear all debounce timers
+        requestDebounceTimers.forEach((timer, key) => {
+            console.log(`⏹️ Clearing timer: ${key}`);
+            clearTimeout(timer);
+        });
+        requestDebounceTimers.clear();
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+        console.error('❌ UNHANDLED PROMISE REJECTION:', e.reason);
+    });
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('=== VEHICLE MANAGEMENT PAGE LOADED ===');
+        console.log('Timestamp:', new Date().toISOString());
+        
+        // Load initial data
+        loadDrivers();
+        loadUnassignedVehicles();
+        loadCurrentAssignments();
+        
+        // Session keep-alive mechanism
+        setInterval(async () => {
+            try {
+                await makeRequest('/operator/test-session', {}, 'sessionKeepAlive');
+            } catch (error) {
+                console.log('Session keep-alive failed:', error.message);
+            }
+        }, 30000); // Every 30 seconds
+        
+        // Set up event listeners with proper error handling
+        setupEventListeners();
+        
+        // Enforce z-index hierarchy
+        setTimeout(enforceZIndexHierarchy, 100);
+        
+        // Monitor modal state for z-index enforcement
+        const modal = document.getElementById('addVehicleModal');
+        if (modal) {
+            modal.addEventListener('shown.bs.modal', function() {
+                console.log('🎭 Modal shown - enforcing z-index');
+                setTimeout(enforceZIndexHierarchy, 50);
+            });
+        }
+        
+        console.log('✅ Page initialization complete');
+    });
+    
+    function setupEventListeners() {
+        console.log('🔧 Setting up event listeners...');
+        
+        try {
+            // Save Vehicle button - CRITICAL
+            const saveBtn = document.getElementById('saveVehicleBtn');
+            if (saveBtn) {
+                console.log('✅ Save button found, ID:', saveBtn.id);
+                console.log('✅ Save button text:', saveBtn.textContent);
+                
+                // Add event listener without replacing the button
+                saveBtn.addEventListener('click', function(e) {
+                    console.log('🔥 SAVE BUTTON CLICKED via event listener!');
+                    console.log('Event:', e);
+                    console.log('Button:', this);
+                    saveVehicle();
+                });
+                
+                console.log('✅ Save button event listener attached successfully');
+            } else {
+                console.error('❌ Save button not found!');
+            }
+            
+            // Other event listeners
+            const driverSelect = document.getElementById('driverSelect');
+            const vehicleSelect = document.getElementById('vehicleSelect');
+            const assignBtn = document.getElementById('assignBtn');
+            const confirmButton = document.getElementById('confirmButton');
+            
+            if (driverSelect) driverSelect.addEventListener('change', updateVehicleOptions);
+            if (vehicleSelect) vehicleSelect.addEventListener('change', updateAssignButton);
+            if (assignBtn) assignBtn.addEventListener('click', debouncedRequest(assignVehicleToDriver, 500));
+            if (confirmButton) confirmButton.addEventListener('click', executeConfirmedAction);
+            
+            // Add event listeners for route buttons (using event delegation for dynamically created elements)
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.route-btn')) {
+                    const button = e.target.closest('.route-btn');
+                    const vehicleId = button.getAttribute('data-vehicle-id');
+                    const vehicleName = button.getAttribute('data-vehicle-name');
+                    const route = button.getAttribute('data-route');
+                    showRouteOverrideModal(vehicleId, vehicleName, route);
+                }
+            });
+            
+            console.log('✅ All event listeners attached successfully');
+            
+            // Add page visibility change listener to refresh data when user returns to the page
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    console.log('🔄 Page became visible, refreshing vehicle data...');
+                    loadCurrentAssignments();
+                }
+            });
+        } catch (error) {
+            console.error('❌ Error setting up event listeners:', error);
+        }
+    }
+
+    async function loadDrivers() {
+        try {
+            const response = await fetch('/operator/drivers');
+            
+            // Check if response is redirect (authentication issue)
+            if (response.redirected) {
+                console.log('⚠️ loadDrivers: Response was redirected - authentication issue');
+                showToast('Error', 'Session expired. Please refresh the page.', 'error');
+                return;
+            }
+            
+            // Check content type to ensure we're getting JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('❌ loadDrivers: Response is not JSON:', contentType);
+                const responseText = await response.text();
+                console.error('❌ Response text:', responseText);
+                
+                if (responseText.includes('<!DOCTYPE')) {
+                    showToast('Error', 'Session expired. Please refresh the page.', 'error');
+                    return;
+                }
+                
+                showToast('Error', 'Server returned invalid response format', 'error');
+                return;
+            }
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                drivers = data.drivers;
+                populateDriverSelect();
+            } else {
+                showToast('Error', 'Failed to load drivers', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading drivers:', error);
+            
+            // Check if it's a JSON parsing error (likely HTML response)
+            if (error.message && error.message.includes('Unexpected token') && error.message.includes('<!DOCTYPE')) {
+                console.error('❌ loadDrivers: Received HTML instead of JSON - authentication issue');
+                showToast('Error', 'Session expired. Please refresh the page.', 'error');
+                return;
+            }
+            
+            showToast('Error', 'Failed to load drivers', 'error');
+        }
+    }
+
+    function populateDriverSelect() {
+        const driverSelect = document.getElementById('driverSelect');
+        driverSelect.innerHTML = '<option value="">Choose a driver...</option>';
+        
+        drivers.forEach(driver => {
+            const option = document.createElement('option');
+            option.value = driver.id;
+            option.textContent = `${driver.username} (${driver.email})`;
+            driverSelect.appendChild(option);
+        });
+    }
+
+    async function loadUnassignedVehicles() {
+        try {
+            console.log('🔄 Loading unassigned vehicles...');
+            
+            // Use simple fetch for now to debug the issue
+            const response = await fetch('/operator/vehicles/unassigned');
+            console.log('📡 Response received:', response.status, response.statusText);
+            
+            // Check if response is redirect (authentication issue)
+            if (response.redirected) {
+                console.log('⚠️ loadUnassignedVehicles: Response was redirected - authentication issue');
+                showToast('Error', 'Session expired. Please refresh the page.', 'error');
+                return;
+            }
+            
+            if (!response.ok) {
+                console.error('❌ HTTP error:', response.status, response.statusText);
+                showToast('Error', `Failed to load unassigned vehicles: ${response.status}`, 'error');
+                return;
+            }
+            
+            const data = await response.json();
+            console.log('📦 Data received:', data);
+            
+            if (data.success && data.vehicles) {
+                unassignedVehicles = data.vehicles;
+                console.log('✅ Unassigned vehicles loaded:', unassignedVehicles.length);
+                console.log('✅ Unassigned vehicles data:', unassignedVehicles);
+                displayUnassignedVehicles();
+                populateVehicleSelect();
+            } else {
+                console.error('❌ Invalid data format:', data);
+                showToast('Error', 'Invalid response format from server', 'error');
+            }
+        } catch (error) {
+            console.error('❌ Error loading unassigned vehicles:', error);
+            showToast('Error', 'Failed to load unassigned vehicles: ' + error.message, 'error');
+        }
+    }
+
+    function displayUnassignedVehicles() {
+        const container = document.getElementById('unassignedVehicles');
+        console.log('🔍 Displaying unassigned vehicles:', unassignedVehicles);
+        
+        if (unassignedVehicles.length === 0) {
+            console.log('🔍 No unassigned vehicles to display');
+            container.innerHTML = '<div class="text-center text-muted">No unassigned vehicles</div>';
+            return;
+        }
+        
+        container.innerHTML = unassignedVehicles.map(vehicle => `
+            <div class="vehicle-item border rounded p-2 mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${vehicle.registration_number}</strong>
+                        <span class="badge bg-secondary ms-2">${vehicle.vehicle_type}</span>
+                        <small class="text-muted d-block">Capacity: ${vehicle.capacity}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary" title="Select for assignment" onclick="selectVehicleForAssignment(${vehicle.id})">
+                            <i class="fas fa-link"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" title="Delete vehicle" onclick="confirmDeleteVehicle(${vehicle.id}, '${vehicle.registration_number}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function populateVehicleSelect() {
+        const vehicleSelect = document.getElementById('vehicleSelect');
+        vehicleSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
+        
+        unassignedVehicles.forEach(vehicle => {
+            const option = document.createElement('option');
+            option.value = vehicle.id;
+            option.textContent = `${vehicle.registration_number} (${vehicle.vehicle_type})`;
+            vehicleSelect.appendChild(option);
+        });
+    }
+
+    function selectVehicleForAssignment(vehicleId) {
+        document.getElementById('vehicleSelect').value = vehicleId;
+        updateAssignButton();
+    }
+
+    async function confirmDeleteVehicle(vehicleId, vehicleName) {
+        pendingAction = () => deleteVehicle(vehicleId);
+        document.getElementById('confirmationTitle').textContent = 'Delete Vehicle';
+        document.getElementById('confirmationMessage').textContent = `Are you sure you want to permanently delete vehicle \"${vehicleName}\"? This action cannot be undone.`;
+        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+        modal.show();
+    }
+
+    async function deleteVehicle(vehicleId) {
+        try {
+            const response = await fetch(`/operator/vehicle/${vehicleId}/delete`, { method: 'POST' });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                showToast('Error', data.error || 'Failed to delete vehicle', 'error');
+                return;
+            }
+            showToast('Success', data.message || 'Vehicle deleted', 'success');
+            // Refresh both lists
+            loadUnassignedVehicles();
+            loadCurrentAssignments();
+        } catch (e) {
+            console.error('Delete vehicle failed:', e);
+            showToast('Error', 'Failed to delete vehicle', 'error');
+        }
+    }
+
+    function updateVehicleOptions() {
+        const driverId = document.getElementById('driverSelect').value;
+        const vehicleSelect = document.getElementById('vehicleSelect');
+        
+        if (driverId) {
+            vehicleSelect.disabled = false;
+        } else {
+            vehicleSelect.disabled = true;
+            vehicleSelect.value = '';
+        }
+        
+        updateAssignButton();
+    }
+
+    function updateAssignButton() {
+        const driverId = document.getElementById('driverSelect').value;
+        const vehicleId = document.getElementById('vehicleSelect').value;
+        const assignBtn = document.getElementById('assignBtn');
+        
+        assignBtn.disabled = !driverId || !vehicleId;
+    }
+
+    async function assignVehicleToDriver() {
+        // Prevent multiple simultaneous assignments
+        if (isLoading) {
+            console.log('⚠️ Assignment already in progress, ignoring click');
+            return;
+        }
+        
+        const driverId = document.getElementById('driverSelect').value;
+        const vehicleId = document.getElementById('vehicleSelect').value;
+        
+        if (!driverId || !vehicleId) {
+            showToast('Error', 'Please select both driver and vehicle', 'error');
+            return;
+        }
+        
+        pendingAction = () => performAssignment(driverId, vehicleId);
+        document.getElementById('confirmationTitle').textContent = 'Confirm Assignment';
+        document.getElementById('confirmationMessage').textContent = 
+            `Are you sure you want to assign this vehicle to the selected driver?`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+        modal.show();
+    }
+
+    async function performAssignment(driverId, vehicleId) {
+        isLoading = true;
+        const assignBtn = document.querySelector('#confirmationModal .btn-primary');
+        if (assignBtn) {
+            assignBtn.disabled = true;
+            assignBtn.textContent = 'Assigning...';
+        }
+        
+        try {
+            const response = await makeRequest(`/operator/vehicle/${vehicleId}/assign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ driver_id: driverId })
+            }, `assignVehicle-${vehicleId}-${driverId}`);
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showToast('Success', data.message, 'success');
+                
+                // Reset form
+                document.getElementById('driverSelect').value = '';
+                document.getElementById('vehicleSelect').value = '';
+                updateAssignButton();
+                
+                // Reload data with debouncing
+                debouncedRequest(loadUnassignedVehicles, 200)();
+                debouncedRequest(loadCurrentAssignments, 200)();
+            } else {
+                showToast('Error', data.error || 'Failed to assign vehicle', 'error');
+            }
+        } catch (error) {
+            console.error('Error assigning vehicle:', error);
+            showToast('Error', 'Failed to assign vehicle', 'error');
+        } finally {
+            isLoading = false;
+            const assignBtn = document.querySelector('#confirmationModal .btn-primary');
+            if (assignBtn) {
+                assignBtn.disabled = false;
+                assignBtn.textContent = 'Confirm Assignment';
+            }
+        }
+    }
+
+    async function loadCurrentAssignments() {
+        try {
+            console.log('🔄 Loading current assignments...');
+            
+            // Use simple fetch for now to debug the issue
+            const response = await fetch('/operator/vehicles');
+            console.log('📡 Current assignments response:', response.status, response.statusText);
+            
+            // Check if response is redirect (authentication issue)
+            if (response.redirected) {
+                console.log('⚠️ loadCurrentAssignments: Response was redirected - authentication issue');
+                showToast('Error', 'Session expired. Please refresh the page.', 'error');
+                return;
+            }
+            
+            if (!response.ok) {
+                console.error('❌ HTTP error:', response.status, response.statusText);
+                showToast('Error', `Failed to load current assignments: ${response.status}`, 'error');
+                return;
+            }
+            
+            const data = await response.json();
+            console.log('📦 Current assignments data:', data);
+            
+            if (data.success && data.vehicles) {
+                displayCurrentAssignments(data.vehicles);
+            } else {
+                console.error('❌ Invalid data format:', data);
+                showToast('Error', 'Invalid response format from server', 'error');
+            }
+        } catch (error) {
+            console.error('❌ Error loading current assignments:', error);
+            showToast('Error', 'Failed to load current assignments: ' + error.message, 'error');
+        }
+    }
+
+    function displayCurrentAssignments(vehicles) {
+        const container = document.getElementById('currentAssignments');
+        console.log('🔍 All vehicles received:', vehicles);
+        
+        // Check different possible field names for assigned driver
+        const assignedVehicles = vehicles.filter(v => {
+            const hasDriver = v.assigned_driver_id || v.assigned_driver || v.driver_id;
+            console.log(`🔍 Vehicle ${v.registration_number}: assigned_driver_id=${v.assigned_driver_id}, assigned_driver=${v.assigned_driver}, driver_id=${v.driver_id}, hasDriver=${hasDriver}`);
+            return hasDriver;
+        });
+        
+        console.log('🔍 Filtered assigned vehicles:', assignedVehicles);
+        
+        if (assignedVehicles.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted">No vehicles currently assigned</div>';
+            return;
+        }
+        
+        container.innerHTML = assignedVehicles.map(vehicle => {
+            // Safely handle route display with fallbacks
+            let routeDisplay = 'No route set';
+            if (vehicle.route && vehicle.route !== 'None' && vehicle.route !== 'null' && vehicle.route !== '') {
+                routeDisplay = String(vehicle.route);
+            }
+            
+            // Escape single quotes and other potentially problematic characters
+            const escapedRouteDisplay = routeDisplay
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '\\"')
+                .replace(/\n/g, ' ')
+                .replace(/\r/g, ' ')
+                .trim();
+            
+            // Debug logging to help identify any future issues
+            console.log('🔍 Vehicle route data:', {
+                id: vehicle.id,
+                registration: vehicle.registration_number,
+                originalRoute: vehicle.route,
+                processedRoute: routeDisplay,
+                escapedRoute: escapedRouteDisplay
+            });
+            
+            return `
+            <div class="assignment-item border rounded p-3 mb-3">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mb-2">${vehicle.registration_number}</h6>
+                        <p class="mb-1">
+                            <span class="badge bg-secondary me-2">${vehicle.vehicle_type}</span>
+                            <span class="badge bg-success me-2">${vehicle.status}</span>
+                            <span class="badge bg-info">${vehicle.occupancy_status || 'Unknown'}</span>
+                        </p>
+                        <small class="text-muted">Capacity: ${vehicle.capacity}</small>
+                    </div>
+                    <div class="col-md-4">
+                        <p class="mb-1"><strong>Assigned Driver:</strong></p>
+                        <p class="mb-1">${getDriverName(vehicle.assigned_driver_id)}</p>
+                    </div>
+                                         <div class="col-md-2">
+                         <div class="d-flex flex-column gap-1">
+                             <button class="btn btn-sm btn-outline-primary route-btn" data-vehicle-id="${vehicle.id}" data-vehicle-name="${vehicle.registration_number}" data-route="${escapedRouteDisplay}">
+                                 <i class="fas fa-route"></i> Route
+                             </button>
+                             <button class="btn btn-sm btn-outline-danger" onclick="unassignVehicle(${vehicle.id})">
+                                 <i class="fas fa-unlink"></i> Unassign
+                             </button>
+                         </div>
+                     </div>
+                </div>
+            </div>
+        `;
+        }).join('');
+    }
+
+    function getDriverName(driverId) {
+        const driver = drivers.find(d => d.id == driverId);
+        return driver ? driver.username : 'Unknown Driver';
+    }
+    
+    // Helper function to get updated route for a specific vehicle
+    function getUpdatedRouteForVehicle(vehicleId) {
+        // Find the route button for this vehicle and get its updated data-route attribute
+        const routeButton = document.querySelector(`.route-btn[data-vehicle-id="${vehicleId}"]`);
+        if (routeButton) {
+            return routeButton.getAttribute('data-route');
+        }
+        return null;
+    }
+
+    async function unassignVehicle(vehicleId) {
+        pendingAction = () => performUnassignment(vehicleId);
+        document.getElementById('confirmationTitle').textContent = 'Confirm Unassignment';
+        document.getElementById('confirmationMessage').textContent = 
+            'Are you sure you want to unassign this vehicle from the driver?';
+        
+        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+        modal.show();
+    }
+
+    async function performUnassignment(vehicleId) {
+        try {
+            const response = await fetch(`/operator/vehicle/${vehicleId}/unassign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showToast('Success', data.message, 'success');
+                
+                // Reload data with debouncing
+                debouncedRequest(loadUnassignedVehicles, 200)();
+                debouncedRequest(loadCurrentAssignments, 200)();
+            } else {
+                showToast('Error', data.error || 'Failed to unassign vehicle', 'error');
+            }
+        } catch (error) {
+            console.error('Error unassigning vehicle:', error);
+            showToast('Error', 'Failed to unassign vehicle', 'error');
+        }
+    }
+
+    function executeConfirmedAction() {
+        if (pendingAction) {
+            pendingAction();
+            pendingAction = null;
+        }
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
+        modal.hide();
+    }
+
+    function showToast(title, message, type = 'info') {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            // Ensure toasts appear above any buttons/modals in this page
+            toastContainer.style.zIndex = '12000';
+            toastContainer.style.pointerEvents = 'none';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast element
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast align-items-center text-white bg-${type === 'info' ? 'primary' : type === 'error' ? 'danger' : type}`;
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+        // Extra safety: elevate individual toast above other elements
+        toastEl.style.zIndex = '12001';
+        toastEl.style.pointerEvents = 'auto';
+        
+        toastEl.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <strong>${title}</strong>: ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        // Add to container
+        toastContainer.appendChild(toastEl);
+        
+        // Initialize and show toast
+        const toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 5000
+        });
+        toast.show();
+    }
+    
+    // Route Override Functions
+    let routeMap = null;
+    let routeMarkers = [];
+    let routePolyline = null;
+    
+             async function showRouteOverrideModal(vehicleId, vehicleName, currentRoute) {
+        console.log('🚀 Opening route override modal for vehicle:', vehicleId, vehicleName);
+        console.log('🔍 Current route:', currentRoute);
+        
+        // Refresh vehicle data to get the latest route information
+        try {
+            console.log('🔄 Refreshing vehicle data to get latest route...');
+            await loadCurrentAssignments();
+            
+            // Get the updated route from the refreshed data
+            const updatedRoute = getUpdatedRouteForVehicle(vehicleId);
+            if (updatedRoute && updatedRoute !== currentRoute) {
+                console.log('✅ Route updated from:', currentRoute, 'to:', updatedRoute);
+                currentRoute = updatedRoute;
+            }
+        } catch (error) {
+            console.error('❌ Error refreshing vehicle data:', error);
+        }
+        
+        // Set modal content
+        document.getElementById('routeVehicleId').value = vehicleId;
+        document.getElementById('routeVehicleName').textContent = vehicleName;
+        document.getElementById('currentRouteDisplay').textContent = currentRoute;
+        
+        // CRITICAL FIX: Store current route data for map initialization
+        if (currentRoute && currentRoute !== 'No route set') {
+            // Parse existing route to extract origin and destination
+            // Try different separators: " to " (default), " → " (arrow), " - " (dash)
+            let routeParts = currentRoute.split(' to ');
+            if (routeParts.length !== 2) {
+                routeParts = currentRoute.split(' → ');
+            }
+            if (routeParts.length !== 2) {
+                routeParts = currentRoute.split(' - ');
+            }
+            
+            if (routeParts.length === 2) {
+                window.currentRouteData = {
+                    origin: routeParts[0].trim(),
+                    destination: routeParts[1].trim(),
+                    fullRoute: currentRoute
+                };
+                console.log('✅ Stored existing route data:', window.currentRouteData);
+            } else {
+                console.log('⚠️ Could not parse route format:', currentRoute);
+                window.currentRouteData = null;
+            }
+        } else {
+            window.currentRouteData = null;
+        }
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('routeOverrideModal'));
+        modal.show();
+        
+        // Initialize map after modal is shown
+        setTimeout(() => {
+            initializeRouteMap(currentRoute);
+        }, 300);
+        
+        // Add cleanup when modal is hidden
+        const modalElement = document.getElementById('routeOverrideModal');
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            console.log('🗑️ Modal hidden, cleaning up map...');
+            cleanupRouteMap();
+            // Clear stored route data
+            window.currentRouteData = null;
+        }, { once: true }); // Use once: true to prevent multiple listeners
+        
+        // CRITICAL FIX: Warn user if they try to close without saving changes
+        const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"], .btn-close');
+        closeButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                if (hasRouteChanges()) {
+                    const confirmClose = confirm('You have unsaved route changes. Are you sure you want to close without saving?');
+                    if (!confirmClose) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }
+            });
+        });
+    }
+    
+             function initializeRouteMap(currentRoute = null) {
+        try {
+            console.log('🗺️ Initializing route map with current route:', currentRoute);
+            
+            // Clean up existing map if it exists
+            if (routeMap) {
+                console.log('🗑️ Cleaning up existing map...');
+                routeMap.remove();
+                routeMap = null;
+            }
+            
+            // CRITICAL FIX: Don't clear existing route markers if we have a current route
+            if (!currentRoute || currentRoute === 'No route set') {
+                console.log('🔄 No existing route, starting fresh');
+                routeMarkers = [];
+                routePolyline = null;
+            } else {
+                console.log('✅ Preserving existing route information');
+                // Keep existing markers and polyline if we have a route
+            }
+             
+             // Check if Leaflet is loaded
+             if (typeof L === 'undefined') {
+                 console.log('🌍 Loading Leaflet CSS and JS...');
+                 
+                 // Load Leaflet CSS
+                 const leafletCSS = document.createElement('link');
+                 leafletCSS.rel = 'stylesheet';
+                 leafletCSS.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                 document.head.appendChild(leafletCSS);
+                 
+                 // Load Leaflet JS
+                 const leafletScript = document.createElement('script');
+                 leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                 leafletScript.onload = () => {
+                     console.log('✅ Leaflet loaded, initializing map...');
+                     createRouteMap();
+                 };
+                 document.head.appendChild(leafletScript);
+             } else {
+                 console.log('✅ Leaflet already loaded, creating map...');
+                 createRouteMap();
+             }
+         } catch (error) {
+             console.error('❌ Error initializing route map:', error);
+         }
+     }
+    
+         function createRouteMap() {
+          try {
+              const mapContainer = document.getElementById('route-map');
+              if (!mapContainer) {
+                  console.error('❌ Route map container not found');
+                  return;
+              }
+              
+              // Ensure container is clean (remove any existing map elements)
+              mapContainer.innerHTML = '';
+              
+              // Initialize map centered on Philippines with controlled zoom
+              routeMap = L.map('route-map', {
+                  zoomControl: true,
+                  maxZoom: 18,
+                  minZoom: 5
+              }).setView([12.8797, 121.7740], 8);
+             
+             // Add OpenStreetMap tiles
+             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                 attribution: '© OpenStreetMap contributors'
+             }).addTo(routeMap);
+             
+             console.log('✅ Route map created successfully');
+             
+             // Set up map click functionality
+             setupMapClickHandlers();
+             
+             // Set up geocoding for route points
+             setupRouteGeocoding();
+             
+             // CRITICAL FIX: Load existing route data if available
+             if (window.currentRouteData) {
+                 loadExistingRoute(window.currentRouteData);
+             }
+             
+         } catch (error) {
+             console.error('❌ Error creating route map:', error);
+         }
+     }
+    
+         // CRITICAL FIX: Function to load existing route data
+         function loadExistingRoute(routeData) {
+             try {
+                 console.log('🔄 Loading existing route:', routeData);
+                 
+                 if (!routeData || !routeData.origin || !routeData.destination) {
+                     console.log('⚠️ No valid route data to load');
+                     return;
+                 }
+                 
+                 // Set the input fields with existing route data
+                 const pointAInput = document.getElementById('route-point-a');
+                 const pointBInput = document.getElementById('route-point-b');
+                 
+                 if (pointAInput) pointAInput.value = routeData.origin;
+                 if (pointBInput) pointBInput.value = routeData.destination;
+                 
+                 console.log('✅ Input fields populated with existing route data');
+                 
+                 // Try to geocode the existing route points to show them on the map
+                 if (routeData.origin) {
+                     geocodeLocation(routeData.origin, 'A');
+                 }
+                 if (routeData.destination) {
+                     geocodeLocation(routeData.destination, 'B');
+                 }
+                 
+             } catch (error) {
+                 console.error('❌ Error loading existing route:', error);
+             }
+         }
+    
+         // CRITICAL FIX: Function to check if route has been modified
+         function hasRouteChanges() {
+             try {
+                 if (!window.currentRouteData) {
+                     // No original route, so any input is a change
+                     const pointA = document.getElementById('route-point-a').value.trim();
+                     const pointB = document.getElementById('route-point-b').value.trim();
+                     return pointA !== '' || pointB !== '';
+                 }
+                 
+                 // Check if current inputs differ from original route
+                 const currentPointA = document.getElementById('route-point-a').value.trim();
+                 const currentPointB = document.getElementById('route-point-b').value.trim();
+                 
+                 const hasChanges = currentPointA !== window.currentRouteData.origin || 
+                                   currentPointB !== window.currentRouteData.destination;
+                 
+                 console.log('🔍 Route change check:', {
+                     original: { origin: window.currentRouteData.origin, destination: window.currentRouteData.destination },
+                     current: { origin: currentPointA, destination: currentPointB },
+                     hasChanges: hasChanges
+                 });
+                 
+                 return hasChanges;
+                 
+             } catch (error) {
+                 console.error('❌ Error checking route changes:', error);
+                 return false;
+             }
+         }
+    
+         function setupMapClickHandlers() {
+          // Check if map exists
+          if (!routeMap) {
+              console.warn('⚠️ Cannot setup map click handlers: map not initialized');
+              return;
+          }
+          
+          // Add click event to map for setting route points
+          routeMap.on('click', function(e) {
+             console.log('🗺️ Map click event received:', e);
+             console.log('🗺️ Event type:', typeof e);
+             console.log('🗺️ Event keys:', Object.keys(e));
+             
+             // Handle different event object structures
+             let lat, lon;
+             if (e.latlng) {
+                 lat = e.latlng.lat;
+                 lon = e.latlng.lng; // Note: Leaflet uses .lng, not .lon
+             } else if (e.originalEvent && e.originalEvent.latlng) {
+                 lat = e.originalEvent.latlng.lat;
+                 lon = e.originalEvent.latlng.lng;
+             } else {
+                 console.error('❌ Could not extract lat/lng from event:', e);
+                 return;
+             }
+             
+             console.log('🗺️ Map clicked at:', lat, lon);
+             
+             // Validate coordinates
+             if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) {
+                 console.error('❌ Invalid coordinates:', lat, lon);
+                 return;
+             }
+             
+             // Determine which point to set (A or B)
+             let pointToSet = 'A';
+             if (routeMarkers.find(m => m.point === 'A')) {
+                 pointToSet = 'B';
+             }
+             
+             // Reverse geocode to get address
+             reverseGeocode(lat, lon, pointToSet);
+         });
+         
+         console.log('✅ Map click handlers set up');
+     }
+     
+         // Improved reverse geocoding with better address resolution and fallback
+    async function reverseGeocode(lat, lon, point) {
+        try {
+            console.log(`🔍 Reverse geocoding for ${point}: ${lat}, ${lon}`);
+            
+            // Use backend proxy with better parameters for address resolution
+            const response = await fetch(`/operator/geocode?lat=${lat}&lon=${lon}&format=json&addressdetails=1&extratags=1&namedetails=1&accept-language=en`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log(`📍 Geocoding response:`, data);
+            
+            // Check if we got an error response from our backend
+            if (data.error) {
+                console.warn(`⚠️ Backend geocoding error: ${data.error}`);
+                // Fall back to coordinate-based address
+                const address = generateCoordinateAddress(lat, lon);
+                addRouteMarker(lat, lon, point, address);
+                updateRouteInput(point, address);
+                return address;
+            }
+            
+            if (data && data.length > 0) {
+                const result = data[0];
+                
+                // Prioritize location names and readable addresses
+                let address = '';
+                
+                // Try to get the most descriptive address
+                if (result.address) {
+                    const addr = result.address;
+                    
+                    // Build address in order of preference - prioritize location names
+                    if (addr.city) address += addr.city;
+                    else if (addr.town) address += addr.town;
+                    else if (addr.village) address += addr.village;
+                    else if (addr.suburb) address += addr.suburb;
+                    
+                    // Add road name if available and different from city
+                    if (addr.road && (!address || !address.includes(addr.road))) {
+                        if (address) address += `, ${addr.road}`;
+                        else address = addr.road;
+                    }
+                    
+                    // Add house number if available
+                    if (addr.house_number && !address.includes(addr.house_number)) {
+                        if (address) address += ` ${addr.house_number}`;
+                        else address = addr.house_number;
+                    }
+                    
+                    // Add state/province if available and different
+                    if (addr.state && (!address || !address.includes(addr.state))) {
+                        if (address) address += `, ${addr.state}`;
+                        else address = addr.state;
+                    }
+                    
+                    // If we still don't have a good address, try display_name
+                    if (!address || address.length < 3) {
+                        // Try to extract meaningful parts from display_name
+                        const displayParts = result.display_name.split(', ');
+                        if (displayParts.length > 0) {
+                            // Take first 2-3 meaningful parts
+                            const meaningfulParts = displayParts.slice(0, 3).filter(part => 
+                                part.length > 2 && 
+                                !part.match(/^\d+\.\d+$/) && // Filter out coordinates
+                                !part.match(/^[0-9]+$/) // Filter out pure numbers
+                            );
+                            if (meaningfulParts.length > 0) {
+                                address = meaningfulParts.join(', ');
+                            }
+                        }
+                    }
+                }
+                
+                // If still no good address, use display_name but clean it up
+                if (!address || address.length < 3) {
+                    address = result.display_name;
+                    // Remove coordinate-like patterns
+                    address = address.replace(/\d+\.\d+/g, '').replace(/,\s*,/g, ',').replace(/^,\s*/, '').replace(/,\s*$/, '');
+                }
+                
+                // Clean up the address
+                address = address.replace(/^,\s*/, '').replace(/,\s*$/, '').replace(/\s+/g, ' ').trim();
+                
+                // If we still have coordinates in the address, try to extract just the location name
+                if (address.includes(lat.toFixed(4)) || address.includes(lon.toFixed(4))) {
+                    // Extract location name from display_name
+                    const displayParts = result.display_name.split(', ');
+                    const locationParts = displayParts.filter(part => 
+                        part.length > 2 && 
+                        !part.match(/^\d+\.\d+$/) && 
+                        !part.match(/^[0-9]+$/) &&
+                        !part.includes('Philippines') &&
+                        !part.includes('Palawan')
+                    );
+                    if (locationParts.length > 0) {
+                        address = locationParts.slice(0, 2).join(', ');
+                    }
+                }
+                
+                console.log(`✅ Resolved address for ${point}: ${address}`);
+                
+                // Add marker to map
+                addRouteMarker(lat, lon, point, address);
+                
+                // Update input with full address
+                updateRouteInput(point, address);
+                
+                // If both points are set, calculate route
+                if (routeMarkers.length >= 2) {
+                    calculateRoute();
+                }
+                
+                return address;
+            } else {
+                // Fallback to coordinates with better formatting
+                const address = generateCoordinateAddress(lat, lon);
+                addRouteMarker(lat, lon, point, address);
+                updateRouteInput(point, address);
+                return address;
+            }
+            
+        } catch (error) {
+            console.error(`❌ Reverse geocoding error for ${point}:`, error);
+            // Fallback to formatted coordinates
+            const address = generateCoordinateAddress(lat, lon);
+            addRouteMarker(lat, lon, point, address);
+            updateRouteInput(point, address);
+            return address;
+        }
+    }
+    
+    // Helper function to generate coordinate-based addresses
+    function generateCoordinateAddress(lat, lon) {
+        const latFormatted = lat.toFixed(6);
+        const lonFormatted = lon.toFixed(6);
+        return `Location (${latFormatted}, ${lonFormatted})`;
+    }
+    
+    // Helper function to update route input fields
+    function updateRouteInput(point, address) {
+        const input = document.getElementById(`route-point-${point.toLowerCase()}`);
+        if (input) {
+            input.value = address;
+        }
+    }
+     
+           function setupRouteGeocoding() {
+          const pointAInput = document.getElementById('route-point-a');
+          const pointBInput = document.getElementById('route-point-b');
+          
+          if (pointAInput && pointBInput) {
+              // Add event listeners for route point inputs
+              pointAInput.addEventListener('input', debounce(() => {
+                  if (routeMap) { // Only geocode if map is initialized
+                      geocodeLocation(pointAInput.value, 'A');
+                  }
+              }, 500));
+              
+              pointBInput.addEventListener('input', debounce(() => {
+                  if (routeMap) { // Only geocode if map is initialized
+                      geocodeLocation(pointBInput.value, 'B');
+                  }
+              }, 500));
+          }
+      }
+    
+         function geocodeLocation(query, point) {
+          if (!query || query.length < 3) return;
+          
+          // Check if map exists
+          if (!routeMap) {
+              console.warn('⚠️ Cannot geocode: map not initialized');
+              return;
+          }
+          
+          console.log(`🔍 Geocoding ${point}:`, query);
+          
+          // Use our backend proxy to avoid CORS issues
+          const url = `/operator/geocode?q=${encodeURIComponent(query)}&countrycodes=ph&limit=5`;
+          
+          fetch(url)
+              .then(response => response.json())
+              .then(data => {
+                  if (data && data.length > 0) {
+                      const location = data[0];
+                      const lat = parseFloat(location.lat);
+                      const lon = parseFloat(location.lon);
+                      
+                      console.log(`✅ Geocoded ${point}:`, query);
+                      
+                      // Add marker to map
+                      addRouteMarker(lat, lon, point, location.display_name);
+                      
+                      // Update input with full address
+                      const input = document.getElementById(`route-point-${point.toLowerCase()}`);
+                      if (input) {
+                          input.value = location.display_name;
+                      }
+                      
+                      // If both points are set, calculate route
+                      if (routeMarkers.length >= 2) {
+                          calculateRoute();
+                      }
+                  }
+              })
+              .catch(error => {
+                  console.error(`❌ Error geocoding ${point}:`, error);
+              });
+      }
+    
+         function addRouteMarker(lat, lon, point, address) {
+         try {
+             // Check if map exists
+             if (!routeMap) {
+                 console.warn('⚠️ Cannot add marker: map not initialized');
+                 return;
+             }
+             
+             // Remove existing marker for this point
+             const existingMarker = routeMarkers.find(m => m.point === point);
+             if (existingMarker) {
+                 try {
+                     routeMap.removeLayer(existingMarker.marker);
+                 } catch (error) {
+                     console.warn('⚠️ Could not remove existing marker:', error);
+                 }
+                 routeMarkers = routeMarkers.filter(m => m.point !== point);
+             }
+            
+            // Create new marker
+            const icon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${point === 'A' ? '#007bff' : '#dc3545'}; color: white; padding: 5px; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold;">${point}</div>`,
+                iconSize: [20, 20],
+                 iconAnchor: [10, 10]
+            });
+            
+            const marker = L.marker([lat, lon], { icon: icon }).addTo(routeMap);
+            marker.bindPopup(`<strong>Point ${point}</strong><br>${address}`);
+            
+            // Store marker info
+            routeMarkers.push({ point, marker, lat, lon, address });
+            
+            // Fit map to show all markers with controlled zoom
+            if (routeMarkers.length > 0) {
+                const bounds = L.latLngBounds(routeMarkers.map(m => [m.lat, m.lon]));
+                routeMap.fitBounds(bounds, { 
+                    padding: [20, 20],
+                    maxZoom: 15, // Prevent excessive zoom in
+                    animate: true
+                });
+            }
+            
+            console.log(`✅ Added marker for point ${point}`);
+            
+        } catch (error) {
+            console.error(`❌ Error adding marker for point ${point}:`, error);
+        }
+    }
+    
+         function calculateRoute() {
+         if (routeMarkers.length < 2) {
+             console.log('⚠️ Need at least 2 points to calculate route');
+             return;
+         }
+         
+         // Check if map exists
+         if (!routeMap) {
+             console.warn('⚠️ Cannot calculate route: map not initialized');
+             return;
+         }
+         
+         try {
+             const pointA = routeMarkers.find(m => m.point === 'A');
+             const pointB = routeMarkers.find(m => m.point === 'B');
+             
+             if (!pointA || !pointB) {
+                 console.log('⚠️ Missing route points');
+                 return;
+             }
+             
+             console.log('🛣️ Calculating route...');
+             
+             // Use OSRM for route calculation
+             const url = `https://router.project-osrm.org/route/v1/driving/${pointA.lon},${pointA.lat};${pointB.lon},${pointB.lat}?overview=full&geometries=geojson`;
+             
+             fetch(url)
+                 .then(response => response.json())
+                 .then(data => {
+                     if (data.routes && data.routes.length > 0) {
+                         const route = data.routes[0];
+                         
+                         // Remove existing route line
+                         if (routePolyline && routeMap) {
+                             try {
+                                 routeMap.removeLayer(routePolyline);
+                             } catch (error) {
+                                 console.warn('⚠️ Could not remove existing polyline:', error);
+                             }
+                         }
+                         
+                         // Draw new route
+                         routePolyline = L.geoJSON(route.geometry, {
+                             style: {
+                                 color: '#007bff',
+                                 width: 4,
+                                 opacity: 0.7
+                             }
+                         }).addTo(routeMap);
+                        
+                        // Update distance display
+                        const distance = (route.distance / 1000).toFixed(1);
+                        document.getElementById('route-distance').textContent = `Distance: ${distance}km`;
+                        
+                        console.log('✅ Route calculated:', distance, 'km');
+                        
+                        // Fit map to show entire route with controlled zoom
+                        routeMap.fitBounds(routePolyline.getBounds(), { 
+                            padding: [20, 20],
+                            maxZoom: 14, // Prevent excessive zoom in
+                            animate: true
+                        });
+                        
+                    } else {
+                        console.error('❌ No route found');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error calculating route:', error);
+                });
+            
+        } catch (error) {
+            console.error('❌ Error in calculateRoute:', error);
+        }
+    }
+    
+         // Clear route without moving map unnecessarily
+     function clearRoute() {
+         try {
+             // CRITICAL FIX: Check if there's an existing route before clearing
+             const currentRoute = document.getElementById('currentRouteDisplay').textContent;
+             if (currentRoute && currentRoute !== 'No route set') {
+                 const confirmClear = confirm(`Are you sure you want to clear the existing route: "${currentRoute}"?\n\nThis action cannot be undone.`);
+                 if (!confirmClear) {
+                     console.log('🚫 Route clearing cancelled by user');
+                     return;
+                 }
+             }
+             
+             console.log('🗑️ Clearing route...');
+             
+             // Clear markers
+             if (routeMap) {
+                 routeMarkers.forEach(marker => {
+                     try {
+                         routeMap.removeLayer(marker.marker);
+                     } catch (error) {
+                         console.warn('⚠️ Could not remove marker:', error);
+                     }
+                 });
+             }
+             routeMarkers = [];
+             
+             // Clear route line
+             if (routePolyline && routeMap) {
+                 try {
+                     routeMap.removeLayer(routePolyline);
+                 } catch (error) {
+                     console.warn('⚠️ Could not remove polyline:', error);
+                 }
+                 routePolyline = null;
+             }
+             
+             // Clear inputs
+             const pointAInput = document.getElementById('route-point-a');
+             const pointBInput = document.getElementById('route-point-b');
+             if (pointAInput) pointAInput.value = '';
+             if (pointBInput) pointBInput.value = '';
+             
+             // Clear distance
+             const distanceElement = document.getElementById('route-distance');
+             if (distanceElement) distanceElement.textContent = '';
+             
+             // Don't move the map - just clear the route elements
+             console.log('✅ Route cleared without moving map');
+             
+         } catch (error) {
+             console.error('❌ Error clearing route:', error);
+         }
+     }
+
+     // Default route definitions with coordinates
+     const DEFAULT_ROUTES = {
+         'brookes-point-to-puerto-princesa': {
+             name: "Brooke's Point to Puerto Princesa",
+             start: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" },
+             end: { lat: 9.7406, lng: 118.7397, name: "Puerto Princesa, Palawan, Philippines" }
+         },
+         'puerto-princesa-to-brookes-point': {
+             name: "Puerto Princesa to Brooke's Point",
+             start: { lat: 9.7406, lng: 118.7397, name: "Puerto Princesa, Palawan, Philippines" },
+             end: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" }
+         },
+         'brookes-point-to-bataraza': {
+             name: "Brooke's Point to Bataraza",
+             start: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" },
+             end: { lat: 8.6737, lng: 117.6544, name: "Bataraza, Palawan, Philippines" }
+         },
+         'bataraza-to-brookes-point': {
+             name: "Bataraza to Brooke's Point",
+             start: { lat: 8.6737, lng: 117.6544, name: "Bataraza, Palawan, Philippines" },
+             end: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" }
+         },
+         'rio-tuba-to-brookes-point': {
+             name: "Rio Tuba to Brooke's Point",
+             start: { lat: 8.6737, lng: 117.6544, name: "Rio Tuba, Palawan, Philippines" },
+             end: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" }
+         },
+         'brookes-point-to-rio-tuba': {
+             name: "Brooke's Point to Rio Tuba",
+             start: { lat: 8.7979, lng: 117.8302, name: "Brooke's Point, Palawan, Philippines" },
+             end: { lat: 8.6737, lng: 117.6544, name: "Rio Tuba, Palawan, Philippines" }
+         }
+     };
+
+     function handleDefaultRouteSelection() {
+         const selectElement = document.getElementById('default-route-select');
+         const selectedValue = selectElement.value;
+         
+         if (!selectedValue) {
+             return; // No route selected
+         }
+         
+         const routeData = DEFAULT_ROUTES[selectedValue];
+         if (!routeData) {
+             console.error('Unknown route selected:', selectedValue);
+             return;
+         }
+         
+         console.log('Default route selected:', routeData);
+         
+         // Clear existing route
+         clearRoute();
+         
+         // Add markers for the default route
+         addRouteMarker(routeData.start.lat, routeData.start.lng, 'A', routeData.start.name);
+         addRouteMarker(routeData.end.lat, routeData.end.lng, 'B', routeData.end.name);
+         
+         // Update input fields
+         const pointAInput = document.getElementById('route-point-a');
+         const pointBInput = document.getElementById('route-point-b');
+         if (pointAInput) pointAInput.value = routeData.start.name;
+         if (pointBInput) pointBInput.value = routeData.end.name;
+         
+         // Calculate and display route
+         calculateRoute();
+         
+         // Show success message
+         showToast('Route Set', `Default route "${routeData.name}" has been selected`, 'success');
+     }
+    
+    async function saveRoute() {
+        try {
+            if (routeMarkers.length < 2) {
+                showToast('Error', 'Please set both starting point and destination', 'error');
+                return;
+            }
+            
+            const vehicleId = document.getElementById('routeVehicleId').value;
+            const pointA = routeMarkers.find(m => m.point === 'A');
+            const pointB = routeMarkers.find(m => m.point === 'B');
+            
+            if (!pointA || !pointB) {
+                showToast('Error', 'Route points not found', 'error');
+                return;
+            }
+            
+            const routeData = {
+                vehicle_id: vehicleId,
+                origin: pointA.address,
+                destination: pointB.address,
+                origin_lat: pointA.lat,
+                origin_lon: pointA.lon,
+                dest_lat: pointB.lat,
+                dest_lon: pointB.lon
+            };
+            
+            console.log('💾 Saving route:', routeData);
+            
+            // Send route data to backend
+            const response = await fetch('/operator/vehicle/route/set', {
+                method: 'POST',
+                headers: {
+                     'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(routeData)
+            });
+            
+            console.log('📥 Route save response received:', response.status, response.statusText);
+            
+            // Check if response is redirect (authentication issue)
+            if (response.redirected) {
+                console.log('⚠️ Route save response was redirected - likely authentication issue');
+                showToast('Error', 'Session expired. Please log in again.', 'error');
+                // Redirect to login page
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Check content type to ensure we're getting JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('❌ Route save response is not JSON:', contentType);
+                const responseText = await response.text();
+                console.error('❌ Response text:', responseText);
+                
+                if (responseText.includes('<!DOCTYPE')) {
+                    showToast('Error', 'Session expired. Please log in again.', 'error');
+                    // Redirect to login page
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                showToast('Error', 'Server returned invalid response format', 'error');
+                return;
+            }
+            
+            if (response.ok) {
+                const data = await response.json();
+                showToast('Success', 'Route saved successfully', 'success');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('routeOverrideModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Reload assignments to show updated route
+                loadCurrentAssignments();
+                
+            } else {
+                const errorData = await response.json();
+                showToast('Error', errorData.error || 'Failed to save route', 'error');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error saving route:', error);
+            
+            // Check if it's a JSON parsing error (likely HTML response)
+            if (error.message && error.message.includes('Unexpected token') && error.message.includes('<!DOCTYPE')) {
+                console.error('❌ Received HTML instead of JSON - likely authentication redirect');
+                showToast('Error', 'Session expired. Please log in again.', 'error');
+                // Redirect to login page
+                window.location.href = '/login';
+                return;
+            }
+            
+            showToast('Error', 'Failed to save route: ' + error.message, 'error');
+        }
+         }
+     
+     // Function to clean up route map resources
+     function cleanupRouteMap() {
+         try {
+             console.log('🗑️ Cleaning up route map resources...');
+             
+             // Remove map instance
+             if (routeMap) {
+                 routeMap.remove();
+                 routeMap = null;
+             }
+             
+             // Clear markers and polyline
+             routeMarkers = [];
+             routePolyline = null;
+             
+             // Clear route inputs
+             const pointAInput = document.getElementById('route-point-a');
+             const pointBInput = document.getElementById('route-point-b');
+             if (pointAInput) pointAInput.value = '';
+             if (pointBInput) pointBInput.value = '';
+             
+             // Clear distance display
+             const distanceElement = document.getElementById('route-distance');
+             if (distanceElement) distanceElement.textContent = '';
+             
+             console.log('✅ Route map cleanup complete');
+         } catch (error) {
+             console.error('❌ Error during route map cleanup:', error);
+         }
+     }
+     
+     // Utility function for debouncing
+     function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+</script>
+{% endblock %}

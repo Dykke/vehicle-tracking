@@ -1,0 +1,208 @@
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+from models import db
+
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    user_type = db.Column(db.String(20), nullable=False)  # 'admin', 'operator', 'driver'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # New fields for 55% scope
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    profile_image_url = db.Column(db.String(500), nullable=True)
+    
+    # Added for role management
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # For drivers created by operators
+    created_by = db.relationship('User', remote_side=[id], backref='created_users')
+    
+    # Location data
+    current_latitude = db.Column(db.Float, nullable=True)
+    current_longitude = db.Column(db.Float, nullable=True)
+    accuracy = db.Column(db.Float, nullable=True)  # accuracy in meters
+    
+    # Relationships - modified to avoid backref conflicts
+    vehicles = db.relationship('Vehicle', backref='owner', lazy='dynamic')
+    notifications = db.relationship('Notification', backref=db.backref('user_backref', uselist=False), lazy='dynamic')
+    notification_settings = db.relationship('NotificationSetting', backref=db.backref('user_backref', uselist=False), uselist=False)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'user_type': self.user_type,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'current_latitude': self.current_latitude,
+            'current_longitude': self.current_longitude,
+            'accuracy': self.accuracy,
+            'is_active': self.is_active,
+            'profile_image_url': self.profile_image_url
+        }
+
+class Vehicle(db.Model):
+    __tablename__ = 'vehicles'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    registration_number = db.Column(db.String(20), unique=True, nullable=False)
+    vehicle_type = db.Column(db.String(50), nullable=False)
+    capacity = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default='inactive')  # 'active', 'inactive', 'maintenance', etc.
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # New fields for 55% scope
+    occupancy_status = db.Column(db.String(20), default='vacant')  # 'vacant', 'full'
+    last_speed_kmh = db.Column(db.Float, nullable=True)  # optional derived cache
+    
+    # Location and tracking
+    current_latitude = db.Column(db.Float, nullable=True)
+    current_longitude = db.Column(db.Float, nullable=True)
+    last_updated = db.Column(db.DateTime, nullable=True)
+    accuracy = db.Column(db.Float, nullable=True)  # Location accuracy in meters
+    
+    # Route data - now defined as actual columns
+    route = db.Column(db.String(255), nullable=True)
+    route_info = db.Column(db.JSON, nullable=True)
+    
+    # Foreign key
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    def to_dict(self):
+        # Create route_info dynamically from route if needed and not already stored
+        route_info_data = self.route_info
+        
+        if not route_info_data and self.route and ' to ' in self.route:
+            parts = self.route.split(' to ')
+            route_info_data = {
+                'route_name': self.route,
+                'origin': parts[0],
+                'destination': parts[1]
+            }
+        
+        data = {
+            'id': self.id,
+            'registration_number': self.registration_number,
+            'vehicle_number': self.registration_number,  # Add alias for compatibility with frontend
+            'vehicle_type': self.vehicle_type,
+            'capacity': self.capacity,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'current_latitude': self.current_latitude,
+            'current_longitude': self.current_longitude,
+            'latitude': self.current_latitude,  # Add alias for map compatibility
+            'longitude': self.current_latitude,  # Add alias for map compatibility
+            'last_updated': self.last_updated.isoformat() if self.last_updated else None,
+            'owner_id': self.owner_id,
+            'route': self.route,
+            'route_info': route_info_data,
+            # New fields for 55% scope
+            'occupancy_status': self.occupancy_status,
+            'last_speed_kmh': self.last_speed_kmh
+        }
+        
+        return data
+
+class LocationLog(db.Model):
+    __tablename__ = 'location_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    accuracy = db.Column(db.Float)  # Location accuracy in meters
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    vehicle = db.relationship('Vehicle', backref=db.backref('location_logs', lazy=True))
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'vehicle_id': self.vehicle_id,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            'accuracy': self.accuracy,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None
+        }
+
+# New models for 55% scope
+class DriverActionLog(db.Model):
+    __tablename__ = 'driver_action_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    driver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=True)
+    action = db.Column(db.String(100), nullable=False)  # 'occupancy_change', 'route_start', 'route_abort', etc.
+    meta_data = db.Column(db.JSON, nullable=True)  # Additional data like old_value, new_value, etc.
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    driver = db.relationship('User', backref=db.backref('action_logs', lazy=True))
+    vehicle = db.relationship('Vehicle', backref=db.backref('action_logs', lazy=True))
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'driver_id': self.driver_id,
+            'vehicle_id': self.vehicle_id,
+            'action': self.action,
+            'meta_data': self.meta_data,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class Trip(db.Model):
+    __tablename__ = 'trips'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
+    driver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    route_name = db.Column(db.String(255), nullable=True)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(20), default='active')  # 'active', 'completed', 'cancelled'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    vehicle = db.relationship('Vehicle', backref=db.backref('trips', lazy=True))
+    driver = db.relationship('User', backref=db.backref('trips', lazy=True))
+    passenger_events = db.relationship('PassengerEvent', backref='trip', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'vehicle_id': self.vehicle_id,
+            'driver_id': self.driver_id,
+            'route_name': self.route_name,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class PassengerEvent(db.Model):
+    __tablename__ = 'passenger_events'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    trip_id = db.Column(db.Integer, db.ForeignKey('trips.id'), nullable=False)
+    event_type = db.Column(db.String(20), nullable=False)  # 'board', 'alight'
+    count = db.Column(db.Integer, nullable=False, default=1)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    notes = db.Column(db.Text, nullable=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'trip_id': self.trip_id,
+            'event_type': self.event_type,
+            'count': self.count,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'notes': self.notes
+        } 

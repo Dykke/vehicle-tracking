@@ -1,0 +1,423 @@
+{% extends 'base.html' %}
+
+{% block title %}Operator Profile{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-user me-2"></i>Operator Profile
+            </h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i>Profile Information
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        {% if current_user.profile_image_url %}
+                            <img src="{{ current_user.profile_image_url }}" alt="Profile Picture" 
+                                 class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto" 
+                                 style="width: 120px; height: 120px;">
+                                <i class="fas fa-user fa-3x text-white"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <h4>{{ current_user.username }}</h4>
+                    <p class="text-muted">{{ current_user.email }}</p>
+                    {% if current_user.company_name %}
+                        <p class="text-muted"><strong>Company:</strong> {{ current_user.company_name }}</p>
+                    {% endif %}
+                    {% if current_user.contact_number %}
+                        <p class="text-muted"><strong>Contact:</strong> {{ current_user.contact_number }}</p>
+                    {% endif %}
+                    <div class="mb-3">
+                        <span class="badge {% if current_user.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                            {% if current_user.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-muted">
+                        <small>Member since {{ current_user.created_at.strftime('%B %Y') }}</small>
+                    </p>
+                    <button class="btn btn-outline-primary btn-sm" onclick="editProfile()">
+                        <i class="fas fa-edit me-2"></i>Edit Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fleet Overview -->
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bus me-2"></i>Fleet Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if vehicles %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-3">
+                                    <h6 class="mb-2">Total Vehicles</h6>
+                                    <h3 class="text-primary">{{ vehicles|length }}</h3>
+                                    <p class="text-muted mb-0">In your fleet</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-3">
+                                    <h6 class="mb-2">Active Vehicles</h6>
+                                    <h3 class="text-success">
+                                        {% set active_vehicles = vehicles|selectattr('status', 'equalto', 'active')|list %}
+                                        {{ active_vehicles|length }}
+                                    </h3>
+                                    <p class="text-muted mb-0">Currently operational</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-3">
+                                    <h6 class="mb-2">Buses</h6>
+                                    <h3 class="text-info">
+                                        {% set buses = vehicles|selectattr('vehicle_type', 'equalto', 'bus')|list %}
+                                        {{ buses|length }}
+                                    </h3>
+                                    <p class="text-muted mb-0">Large capacity vehicles</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-3">
+                                    <h6 class="mb-2">Vans</h6>
+                                    <h3 class="text-warning">
+                                        {% set vans = vehicles|selectattr('vehicle_type', 'equalto', 'van')|list %}
+                                        {{ vans|length }}
+                                    </h3>
+                                    <p class="text-muted mb-0">Medium capacity vehicles</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <a href="{{ url_for('operator.dashboard') }}" class="btn btn-primary">
+                                <i class="fas fa-tachometer-alt me-2"></i>Manage Fleet
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No vehicles in your fleet yet. <a href="{{ url_for('operator.dashboard') }}">Add your first vehicle</a>.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Activity -->
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Recent Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_logs %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Action</th>
+                                        <th>Vehicle</th>
+                                        <th>Time</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in recent_logs %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-primary">{{ log.action|replace('_', ' ')|title }}</span>
+                                            </td>
+                                            <td>
+                                                {% if log.target_type == 'vehicle' and log.target_id %}
+                                                    {% set vehicle = vehicles|selectattr('id', 'equalto', log.target_id)|first %}
+                                                    {% if vehicle %}
+                                                        {{ vehicle.registration_number }}
+                                                    {% else %}
+                                                        Unknown Vehicle
+                                                    {% endif %}
+                                                {% elif log.target_type == 'driver' %}
+                                                    Driver Management
+                                                {% elif log.target_type == 'system' %}
+                                                    System
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {% if log.meta_data %}
+                                                        {% for key, value in log.meta_data.items() %}
+                                                            {% if key != 'timestamp' %}
+                                                                {{ key|replace('_', ' ')|title }}: {{ value }}<br>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('operator.operator_action_logs') }}" class="btn btn-outline-success">
+                                <i class="fas fa-list me-2"></i>View All Activity
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No recent activity to display.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('operator.dashboard') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('operator.manage_drivers_page') }}" class="btn btn-outline-info">
+                            <i class="fas fa-users me-2"></i>Manage Drivers
+                        </a>
+                        <a href="{{ url_for('operator.settings') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-cog me-2"></i>Settings
+                        </a>
+                        <button class="btn btn-outline-success" onclick="showAddVehicleModal()">
+                            <i class="fas fa-plus me-2"></i>Add Vehicle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Vehicle Status Summary -->
+        <div class="col-md-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Vehicle Status Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if vehicles %}
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="h2 text-success">
+                                        {% set active_vehicles = vehicles|selectattr('status', 'equalto', 'active')|list %}
+                                        {{ active_vehicles|length }}
+                                    </div>
+                                    <p class="text-muted">Active</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="h2 text-warning">
+                                        {% set delayed_vehicles = vehicles|selectattr('status', 'equalto', 'delayed')|list %}
+                                        {{ delayed_vehicles|length }}
+                                    </div>
+                                    <p class="text-muted">Delayed</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="h2 text-danger">
+                                        {% set inactive_vehicles = vehicles|selectattr('status', 'equalto', 'inactive')|list %}
+                                        {{ inactive_vehicles|length }}
+                                    </div>
+                                    <p class="text-muted">Inactive</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="text-center">
+                                    <div class="h2 text-info">
+                                        {% set vacant_vehicles = vehicles|selectattr('occupancy_status', 'equalto', 'vacant')|list %}
+                                        {{ vacant_vehicles|length }}
+                                    </div>
+                                    <p class="text-muted">Vacant</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No vehicles to display status for.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="mb-3">
+                        <label for="editUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="editUsername" value="{{ current_user.username }}" readonly>
+                        <small class="text-muted">Username cannot be changed</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="editEmail" value="{{ current_user.email }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCompanyName" class="form-label">Company Name</label>
+                        <input type="text" class="form-control" id="editCompanyName" value="{{ current_user.company_name or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editContactNumber" class="form-label">Contact Number</label>
+                        <input type="tel" class="form-control" id="editContactNumber" value="{{ current_user.contact_number or '' }}">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveProfileChanges()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function editProfile() {
+        document.getElementById('editEmail').value = '{{ current_user.email }}';
+        document.getElementById('editCompanyName').value = '{{ current_user.company_name or "" }}';
+        document.getElementById('editContactNumber').value = '{{ current_user.contact_number or "" }}';
+        const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
+        modal.show();
+    }
+
+    async function saveProfileChanges() {
+        const email = document.getElementById('editEmail').value;
+        const companyName = document.getElementById('editCompanyName').value;
+        const contactNumber = document.getElementById('editContactNumber').value;
+        
+        try {
+            const response = await fetch('/operator/profile/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    email: email,
+                    company_name: companyName,
+                    contact_number: contactNumber
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showToast('Success', data.message, 'success');
+                
+                // Update the displayed information
+                document.querySelector('.card-body h4').textContent = '{{ current_user.username }}';
+                document.querySelector('.card-body p.text-muted').textContent = email;
+                
+                // Close the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+                modal.hide();
+                
+                // Reload the page to show updated information
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showToast('Error', data.error || 'Failed to update profile.', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            showToast('Error', 'An error occurred while updating profile.', 'error');
+        }
+    }
+
+    function showAddVehicleModal() {
+        // This would typically open the add vehicle modal from the dashboard
+        // For now, redirect to dashboard
+        window.location.href = '{{ url_for("operator.dashboard") }}';
+    }
+
+    function showToast(title, message, type = 'info') {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast element
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast align-items-center text-white bg-${type === 'info' ? 'primary' : type === 'error' ? 'danger' : type}`;
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+        
+        toastEl.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <strong>${title}</strong>: ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        // Add to container
+        toastContainer.appendChild(toastEl);
+        
+        // Initialize and show toast
+        const toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 5000
+        });
+        toast.show();
+    }
+</script>
+{% endblock %}

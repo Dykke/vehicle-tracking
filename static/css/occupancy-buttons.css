@@ -1,0 +1,160 @@
+/* OCCUPANCY BUTTONS - DEDICATED STYLES */
+/* This file is specifically for driver occupancy status buttons */
+
+/* Target the exact button structure */
+.controls-container .card-body .btn.occupancy-btn-large,
+.controls-container .card-body button.occupancy-btn-large,
+.controls-container .occupancy-btn.occupancy-btn-large,
+.controls-container .btn.occupancy-btn-large {
+    /* Force large dimensions */
+    min-height: 150px !important;
+    height: 150px !important;
+    width: 100% !important;
+    max-width: none !important;
+    
+    /* Force large padding and margins */
+    padding: 2rem !important;
+    margin: 0 !important;
+    
+    /* Force large text */
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    
+    /* Force styling */
+    border-radius: 1.5rem !important;
+    border: 3px solid transparent !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important;
+    
+    /* Force layout */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    
+    /* Override Bootstrap defaults */
+    background-color: var(--bs-btn-bg) !important;
+    color: var(--bs-btn-color) !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+    
+    /* Touch-friendly improvements */
+    touch-action: manipulation !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Hover effects */
+.controls-container .btn.occupancy-btn-large:hover {
+    transform: translateY(-4px) scale(1.02) !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+    filter: brightness(1.1) !important;
+}
+
+/* Active state */
+.controls-container .btn.occupancy-btn-large:active {
+    transform: translateY(-1px) scale(0.98) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+    filter: brightness(0.95) !important;
+}
+
+/* Focus state */
+.controls-container .btn.occupancy-btn-large:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25) !important;
+}
+
+/* Button content styling */
+.controls-container .occupancy-btn-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    width: 100% !important;
+    gap: 1rem !important;
+    padding: 1rem !important;
+}
+
+/* Icons */
+.controls-container .occupancy-icon {
+    font-size: 4rem !important;
+    margin-bottom: 0.5rem !important;
+    line-height: 1 !important;
+}
+
+/* Text styling */
+.controls-container .occupancy-text {
+    text-align: center !important;
+    line-height: 1.3 !important;
+    width: 100% !important;
+}
+
+.controls-container .occupancy-main {
+    font-weight: 800 !important;
+    font-size: 2rem !important;
+    margin-bottom: 0.5rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+.controls-container .occupancy-sub {
+    font-weight: 600 !important;
+    font-size: 1.4rem !important;
+    opacity: 0.95 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.25px !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 767.98px) {
+    .controls-container .btn.occupancy-btn-large {
+        min-height: 120px !important;
+        height: 120px !important;
+        padding: 1.5rem !important;
+    }
+    
+    .controls-container .occupancy-icon {
+        font-size: 3rem !important;
+    }
+    
+    .controls-container .occupancy-main {
+        font-size: 1.6rem !important;
+    }
+    
+    .controls-container .occupancy-sub {
+        font-size: 1.2rem !important;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 575.98px) {
+    .controls-container .btn.occupancy-btn-large {
+        min-height: 100px !important;
+        height: 100px !important;
+        padding: 1rem !important;
+    }
+    
+    .controls-container .occupancy-icon {
+        font-size: 2.5rem !important;
+    }
+    
+    .controls-container .occupancy-main {
+        font-size: 1.4rem !important;
+    }
+    
+    .controls-container .occupancy-sub {
+        font-size: 1.1rem !important;
+    }
+}
+
+/* Ensure proper spacing */
+.controls-container .row.g-4 .col-6 {
+    padding: 0.5rem !important;
+}
+
+.controls-container .occupancy-btn-large {
+    margin: 0.5rem 0 !important;
+}

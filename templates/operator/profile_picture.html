@@ -1,0 +1,435 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile Picture Management{% endblock %}
+
+{% block styles %}
+<style>
+    .profile-picture-container {
+        width: 200px;
+        height: 200px;
+        margin: 0 auto;
+        position: relative;
+        border-radius: 50%;
+        overflow: hidden;
+        background-color: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .profile-picture {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .profile-placeholder {
+        font-size: 80px;
+        color: #aaa;
+    }
+    
+    .upload-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 10px 0;
+        text-align: center;
+        cursor: pointer;
+        transition: opacity 0.3s;
+        opacity: 0;
+    }
+    
+    .profile-picture-container:hover .upload-overlay {
+        opacity: 1;
+    }
+    
+    .driver-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+    
+    .driver-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .driver-card.selected {
+        border-color: #007bff;
+        background-color: #f8f9ff;
+    }
+    
+    .driver-img {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .driver-placeholder {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: #aaa;
+    }
+    
+    .preview-container {
+        margin-top: 20px;
+        text-align: center;
+    }
+    
+    #imagePreview {
+        max-width: 100%;
+        max-height: 300px;
+    }
+    
+    .cropper-container {
+        margin: 0 auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Drivers
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="driversList">
+                        {% for driver in drivers %}
+                        <div class="list-group-item driver-card" data-driver-id="{{ driver.id }}" data-driver-name="{{ driver.username }}" data-profile-url="{{ driver.profile_image_url }}">
+                            <div class="d-flex align-items-center">
+                                {% if driver.profile_image_url %}
+                                <img src="{{ driver.profile_image_url }}" alt="{{ driver.username }}" class="driver-img me-3">
+                                {% else %}
+                                <div class="driver-placeholder me-3">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <h6 class="mb-0">{{ driver.username }}</h6>
+                                    <small class="text-muted">{{ driver.email }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-image me-2"></i>
+                        Profile Picture
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div id="driverProfileSection" style="display: none;">
+                        <h4 id="selectedDriverName" class="mb-4"></h4>
+                        
+                        <div class="profile-picture-container mb-4">
+                            <div id="profilePlaceholder" class="profile-placeholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <img id="profilePicture" class="profile-picture" style="display: none;" alt="Profile Picture">
+                            <div class="upload-overlay" onclick="document.getElementById('imageUpload').click()">
+                                <i class="fas fa-camera me-2"></i> Change Picture
+                            </div>
+                        </div>
+                        
+                        <form id="uploadForm" enctype="multipart/form-data">
+                            <input type="hidden" id="driverId" name="driver_id">
+                            <input type="file" id="imageUpload" name="profile_image" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                            <button type="button" id="uploadBtn" class="btn btn-primary" onclick="document.getElementById('imageUpload').click()">
+                                <i class="fas fa-upload me-2"></i> Upload New Picture
+                            </button>
+                            <button type="button" id="removeBtn" class="btn btn-outline-danger ms-2" onclick="removeProfilePicture()">
+                                <i class="fas fa-trash me-2"></i> Remove Picture
+                            </button>
+                        </form>
+                        
+                        <div class="preview-container" id="previewContainer" style="display: none;">
+                            <h5 class="mb-3">Preview</h5>
+                            <img id="imagePreview" src="#" alt="Preview">
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-success" onclick="uploadImage()">
+                                    <i class="fas fa-check me-2"></i> Save
+                                </button>
+                                <button type="button" class="btn btn-secondary ms-2" onclick="cancelUpload()">
+                                    <i class="fas fa-times me-2"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="noDriverSelectedSection">
+                        <p class="text-muted">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Select a driver from the list to manage their profile picture.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 id="loadingMessage">Uploading profile picture...</h5>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let selectedDriverId = null;
+    let originalImageUrl = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Driver selection
+        const driverCards = document.querySelectorAll('.driver-card');
+        driverCards.forEach(card => {
+            card.addEventListener('click', function() {
+                // Remove selected class from all cards
+                driverCards.forEach(c => c.classList.remove('selected'));
+                
+                // Add selected class to clicked card
+                this.classList.add('selected');
+                
+                // Get driver data
+                selectedDriverId = this.dataset.driverId;
+                const driverName = this.dataset.driverName;
+                const profileUrl = this.dataset.profileUrl;
+                
+                // Update the profile section
+                document.getElementById('selectedDriverName').textContent = driverName;
+                document.getElementById('driverId').value = selectedDriverId;
+                
+                // Show/hide profile picture or placeholder
+                const profilePicture = document.getElementById('profilePicture');
+                const profilePlaceholder = document.getElementById('profilePlaceholder');
+                
+                if (profileUrl) {
+                    profilePicture.src = profileUrl;
+                    profilePicture.style.display = 'block';
+                    profilePlaceholder.style.display = 'none';
+                    originalImageUrl = profileUrl;
+                } else {
+                    profilePicture.style.display = 'none';
+                    profilePlaceholder.style.display = 'flex';
+                    originalImageUrl = null;
+                }
+                
+                // Show the profile section
+                document.getElementById('driverProfileSection').style.display = 'block';
+                document.getElementById('noDriverSelectedSection').style.display = 'none';
+                
+                // Hide preview if visible
+                document.getElementById('previewContainer').style.display = 'none';
+            });
+        });
+    });
+    
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('previewContainer').style.display = 'block';
+            }
+            
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    
+    function cancelUpload() {
+        document.getElementById('previewContainer').style.display = 'none';
+        document.getElementById('imageUpload').value = '';
+    }
+    
+    async function uploadImage() {
+        if (!selectedDriverId) {
+            alert('Please select a driver first.');
+            return;
+        }
+        
+        const fileInput = document.getElementById('imageUpload');
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert('Please select an image to upload.');
+            return;
+        }
+        
+        // Show loading modal
+        const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        loadingModal.show();
+        
+        const formData = new FormData();
+        formData.append('profile_image', fileInput.files[0]);
+        formData.append('driver_id', selectedDriverId);
+        
+        try {
+            const response = await fetch('/operator/drivers/profile-picture/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Update the profile picture
+                const profilePicture = document.getElementById('profilePicture');
+                const profilePlaceholder = document.getElementById('profilePlaceholder');
+                
+                profilePicture.src = data.profile_image_url;
+                profilePicture.style.display = 'block';
+                profilePlaceholder.style.display = 'none';
+                
+                // Update the driver card in the list
+                const driverCard = document.querySelector(`.driver-card[data-driver-id="${selectedDriverId}"]`);
+                if (driverCard) {
+                    const imgContainer = driverCard.querySelector('.driver-img, .driver-placeholder');
+                    if (imgContainer) {
+                        if (imgContainer.classList.contains('driver-placeholder')) {
+                            // Replace placeholder with image
+                            const img = document.createElement('img');
+                            img.src = data.profile_image_url;
+                            img.alt = driverCard.dataset.driverName;
+                            img.className = 'driver-img me-3';
+                            imgContainer.parentNode.replaceChild(img, imgContainer);
+                        } else {
+                            // Update existing image
+                            imgContainer.src = data.profile_image_url;
+                        }
+                    }
+                    
+                    // Update the data attribute
+                    driverCard.dataset.profileUrl = data.profile_image_url;
+                }
+                
+                // Hide preview
+                document.getElementById('previewContainer').style.display = 'none';
+                document.getElementById('imageUpload').value = '';
+                
+                // Update original image URL
+                originalImageUrl = data.profile_image_url;
+                
+                // Show success message
+                alert('Profile picture updated successfully!');
+            } else {
+                alert(data.error || 'Failed to upload profile picture.');
+            }
+        } catch (error) {
+            console.error('Error uploading profile picture:', error);
+            alert('An error occurred while uploading the profile picture.');
+        } finally {
+            // Hide loading modal
+            loadingModal.hide();
+        }
+    }
+    
+    async function removeProfilePicture() {
+        if (!selectedDriverId) {
+            alert('Please select a driver first.');
+            return;
+        }
+        
+        if (!originalImageUrl) {
+            alert('This driver does not have a profile picture.');
+            return;
+        }
+        
+        if (!confirm('Are you sure you want to remove this profile picture?')) {
+            return;
+        }
+        
+        // Show loading modal
+        const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        document.getElementById('loadingMessage').textContent = 'Removing profile picture...';
+        loadingModal.show();
+        
+        try {
+            const response = await fetch('/operator/drivers/profile-picture/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    driver_id: selectedDriverId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Update the profile picture
+                const profilePicture = document.getElementById('profilePicture');
+                const profilePlaceholder = document.getElementById('profilePlaceholder');
+                
+                profilePicture.style.display = 'none';
+                profilePlaceholder.style.display = 'flex';
+                
+                // Update the driver card in the list
+                const driverCard = document.querySelector(`.driver-card[data-driver-id="${selectedDriverId}"]`);
+                if (driverCard) {
+                    const img = driverCard.querySelector('.driver-img');
+                    if (img) {
+                        // Replace image with placeholder
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'driver-placeholder me-3';
+                        placeholder.innerHTML = '<i class="fas fa-user"></i>';
+                        img.parentNode.replaceChild(placeholder, img);
+                    }
+                    
+                    // Update the data attribute
+                    driverCard.dataset.profileUrl = '';
+                }
+                
+                // Update original image URL
+                originalImageUrl = null;
+                
+                // Show success message
+                alert('Profile picture removed successfully!');
+            } else {
+                alert(data.error || 'Failed to remove profile picture.');
+            }
+        } catch (error) {
+            console.error('Error removing profile picture:', error);
+            alert('An error occurred while removing the profile picture.');
+        } finally {
+            // Hide loading modal
+            loadingModal.hide();
+            document.getElementById('loadingMessage').textContent = 'Uploading profile picture...';
+        }
+    }
+</script>
+{% endblock %}

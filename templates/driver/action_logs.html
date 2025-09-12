@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Action Logs{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Driver Action Logs
+                    </h3>
+                    <a href="{{ url_for('driver.dashboard') }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Action</th>
+                                    <th>Vehicle</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if logs %}
+                                    {% for log in logs %}
+                                        <tr>
+                                            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                            <td>
+                                                {% if log.action == 'occupancy_change' %}
+                                                    <span class="badge bg-info">Occupancy Change</span>
+                                                {% elif log.action == 'trip_start' %}
+                                                    <span class="badge bg-success">Trip Start</span>
+                                                {% elif log.action == 'trip_end' %}
+                                                    <span class="badge bg-warning">Trip End</span>
+                                                {% elif log.action == 'passenger_board' %}
+                                                    <span class="badge bg-primary">Passenger Boarding</span>
+                                                {% elif log.action == 'passenger_alight' %}
+                                                    <span class="badge bg-secondary">Passenger Alighting</span>
+                                                {% elif log.action == 'password_change' %}
+                                                    <span class="badge bg-dark">Password Change</span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-dark">{{ log.action|capitalize }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if log.vehicle_id %}
+                                                    Vehicle #{{ log.vehicle_id }}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary view-details" 
+                                                        data-bs-toggle="tooltip" 
+                                                        title="View Details"
+                                                        data-action="{{ log.action }}"
+                                                        data-meta="{{ log.meta_data|tojson|safe }}">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">No action logs found.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="logDetailsModal" tabindex="-1" aria-labelledby="logDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logDetailsModalLabel">Log Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="logDetailsContent">
+                    <!-- Details will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Detail button click handlers
+        document.querySelectorAll('.view-details').forEach(button => {
+            button.addEventListener('click', function() {
+                const action = this.getAttribute('data-action');
+                const metaData = JSON.parse(this.getAttribute('data-meta'));
+                
+                showLogDetails(action, metaData);
+            });
+        });
+    });
+    
+    function showLogDetails(action, metaData) {
+        const detailsContainer = document.getElementById('logDetailsContent');
+        let detailsHtml = '<dl class="row">';
+        
+        // Format the timestamp if it exists
+        if (metaData.timestamp) {
+            const date = new Date(metaData.timestamp);
+            detailsHtml += `
+                <dt class="col-sm-4">Timestamp</dt>
+                <dd class="col-sm-8">${date.toLocaleString()}</dd>
+            `;
+        }
+        
+        // Format based on action type
+        if (action === 'occupancy_change') {
+            detailsHtml += `
+                <dt class="col-sm-4">Old Status</dt>
+                <dd class="col-sm-8">${metaData.old_value || 'N/A'}</dd>
+                <dt class="col-sm-4">New Status</dt>
+                <dd class="col-sm-8">${metaData.new_value || 'N/A'}</dd>
+            `;
+        } else if (action === 'trip_start') {
+            detailsHtml += `
+                <dt class="col-sm-4">Trip ID</dt>
+                <dd class="col-sm-8">${metaData.trip_id || 'N/A'}</dd>
+                <dt class="col-sm-4">Route</dt>
+                <dd class="col-sm-8">${metaData.route_name || 'N/A'}</dd>
+            `;
+        } else if (action === 'trip_end') {
+            detailsHtml += `
+                <dt class="col-sm-4">Trip ID</dt>
+                <dd class="col-sm-8">${metaData.trip_id || 'N/A'}</dd>
+                <dt class="col-sm-4">Route</dt>
+                <dd class="col-sm-8">${metaData.route_name || 'N/A'}</dd>
+                <dt class="col-sm-4">Duration</dt>
+                <dd class="col-sm-8">${metaData.duration_minutes || 0} minutes</dd>
+            `;
+        } else if (action === 'passenger_board' || action === 'passenger_alight') {
+            detailsHtml += `
+                <dt class="col-sm-4">Trip ID</dt>
+                <dd class="col-sm-8">${metaData.trip_id || 'N/A'}</dd>
+                <dt class="col-sm-4">Count</dt>
+                <dd class="col-sm-8">${metaData.count || 0} passengers</dd>
+            `;
+            
+            if (metaData.notes) {
+                detailsHtml += `
+                    <dt class="col-sm-4">Notes</dt>
+                    <dd class="col-sm-8">${metaData.notes}</dd>
+                `;
+            }
+        }
+        
+        // Add any additional metadata fields
+        for (const [key, value] of Object.entries(metaData)) {
+            if (!['timestamp', 'old_value', 'new_value', 'trip_id', 'route_name', 'duration_minutes', 'count', 'notes'].includes(key)) {
+                detailsHtml += `
+                    <dt class="col-sm-4">${key.charAt(0).toUpperCase() + key.slice(1)}</dt>
+                    <dd class="col-sm-8">${value}</dd>
+                `;
+            }
+        }
+        
+        detailsHtml += '</dl>';
+        detailsContainer.innerHTML = detailsHtml;
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('logDetailsModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}

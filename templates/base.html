@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if current_user.is_authenticated %}
+    <meta name="user-id" content="{{ current_user.id }}">
+    {% endif %}
+    <title>{% block title %}Transport Monitoring{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/driver_actions.js') }}"></script>
+    
+    <style>
+        :root[data-theme="light"] {
+            --primary-color: #1a73e8;
+            --secondary-color: #5f6368;
+            --success-color: #34a853;
+            --error-color: #ea4335;
+            --warning-color: #fbbc05;
+            --background-color: #ffffff;
+            --hover-color: #f8f9fa;
+            --border-color: #dadce0;
+            --text-color: #202124;
+            --text-secondary: #5f6368;
+            --nav-background: #ffffff;
+            --card-background: #ffffff;
+        }
+
+        :root[data-theme="dark"] {
+            --primary-color: #8ab4f8;
+            --secondary-color: #9aa0a6;
+            --success-color: #81c995;
+            --error-color: #f28b82;
+            --warning-color: #fdd663;
+            --background-color: #202124;
+            --hover-color: #303134;
+            --border-color: #3c4043;
+            --text-color: #e8eaed;
+            --text-secondary: #9aa0a6;
+            --nav-background: #202124;
+            --card-background: #303134;
+        }
+        
+        /* Base styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* Navigation */
+        nav {
+            background-color: var(--nav-background);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-brand {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--error-color);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-color);
+            background-color: var(--hover-color);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #1557b0;
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #4a4e52;
+        }
+        
+        /* Cards */
+        .card {
+            background-color: var(--card-background);
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        /* Status indicators */
+        .vehicle-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        
+        .status-active {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .status-delayed {
+            background-color: var(--error-color);
+            color: white;
+        }
+        
+        .status-inactive {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        /* Notification Panel */
+        .notification-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background-color: var(--card-background);
+            box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            color: var(--text-color);
+        }
+        
+        .notification-panel.open {
+            right: 0;
+        }
+        
+        .notification-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notification-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        
+        .notification-item {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            background-color: var(--hover-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .notification-item:hover {
+            background-color: var(--border-color);
+        }
+        
+        .notification-item.unread {
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .notification-message {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        .notification-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .notification-actions {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1001;
+        }
+        
+        .toast {
+            padding: 12px 24px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .toast-success {
+            background-color: var(--success-color);
+        }
+        
+        .toast-error {
+            background-color: var(--error-color);
+        }
+        
+        .toast-warning {
+            background-color: var(--warning-color);
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: var(--card-background);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            padding: 24px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+        }
+        
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+        
+        .loading-spinner:after {
+            content: '';
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Settings Panel */
+        .settings-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .settings-title {
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        
+        .settings-item {
+            margin-bottom: 16px;
+        }
+        
+        .settings-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        
+        .settings-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .route-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background-color: var(--hover-color);
+            border-radius: 16px;
+            margin: 4px;
+            font-size: 0.875rem;
+        }
+        
+        .route-chip .remove {
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        
+        .route-chip .remove:hover {
+            color: var(--error-color);
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .container {
+                margin-top: 50px !important;
+                padding: 12px !important;
+            }
+            
+            nav {
+                padding: 8px 12px;
+            }
+            
+            .nav-brand {
+                font-size: 1.1rem;
+            }
+            
+            .nav-links {
+                gap: 4px;
+            }
+            
+            .btn {
+                padding: 6px 8px;
+                font-size: 0.85rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+                margin: 0.5em 0;
+            }
+            
+            h2 {
+                font-size: 1.3rem;
+            }
+            
+            h3 {
+                font-size: 1.1rem;
+            }
+            
+            .btn-text {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                margin-top: 45px !important;
+                padding: 8px !important;
+            }
+            
+            .nav-brand span {
+                display: none;
+            }
+            
+            h1 {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+    <style>
+        /* Fix for Bootstrap 5 modal z-index issues */
+        body.modal-open {
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .modal-content {
+            position: relative;
+            z-index: 2050 !important;
+        }
+        
+        .modal-backdrop {
+            z-index: 1055 !important;
+            pointer-events: none !important;
+        }
+        
+        .modal {
+            z-index: 2000 !important;
+        }
+        
+        .modal-dialog {
+            pointer-events: all;
+            z-index: 2060 !important;
+        }
+        
+        /* Fix modal backdrop */
+        .fix-backdrop {
+            opacity: 0.8 !important;
+            pointer-events: none !important;
+            background-color: rgba(0, 0, 0, 0.7) !important;
+            z-index: 1040 !important;
+        }
+        
+        /* Fix z-index for buttons outside modals */
+        body.modal-open .btn:not(.modal .btn) {
+            z-index: 1039 !important;
+        }
+        
+        /* Ensure that modals and their content are above everything else */
+        .modal {
+            z-index: 1050 !important;
+        }
+        
+        .modal-content {
+            z-index: 1051 !important;
+        }
+        
+        /* Fix for modal open state - no blur */
+        body.modal-open .container {
+            /* No blur effect */
+        }
+        
+        /* Make sure all form elements are clickable */
+        input, select, textarea, button, .form-control, .form-check-input {
+            position: relative;
+            z-index: 2070 !important;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="{{ url_for('index') }}" class="logo">
+                <i class="fas fa-bus"></i> <span>TransportWatch</span>
+            </a>
+            <div class="nav-links">
+                {% if current_user.is_authenticated %}
+                    {% if current_user.user_type == 'operator' or current_user.user_type == 'admin' %}
+                        <a href="{{ url_for('operator.dashboard') }}" class="btn">
+                            <i class="fas fa-tachometer-alt"></i> <span class="btn-text">Dashboard</span>
+                        </a>
+                        <a href="{{ url_for('operator.manage_drivers_page') }}" class="btn">
+                            <i class="fas fa-users"></i> <span class="btn-text">Drivers</span>
+                        </a>
+                        <a href="{{ url_for('operator.manage_vehicles') }}" class="btn">
+                            <i class="fas fa-bus"></i> <span class="btn-text">Vehicles</span>
+                        </a>
+                        <a href="{{ url_for('operator.profile') }}" class="btn">
+                            <i class="fas fa-user"></i> <span class="btn-text">Profile</span>
+                        </a>
+                        <a href="{{ url_for('operator.settings') }}" class="btn">
+                            <i class="fas fa-cog"></i> <span class="btn-text">Settings</span>
+                        </a>
+
+                        <a href="{{ url_for('operator.operator_action_logs') }}" class="btn">
+                            <i class="fas fa-history"></i> <span class="btn-text">Logs</span>
+                        </a>
+                    {% elif current_user.user_type == 'driver' %}
+                        <a href="{{ url_for('driver.dashboard') }}" class="btn">
+                            <i class="fas fa-tachometer-alt"></i> <span class="btn-text">Dashboard</span>
+                        </a>
+
+                        <a href="{{ url_for('driver.settings') }}" class="btn">
+                            <i class="fas fa-cog"></i> <span class="btn-text">Settings</span>
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('commuter.dashboard') }}" class="btn">
+                            <i class="fas fa-map-marked-alt"></i> <span class="btn-text">Live Map</span>
+                        </a>
+                    {% endif %}
+                    <div style="position: relative;">
+                        <button id="notificationToggle" class="btn" onclick="toggleNotificationPanel()">
+                            <i class="fas fa-bell"></i>
+                            <span id="unreadCount" class="notification-badge" style="display: none;"></span>
+                        </button>
+                    </div>
+                    <button id="theme-toggle" class="btn">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <a href="{{ url_for('auth.logout') }}" class="btn">
+                        <i class="fas fa-sign-out-alt"></i> <span class="btn-text">Logout</span>
+                    </a>
+                {% else %}
+                    <button id="theme-toggle" class="btn">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> <span class="btn-text">Admin Login</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="margin-top: 60px; box-sizing: border-box;">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Notification Panel -->
+    <div id="notificationPanel" class="notification-panel">
+        <div class="notification-header">
+            <h3><i class="fas fa-bell"></i> Notifications</h3>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-icon" onclick="showNotificationHistory()" title="View History">
+                    <i class="fas fa-history"></i>
+                </button>
+                <button id="refreshNotifications" class="btn btn-icon" title="Refresh Notifications">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="btn btn-icon" onclick="toggleNotificationPanel()" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div id="notificationList" class="notification-list"></div>
+        <div class="notification-actions">
+            <button class="btn btn-secondary" onclick="markAllAsRead()" style="flex: 1;">
+                <i class="fas fa-check-double"></i> Mark All as Read
+            </button>
+            <button class="btn btn-secondary" onclick="clearAllNotifications()" style="flex: 1;">
+                <i class="fas fa-trash"></i> Clear All
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification History Modal -->
+    <div id="historyModal" class="modal" style="display: none;">
+        <div class="modal-content card" style="max-width: 600px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="margin: 0;"><i class="fas fa-history"></i> Notification History</h2>
+                <button class="btn" onclick="hideHistoryModal()" style="padding: 4px 8px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="historyList" style="max-height: 400px; overflow-y: auto;"></div>
+            
+            <div style="margin-top: 16px; text-align: center;">
+                <button class="btn btn-secondary" onclick="loadMoreHistory()" id="loadMoreBtn" style="display: none;">
+                    Load More
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    const html = document.documentElement;
+                    const currentTheme = html.getAttribute('data-theme');
+                    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                    html.setAttribute('data-theme', newTheme);
+                    
+                    const icon = this.querySelector('i');
+                    icon.classList.toggle('fa-moon');
+                    icon.classList.toggle('fa-sun');
+                });
+            }
+            
+            // Load notifications on page load if user is authenticated
+            if (document.getElementById('notificationToggle')) {
+                loadNotifications();
+                setupNotificationSocket();
+            }
+            
+            // Set up refresh button
+            document.getElementById('refreshNotifications').addEventListener('click', function() {
+                loadNotifications();
+                triggerNotificationDetection();
+                showToast('Notifications refreshed', 'Notifications have been refreshed.', 'success');
+            });
+        });
+
+        // Notification Panel Functions
+        function toggleNotificationPanel() {
+            const panel = document.getElementById('notificationPanel');
+            panel.classList.toggle('open');
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        // Trigger notification detection
+        async function triggerNotificationDetection() {
+            try {
+                const response = await fetch('/notifications/trigger-detection', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    if (response.status === 429) {
+                        showToast('Rate limited', data.message, 'warning');
+                    }
+                }
+            } catch (error) {
+                console.error('Error triggering notification detection:', error);
+            }
+        }
+        
+        // Load existing notifications
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/notifications?page=1&per_page=10');
+                const data = await response.json();
+                
+                const notificationList = document.getElementById('notificationList');
+                notificationList.innerHTML = '';
+                
+                if (data.notifications.length === 0) {
+                    notificationList.innerHTML = '<div class="notification-item" style="text-align: center; opacity: 0.7;">No notifications yet</div>';
+                    return;
+                }
+                
+                data.notifications.forEach(notification => {
+                    addNotificationToList(notification);
+                });
+                
+                // Update unread count badge
+                updateUnreadCount(data.unread_count);
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+            }
+        }
+        
+        // Add a single notification to the list
+        function addNotificationToList(notification) {
+            const notificationList = document.getElementById('notificationList');
+            
+            const div = document.createElement('div');
+            div.className = `notification-item${notification.status === 'unread' ? ' unread' : ''}`;
+            div.dataset.id = notification.id;
+            div.innerHTML = `
+                <div class="notification-title">${notification.title}</div>
+                <div class="notification-message">${notification.message}</div>
+                <div class="notification-time">${formatTime(notification.created_at)}</div>
+            `;
+            
+            // Add click handler to mark as read
+            div.addEventListener('click', function() {
+                markNotificationAsRead(notification.id);
+                div.classList.remove('unread');
+            });
+            
+            // Insert at the top for newest notifications
+            notificationList.insertBefore(div, notificationList.firstChild);
+        }
+        
+        // Update the unread count badge
+        function updateUnreadCount(count) {
+            const badge = document.getElementById('unreadCount');
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        // Set up WebSocket connection for real-time notifications
+        function setupNotificationSocket() {
+            // Check if Socket.IO is loaded
+            if (typeof io === 'undefined') {
+                // Load Socket.IO dynamically if not already loaded
+                const script = document.createElement('script');
+                script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
+                script.onload = connectSocket;
+                document.head.appendChild(script);
+            } else {
+                connectSocket();
+            }
+        }
+        
+        function connectSocket() {
+            // Initialize Socket.IO connection
+            window.socket = io({
+                transports: ['polling', 'websocket'],
+                upgrade: true,
+                rememberUpgrade: true,
+                secure: true,
+                rejectUnauthorized: false,
+                path: '/socket.io'
+            });
+            
+            // Debug socket connection
+            window.socket.on('connect', function() {
+                // Connection established silently
+                console.log('Socket connected with ID:', window.socket.id);
+                
+                // Join user-specific room for notifications
+                if (window.socket.connected) {
+                    // Get user ID from meta tag
+                    const userId = document.querySelector('meta[name="user-id"]')?.content;
+                    if (userId) {
+                        window.socket.emit('join', { room: `user_${userId}` });
+                        console.log('Joined room:', `user_${userId}`);
+                    }
+                }
+            });
+            
+            window.socket.on('connect_error', function(error) {
+                // Handle connection error silently
+                console.log('Socket connection error:', error.message);
+                setTimeout(function() {
+                    window.socket.connect();
+                }, 5000);
+            });
+            
+            window.socket.on('disconnect', function(reason) {
+                // Handle disconnection silently
+                console.log('Socket disconnected:', reason);
+                // Try to reconnect after a short delay
+                setTimeout(function() {
+                    window.socket.connect();
+                }, 5000);
+            });
+            
+            // Listen for new notifications
+            window.socket.on('notification', function(notification) {
+                console.log('Received notification:', notification);
+                
+                // Add to notification list
+                addNotificationToList(notification);
+                
+                // Show toast notification
+                showToast(notification.title, notification.message, 'success');
+                
+                // Update unread count
+                const currentCount = document.getElementById('unreadCount').textContent;
+                const newCount = currentCount ? parseInt(currentCount) + 1 : 1;
+                updateUnreadCount(newCount);
+                
+                // If it's a vehicle approaching notification, dispatch an event for the map to handle
+                if (notification.type === 'vehicle_approaching' && notification.data && notification.data.vehicle_id) {
+                    document.dispatchEvent(new CustomEvent('vehicleApproachingNotification', {
+                        detail: {
+                            vehicleId: notification.data.vehicle_id,
+                            distance: notification.data.distance,
+                            location: notification.data.location
+                        }
+                    }));
+                }
+            });
+            
+            // For operators, listen for nearby commuters
+            window.socket.on('nearby_commuter', function(data) {
+                const notification = {
+                    id: Date.now(),
+                    title: 'Commuter Nearby',
+                    message: `A commuter is ${data.distance}m away at ${data.location}`,
+                    created_at: new Date(),
+                    status: 'unread'
+                };
+                
+                addNotificationToList(notification);
+                showToast(notification.title, 'success');
+                
+                // Update unread count
+                const currentCount = document.getElementById('unreadCount').textContent;
+                const newCount = currentCount ? parseInt(currentCount) + 1 : 1;
+                updateUnreadCount(newCount);
+            });
+            
+            // For commuters, listen for approaching vehicles
+            window.socket.on('vehicle_approaching', function(data) {
+                const notification = {
+                    id: Date.now(),
+                    title: `${data.vehicle_type} Approaching`,
+                    message: `${data.vehicle_number} is ${data.distance}m away. ETA: ${data.eta} minutes`,
+                    created_at: new Date(),
+                    status: 'unread'
+                };
+                
+                addNotificationToList(notification);
+                showToast(notification.title, 'success');
+                
+                // Update unread count
+                const currentCount = document.getElementById('unreadCount').textContent;
+                const newCount = currentCount ? parseInt(currentCount) + 1 : 1;
+                updateUnreadCount(newCount);
+            });
+        }
+        
+        // Mark a notification as read
+        async function markNotificationAsRead(id) {
+            try {
+                const response = await fetch(`/notifications/${id}/read`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    // Update unread count
+                    const badge = document.getElementById('unreadCount');
+                    const currentCount = parseInt(badge.textContent);
+                    if (currentCount > 1) {
+                        updateUnreadCount(currentCount - 1);
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        async function markAllAsRead() {
+            try {
+                const response = await fetch('/notifications/read-all', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const notifications = document.querySelectorAll('.notification-item.unread');
+                    notifications.forEach(notification => {
+                        notification.classList.remove('unread');
+                    });
+                    document.getElementById('unreadCount').style.display = 'none';
+                    showToast('All notifications marked as read', 'success');
+                } else {
+                    throw new Error('Failed to mark notifications as read');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Failed to mark notifications as read', 'error');
+            }
+        }
+
+        async function clearAllNotifications() {
+            try {
+                const response = await fetch('/notifications/clear-all', {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    document.getElementById('notificationList').innerHTML = '<div class="notification-item" style="text-align: center; opacity: 0.7;">No notifications yet</div>';
+                    document.getElementById('unreadCount').style.display = 'none';
+                    showToast('All notifications cleared', 'success');
+                } else {
+                    throw new Error('Failed to clear notifications');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Failed to clear notifications', 'error');
+            }
+        }
+
+        // Toast Notification Function
+        function showToast(title, message, type = 'success') {
+            const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'exclamation-triangle'}"></i>
+                <div>
+                    <strong>${title}</strong>
+                    <p>${message}</p>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+            return container;
+        }
+
+        let currentHistoryPage = 1;
+        let hasMoreHistory = false;
+
+        function showNotificationHistory() {
+            document.getElementById('historyModal').style.display = 'flex';
+            loadNotificationHistory();
+        }
+
+        function hideHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
+            currentHistoryPage = 1;
+            document.getElementById('historyList').innerHTML = '';
+        }
+
+        async function loadNotificationHistory() {
+            try {
+                // Show loading indicator
+                const historyList = document.getElementById('historyList');
+                historyList.innerHTML = '<div class="loading-spinner"></div>';
+                
+                const response = await fetch(`/notifications?page=${currentHistoryPage}&per_page=20`);
+                
+                if (!response.ok) {
+                    throw new Error(`Error fetching notifications: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Clear loading indicator
+                historyList.innerHTML = '';
+                
+                const loadMoreBtn = document.getElementById('loadMoreBtn');
+                
+                if (data.notifications && data.notifications.length > 0) {
+                    data.notifications.forEach(notification => {
+                        const item = document.createElement('div');
+                        item.className = 'notification-item';
+                        item.innerHTML = `
+                            <div class="notification-content">
+                                <div class="notification-title">${notification.title}</div>
+                                <div class="notification-message">${notification.message}</div>
+                                <div class="notification-time">${formatTime(notification.created_at)}</div>
+                            </div>
+                        `;
+                        historyList.appendChild(item);
+                    });
+                    
+                    hasMoreHistory = data.has_more;
+                    loadMoreBtn.style.display = hasMoreHistory ? 'inline-block' : 'none';
+                } else {
+                    historyList.innerHTML = '<div class="no-notifications">No notifications found</div>';
+                    loadMoreBtn.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading notification history:', error);
+                document.getElementById('historyList').innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Error loading notifications. Please try again.
+                    </div>
+                `;
+                document.getElementById('loadMoreBtn').style.display = 'none';
+            }
+        }
+
+        function loadMoreHistory() {
+            if (hasMoreHistory) {
+                currentHistoryPage++;
+                loadNotificationHistory();
+            }
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

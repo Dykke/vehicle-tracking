@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}TransportWatch - Public Transport Monitoring{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 60px 0;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 24px;">
+        <i class="fas fa-bus"></i> TransportWatch
+    </h1>
+    <p style="font-size: 1.25rem; color: var(--secondary-color); max-width: 600px; margin: 0 auto 40px;">
+        Real-time public transport monitoring system for operators and commuters.
+    </p>
+    
+    <div style="display: flex; gap: 24px; justify-content: center; margin-bottom: 60px;">
+        {% if current_user.is_authenticated %}
+            {% if current_user.user_type == 'operator' %}
+                <a href="{{ url_for('operator.dashboard') }}" class="btn btn-primary">
+                    <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                </a>
+            {% else %}
+                <a href="{{ url_for('commuter.dashboard') }}" class="btn btn-primary">
+                    <i class="fas fa-map-marked-alt"></i> View Live Map
+                </a>
+            {% endif %}
+        {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> Register
+            </a>
+        {% endif %}
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 60px;">
+        <div class="card">
+            <i class="fas fa-map-marked-alt" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 16px;"></i>
+            <h3 style="margin-bottom: 12px;">Real-time Tracking</h3>
+            <p style="color: var(--secondary-color);">
+                Monitor vehicle locations in real-time with live updates and status information.
+            </p>
+        </div>
+        
+        <div class="card">
+            <i class="fas fa-clock" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 16px;"></i>
+            <h3 style="margin-bottom: 12px;">Live Updates</h3>
+            <p style="color: var(--secondary-color);">
+                Get instant notifications about vehicle delays and status changes.
+            </p>
+        </div>
+        
+        <div class="card">
+            <i class="fas fa-route" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 16px;"></i>
+            <h3 style="margin-bottom: 12px;">Route Management</h3>
+            <p style="color: var(--secondary-color);">
+                Easily manage and monitor multiple vehicles and routes from a single dashboard.
+            </p>
+        </div>
+    </div>
+    
+    <div class="card" style="text-align: left; max-width: 800px; margin: 0 auto;">
+        <h2 style="margin-bottom: 24px;">How It Works</h2>
+        
+        <div style="display: grid; gap: 24px;">
+            <div style="display: flex; gap: 16px; align-items: start;">
+                <div style="background-color: var(--primary-color); color: white; width: 32px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">1</div>
+                <div>
+                    <h3 style="margin-bottom: 8px;">For Operators</h3>
+                    <p style="color: var(--secondary-color);">
+                        Register as a vehicle operator, add your vehicles, and start updating their locations and status in real-time. Keep your commuters informed about delays and route changes.
+                    </p>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 16px; align-items: start;">
+                <div style="background-color: var(--primary-color); color: white; width: 32px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">2</div>
+                <div>
+                    <h3 style="margin-bottom: 8px;">For Commuters</h3>
+                    <p style="color: var(--secondary-color);">
+                        View the live map to see all active vehicles in your area. Get real-time updates about vehicle locations and status changes to plan your journey better.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,20 @@
+CSS - Pag-design ng interface, layout, dark mode, responsive - Modern, malinis, custom na itsura, mas magandang user experience
+JavaScript - Real-time updates, maps, interactivity - Dynamic features, real-time data, map integration
+Python - Backend, database, API, real-time server - Mabilis na development, real-time support, madaling integration
+GitHub - Code repository, version control, collaboration - Madaling code management, team work, integration sa deployment
+Render - Cloud hosting, deployment, pag-run ng app online - Automated deployment, hindi na kailangan ng sariling server, madaling setup para sa Flask
+
+CSS - Pag-design ng interface, layout, dark mode, responsive - Modern, malinis, custom na itsura, mas magandang user experience
+* Layman's term: Parang "makeup" ng website - ginagawang maganda at organized ang itsura ng system
+
+JavaScript - Real-time updates, maps, interactivity - Dynamic features, real-time data, map integration
+* Layman's term: Parang "brain" ng website - nagpapagalaw at nagpapagana ng mga features tulad ng live map at notifications
+
+Python - Backend, database, API, real-time server - Mabilis na development, real-time support, madaling integration
+* Layman's term: Parang "engine" ng system - nagpapagana ng lahat ng logic, database, at server-side operations
+
+GitHub - Code repository, version control, collaboration - Madaling code management, team work, integration sa deployment
+* Layman's term: Parang "Google Drive" para sa code - safe storage at version history ng lahat ng files
+
+Render - Cloud hosting, deployment, pag-run ng app online - Automated deployment, hindi na kailangan ng sariling server, madaling setup para sa Flask
+* Layman's term: Parang "rented space sa internet" - kung saan naka-host ang system para ma-access ng users online

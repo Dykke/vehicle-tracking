@@ -1,0 +1,623 @@
+{% extends 'base.html' %}
+
+{% block title %}Driver Action Logs{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="page-header mb-4">
+        <h1><i class="fas fa-history me-2"></i> Driver Action Logs</h1>
+        <div>
+            <button class="btn btn-outline-secondary" id="refreshBtn">
+                <i class="fas fa-sync-alt me-2"></i> Refresh
+            </button>
+            <button class="btn btn-outline-primary ms-2" id="exportBtn">
+                <i class="fas fa-file-export me-2"></i> Export CSV
+            </button>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-light d-flex align-items-center">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i> Filter Logs</h5>
+            <button class="btn btn-sm btn-outline-secondary ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+        <div class="card-body collapse show" id="filterCollapse">
+            <form id="filterForm">
+                <div class="row mb-3">
+                    <div class="col-md-4 mb-3">
+                        <label for="driverFilter" class="form-label fw-bold">Driver</label>
+                        <select class="form-select form-select-sm" id="driverFilter" name="driver_id">
+                            <option value="">All Drivers</option>
+                            {% for driver in drivers %}
+                            <option value="{{ driver.id }}">{{ driver.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="vehicleFilter" class="form-label fw-bold">Vehicle</label>
+                        <select class="form-select form-select-sm" id="vehicleFilter" name="vehicle_id">
+                            <option value="">All Vehicles</option>
+                            {% for vehicle in vehicles %}
+                            <option value="{{ vehicle.id }}">{{ vehicle.registration_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="operatorFilter" class="form-label fw-bold">Operator</label>
+                        <select class="form-select form-select-sm" id="operatorFilter" name="operator_id">
+                            <option value="">All Operators</option>
+                            {% for operator in operators %}
+                            <option value="{{ operator.id }}">{{ operator.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Date Range</label>
+                        <div class="input-group">
+                            <input type="date" class="form-control form-control-sm" id="startDate" name="start_date" placeholder="From">
+                            <span class="input-group-text"><i class="fas fa-arrow-right"></i></span>
+                            <input type="date" class="form-control form-control-sm" id="endDate" name="end_date" placeholder="To">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Action Types</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="badge bg-secondary action-badge selected" data-action="all">All</span>
+                            <span class="badge bg-success action-badge" data-action="occupancy_change">Occupancy</span>
+                            <span class="badge bg-info action-badge" data-action="route_start">Route Start</span>
+                            <span class="badge bg-danger action-badge" data-action="route_abort">Route Abort</span>
+                            <span class="badge bg-warning text-dark action-badge" data-action="trip_start">Trip Start</span>
+                            <span class="badge bg-primary action-badge" data-action="trip_end">Trip End</span>
+                            <span class="badge bg-success action-badge" data-action="passenger_board">Board</span>
+                            <span class="badge bg-secondary action-badge" data-action="passenger_alight">Alight</span>
+                        </div>
+                        <input type="hidden" id="actionTypes" name="action_types" value="all">
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end">
+                    <button type="button" class="btn btn-sm btn-secondary me-2" id="resetFiltersBtn">
+                        <i class="fas fa-times me-2"></i> Reset
+                    </button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="fas fa-filter me-2"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list-ul me-2"></i> Log Entries</h5>
+            <div id="logCount" class="badge bg-primary">0 logs</div>
+        </div>
+        <div class="card-body p-0">
+            <div id="logsContainer" class="p-3">
+                <!-- Logs will be loaded here -->
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading logs...</p>
+                </div>
+            </div>
+            
+            <div class="pagination-container p-3 border-top">
+                <nav aria-label="Logs pagination">
+                    <ul class="pagination mb-0 justify-content-center" id="pagination">
+                        <!-- Pagination will be generated here -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .action-badge {
+        cursor: pointer;
+        transition: all 0.2s;
+        padding: 0.5em 0.7em;
+    }
+    
+    .action-badge.selected {
+        opacity: 1;
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .action-badge:not(.selected) {
+        opacity: 0.7;
+    }
+    
+    .log-entry {
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        margin-bottom: 15px;
+        background-color: var(--background-color);
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .log-entry:hover {
+        transform: translateX(3px);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+    
+    .log-entry.action-occupancy_change { border-left-color: #28a745; }
+    .log-entry.action-route_start { border-left-color: #17a2b8; }
+    .log-entry.action-route_abort { border-left-color: #dc3545; }
+    .log-entry.action-trip_start { border-left-color: #fd7e14; }
+    .log-entry.action-trip_end { border-left-color: #6f42c1; }
+    .log-entry.action-passenger_board { border-left-color: #20c997; }
+    .log-entry.action-passenger_alight { border-left-color: #6c757d; }
+    
+    .log-time {
+        color: var(--secondary-color);
+        font-size: 0.85rem;
+    }
+    
+    .log-meta {
+        background-color: var(--hover-color);
+        padding: 8px 12px;
+        border-radius: 4px;
+        margin-top: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .driver-img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--background-color);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .driver-placeholder {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--hover-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        color: var(--secondary-color);
+        border: 2px solid var(--border-color);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px 0;
+        color: var(--secondary-color);
+    }
+    
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+    
+    .form-label {
+        margin-bottom: 0.25rem;
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+        .log-entry {
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .driver-img, .driver-placeholder {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .log-meta {
+            padding: 6px 10px;
+            font-size: 0.85rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPage = 1;
+    let totalPages = 1;
+    let selectedActions = ['all'];
+    let logCount = 0;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initial load
+        loadLogs();
+        
+        // Filter form submission
+        document.getElementById('filterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            currentPage = 1;
+            loadLogs();
+        });
+        
+        // Reset filters
+        document.getElementById('resetFiltersBtn').addEventListener('click', function() {
+            document.getElementById('filterForm').reset();
+            document.getElementById('actionTypes').value = 'all';
+            
+            // Reset action badges
+            const actionBadges = document.querySelectorAll('.action-badge');
+            actionBadges.forEach(badge => {
+                badge.classList.remove('selected');
+                if (badge.dataset.action === 'all') {
+                    badge.classList.add('selected');
+                }
+            });
+            
+            selectedActions = ['all'];
+            currentPage = 1;
+            loadLogs();
+        });
+        
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            loadLogs();
+        });
+        
+        // Export button
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            exportLogs();
+        });
+        
+        // Action type selection
+        const actionBadges = document.querySelectorAll('.action-badge');
+        actionBadges.forEach(badge => {
+            badge.addEventListener('click', function() {
+                const action = this.dataset.action;
+                
+                if (action === 'all') {
+                    // If "All" is clicked, deselect others and select only "All"
+                    actionBadges.forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedActions = ['all'];
+                } else {
+                    // If specific action is clicked
+                    const allBadge = document.querySelector('.action-badge[data-action="all"]');
+                    allBadge.classList.remove('selected');
+                    
+                    // Toggle selection state
+                    this.classList.toggle('selected');
+                    
+                    // Update selectedActions array
+                    if (this.classList.contains('selected')) {
+                        if (selectedActions.includes('all')) {
+                            selectedActions = [action];
+                        } else {
+                            selectedActions.push(action);
+                        }
+                    } else {
+                        selectedActions = selectedActions.filter(a => a !== action);
+                        
+                        // If no actions are selected, select "All"
+                        if (selectedActions.length === 0) {
+                            allBadge.classList.add('selected');
+                            selectedActions = ['all'];
+                        }
+                    }
+                }
+                
+                // Update hidden input
+                document.getElementById('actionTypes').value = selectedActions.join(',');
+            });
+        });
+    });
+    
+    function loadLogs() {
+        const logsContainer = document.getElementById('logsContainer');
+        logsContainer.innerHTML = `
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading logs...</p>
+            </div>
+        `;
+        
+        // Get filter values
+        const driverId = document.getElementById('driverFilter').value;
+        const vehicleId = document.getElementById('vehicleFilter').value;
+        const operatorId = document.getElementById('operatorFilter').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const actionTypes = document.getElementById('actionTypes').value;
+        
+        // Build query string
+        const params = new URLSearchParams();
+        params.append('page', currentPage);
+        
+        if (driverId) params.append('driver_id', driverId);
+        if (vehicleId) params.append('vehicle_id', vehicleId);
+        if (operatorId) params.append('operator_id', operatorId);
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        if (actionTypes) params.append('action_types', actionTypes);
+        
+        // Fetch logs
+        fetch(`/admin/logs/actions/data?${params.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderLogs(data.logs, data.pagination);
+                    updateLogCount(data.pagination.total_count);
+                } else {
+                    logsContainer.innerHTML = `
+                        <div class="alert alert-danger m-3">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            ${data.error || 'An error occurred while loading logs.'}
+                        </div>
+                    `;
+                    updateLogCount(0);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading logs:', error);
+                logsContainer.innerHTML = `
+                    <div class="alert alert-danger m-3">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        An error occurred while loading logs.
+                    </div>
+                `;
+                updateLogCount(0);
+            });
+    }
+    
+    function updateLogCount(count) {
+        logCount = count;
+        const logCountElement = document.getElementById('logCount');
+        logCountElement.textContent = `${count} ${count === 1 ? 'log' : 'logs'}`;
+    }
+    
+    function renderLogs(logs, pagination) {
+        const logsContainer = document.getElementById('logsContainer');
+        
+        if (logs.length === 0) {
+            logsContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <h4>No logs found</h4>
+                    <p>Try adjusting your filters or check back later.</p>
+                </div>
+            `;
+            document.getElementById('pagination').innerHTML = '';
+            return;
+        }
+        
+        let html = '';
+        
+        logs.forEach(log => {
+            const date = new Date(log.created_at);
+            const formattedDate = date.toLocaleDateString();
+            const formattedTime = date.toLocaleTimeString();
+            
+            let actionBadge = '';
+            switch (log.action) {
+                case 'occupancy_change':
+                    actionBadge = '<span class="badge bg-success">Occupancy Change</span>';
+                    break;
+                case 'route_start':
+                    actionBadge = '<span class="badge bg-info">Route Start</span>';
+                    break;
+                case 'route_abort':
+                    actionBadge = '<span class="badge bg-danger">Route Abort</span>';
+                    break;
+                case 'trip_start':
+                    actionBadge = '<span class="badge bg-warning text-dark">Trip Start</span>';
+                    break;
+                case 'trip_end':
+                    actionBadge = '<span class="badge bg-primary">Trip End</span>';
+                    break;
+                case 'passenger_board':
+                    actionBadge = '<span class="badge bg-success">Passenger Board</span>';
+                    break;
+                case 'passenger_alight':
+                    actionBadge = '<span class="badge bg-secondary">Passenger Alight</span>';
+                    break;
+                default:
+                    actionBadge = `<span class="badge bg-secondary">${log.action}</span>`;
+            }
+            
+            // Format metadata
+            let metaDataHtml = '';
+            if (log.meta_data) {
+                try {
+                    const metaData = typeof log.meta_data === 'string' ? JSON.parse(log.meta_data) : log.meta_data;
+                    
+                    if (log.action === 'occupancy_change') {
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Changed from:</strong> ${metaData.old_value || 'N/A'} 
+                                <strong>to:</strong> ${metaData.new_value || 'N/A'}
+                            </div>
+                        `;
+                    } else if (log.action === 'route_start') {
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Route:</strong> ${metaData.route_name || 'N/A'}
+                                ${metaData.origin ? `<strong>From:</strong> ${metaData.origin}` : ''}
+                                ${metaData.destination ? `<strong>To:</strong> ${metaData.destination}` : ''}
+                            </div>
+                        `;
+                    } else if (log.action === 'trip_start' || log.action === 'trip_end') {
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Trip ID:</strong> ${metaData.trip_id || 'N/A'}
+                                ${metaData.route ? `<strong>Route:</strong> ${metaData.route}` : ''}
+                            </div>
+                        `;
+                    } else if (log.action === 'passenger_board' || log.action === 'passenger_alight') {
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Trip ID:</strong> ${metaData.trip_id || 'N/A'}
+                                <strong>Count:</strong> ${metaData.count || '1'}
+                            </div>
+                        `;
+                    } else {
+                        // Generic metadata display
+                        const metaItems = [];
+                        for (const [key, value] of Object.entries(metaData)) {
+                            metaItems.push(`<strong>${key}:</strong> ${value}`);
+                        }
+                        
+                        if (metaItems.length > 0) {
+                            metaDataHtml = `<div class="log-meta">${metaItems.join(' | ')}</div>`;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error parsing metadata:', e);
+                    metaDataHtml = `
+                        <div class="log-meta">
+                            <em>Error displaying metadata</em>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Driver profile image
+            let driverImageHtml = '';
+            if (log.driver_profile_image_url) {
+                driverImageHtml = `<img src="${log.driver_profile_image_url}" alt="${log.driver_username}" class="driver-img me-3">`;
+            } else {
+                driverImageHtml = `
+                    <div class="driver-placeholder me-3">
+                        <i class="fas fa-user"></i>
+                    </div>
+                `;
+            }
+            
+            html += `
+                <div class="log-entry action-${log.action}">
+                    <div class="d-flex">
+                        ${driverImageHtml}
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div>
+                                    <span class="fw-bold">${log.driver_username}</span>
+                                    ${actionBadge}
+                                </div>
+                                <span class="log-time">
+                                    <i class="far fa-clock me-1"></i>
+                                    ${formattedDate} ${formattedTime}
+                                </span>
+                            </div>
+                            <div class="small text-muted mb-2">
+                                ${log.vehicle_registration ? `<i class="fas fa-car me-1"></i> ${log.vehicle_registration}` : ''}
+                                ${log.operator_username ? `<span class="ms-3"><i class="fas fa-user-shield me-1"></i> ${log.operator_username}</span>` : ''}
+                            </div>
+                            ${metaDataHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        logsContainer.innerHTML = html;
+        
+        // Update pagination
+        renderPagination(pagination);
+    }
+    
+    function renderPagination(pagination) {
+        const paginationElement = document.getElementById('pagination');
+        totalPages = pagination.total_pages;
+        
+        if (totalPages <= 1) {
+            paginationElement.innerHTML = '';
+            return;
+        }
+        
+        let html = '';
+        
+        // Previous button
+        html += `
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        `;
+        
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, startPage + 4);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            html += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `;
+        }
+        
+        // Next button
+        html += `
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        `;
+        
+        paginationElement.innerHTML = html;
+        
+        // Add event listeners to pagination links
+        const pageLinks = paginationElement.querySelectorAll('.page-link');
+        pageLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = parseInt(this.dataset.page);
+                
+                if (page >= 1 && page <= totalPages) {
+                    currentPage = page;
+                    loadLogs();
+                    
+                    // Scroll to top of logs container
+                    document.getElementById('logsContainer').scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    }
+    
+    function exportLogs() {
+        // Get filter values
+        const driverId = document.getElementById('driverFilter').value;
+        const vehicleId = document.getElementById('vehicleFilter').value;
+        const operatorId = document.getElementById('operatorFilter').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const actionTypes = document.getElementById('actionTypes').value;
+        
+        // Build query string
+        const params = new URLSearchParams();
+        
+        if (driverId) params.append('driver_id', driverId);
+        if (vehicleId) params.append('vehicle_id', vehicleId);
+        if (operatorId) params.append('operator_id', operatorId);
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        if (actionTypes) params.append('action_types', actionTypes);
+        
+        // Redirect to export URL
+        window.location.href = `/admin/logs/actions/export?${params.toString()}`;
+    }
+</script>
+{% endblock %}

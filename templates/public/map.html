@@ -1,0 +1,1539 @@
+{% extends 'base.html' %}
+
+{% block title %}Public Transport Map{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+    #map-container {
+        position: relative;
+        height: calc(100vh - 140px);
+        width: 100%;
+    }
+    
+    #map {
+        height: 100%;
+        width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .map-overlay {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        max-width: 300px;
+    }
+    
+    .vehicle-info {
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .vehicle-info:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    
+    .vehicle-status {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    .status-active {
+        background-color: #4CAF50;
+        color: white;
+    }
+    
+    .status-delayed {
+        background-color: #FF9800;
+        color: white;
+    }
+    
+    .status-inactive {
+        background-color: #9E9E9E;
+        color: white;
+    }
+    
+    .status-departed {
+        background-color: #2196F3;
+        color: white;
+    }
+    
+    .status-arrived {
+        background-color: #4CAF50;
+        color: white;
+    }
+    
+    .selected-vehicle {
+        background-color: #e3f2fd !important;
+        border-left: 4px solid #2196f3 !important;
+        transition: all 0.2s ease;
+    }
+    
+    .selected-vehicle:hover {
+        background-color: #bbdefb !important;
+    }
+    
+    .occupancy-vacant {
+        background-color: #4CAF50;
+        color: white;
+    }
+    
+    .occupancy-full {
+        background-color: #F44336;
+        color: white;
+    }
+    
+    .vehicle-popup {
+        min-width: 200px;
+    }
+    
+    .vehicle-popup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .vehicle-popup-details {
+        margin-top: 8px;
+    }
+    
+    .vehicle-popup-details p {
+        margin: 4px 0;
+    }
+    
+    .vehicle-popup-actions {
+        margin-top: 12px;
+    }
+    
+    .eta-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .eta-modal-content {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .eta-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    
+    .eta-modal-header h3 {
+        margin: 0;
+    }
+    
+    .eta-modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+    
+    .eta-modal-body {
+        margin-bottom: 16px;
+    }
+    
+    .eta-result {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        background-color: #f5f5f5;
+        display: none;
+    }
+    
+    .eta-time {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #4CAF50;
+    }
+    
+    .eta-details {
+        margin-top: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .eta-map {
+        height: 200px;
+        border-radius: 8px;
+        margin-top: 12px;
+    }
+    
+    .connection-status {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        z-index: 1000;
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #9E9E9E;
+    }
+    
+    .status-connected {
+        background-color: #4CAF50;
+    }
+    
+    .status-disconnected {
+        background-color: #F44336;
+    }
+    
+    .status-connecting {
+        background-color: #FF9800;
+    }
+    
+    /* Loading animated dots */
+    .loading-dots::after {
+        content: ' .';
+        animation: dots 1.5s steps(3, end) infinite;
+    }
+    @keyframes dots {
+        0%, 20% { content: ' .'; }
+        40% { content: ' ..'; }
+        60%, 100% { content: ' ...'; }
+    }
+    
+    /* User Location Styling */
+    .user-location-marker {
+        z-index: 1000 !important;
+    }
+    
+    .leaflet-control-zoom-in {
+        transition: all 0.3s ease;
+    }
+    
+    .leaflet-control-zoom-in:hover {
+        background-color: #f0f0f0 !important;
+    }
+    
+    .leaflet-control-zoom-in[title*="Error"] {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    
+    @media (max-width: 768px) {
+        .map-overlay {
+            max-width: 250px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .map-overlay {
+            top: auto;
+            bottom: 10px;
+            right: 10px;
+            left: 10px;
+            max-width: none;
+            max-height: 30vh;
+            overflow-y: auto;
+        }
+        
+        #user-location-info {
+            max-width: none;
+            max-height: 25vh;
+            overflow-y: auto;
+        }
+        
+        /* Ensure the Active Vehicles panel sits at the top on phones */
+        #vehicle-list {
+            top: 10px;
+            bottom: auto;
+            left: 50px;
+            right: 10px;
+        }
+        
+        /* Keep My Location panel at the bottom on phones */
+        #user-location-info {
+            top: auto !important;
+            bottom: 10px !important;
+            left: 10px !important;
+            right: 10px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Page Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center py-3 px-4" style="background: var(--background-color); border-bottom: 1px solid var(--border-color);">
+                <div>
+                    <h2 class="mb-1" style="color: var(--text-color);"><i class="fas fa-map-marked-alt text-primary me-2"></i>Public Transport Map</h2>
+                    <p class="mb-0 text-muted">Real-time vehicle tracking and route information</p>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-outline-primary btn-sm" onclick="toggleUserLocation()" id="locationBtn">
+                        <i class="fas fa-crosshairs me-1"></i>My Location
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="refreshVehicles()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="map-container">
+        <div id="map"></div>
+        
+        <div class="map-overlay" id="vehicle-list">
+            <h5><i class="fas fa-bus"></i> Active Vehicles</h5>
+            <div id="vehicle-list-content">
+                <p>Loading vehicles...</p>
+            </div>
+        </div>
+        
+        <div class="map-overlay" id="user-location-info" style="top: auto; bottom: 10px; left: 10px; right: auto; max-width: 300px;">
+            <h5><i class="fas fa-crosshairs"></i> My Location</h5>
+            <div style="font-size: 0.7rem; color: #666; margin-bottom: 8px; padding: 4px; background: #f8f9fa; border-radius: 4px;">
+                <i class="fas fa-shield-alt"></i> Your location is private and only visible to you
+            </div>
+            <div id="user-location-content">
+                <p>Click the location button to start tracking</p>
+                <div style="font-size: 0.7rem; color: #666; margin-top: 8px; padding: 4px; background: #fff3cd; border-radius: 4px; border-left: 3px solid #ffc107;">
+                    <i class="fas fa-info-circle"></i> <strong>Note:</strong> For local testing, try accessing via <code>localhost:5000</code> instead of IP address
+                </div>
+            </div>
+        </div>
+        
+        <div class="connection-status">
+            <div class="status-indicator" id="connection-indicator"></div>
+            <span id="connection-text">Connecting...</span>
+        </div>
+    </div>
+</div>
+
+<!-- ETA Modal -->
+<div class="eta-modal" id="eta-modal">
+    <div class="eta-modal-content">
+        <div class="eta-modal-header">
+            <h3>Calculate ETA</h3>
+            <button class="eta-modal-close" onclick="closeEtaModal()">&times;</button>
+        </div>
+        <div class="eta-modal-body">
+            <p>Select your destination on the map to calculate the estimated time of arrival.</p>
+            <div id="eta-map" class="eta-map"></div>
+            <div id="eta-result" class="eta-result">
+                <div class="eta-time" id="eta-time">Calculating...</div>
+                <div class="eta-details" id="eta-details"></div>
+            </div>
+        </div>
+        <div class="eta-modal-footer">
+            <button class="btn btn-secondary" onclick="closeEtaModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- HTTPS redirect and geolocation security fix -->
+<script src="{{ url_for('static', filename='js/https_redirect.js') }}"></script>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+
+<!-- Include the smooth tracking and socket manager scripts -->
+<script src="{{ url_for('static', filename='js/smooth_tracking.js') }}"></script>
+<script src="{{ url_for('static', filename='js/socket_manager.js') }}"></script>
+
+<script>
+    // Map variables
+    let map;
+    let vehicleMarkers = {};
+    let selectedVehicle = null;
+    let etaMap;
+    let etaMarker;
+    let etaDestination = null;
+    let etaPolyline;
+    
+    // Route line tracking
+    let currentRouteLine = null;
+    let currentRouteVehicleId = null;
+    
+    // User location tracking variables
+    let userLocationMarker = null;
+    let userLocationCircle = null;
+    let userLocationHistory = [];
+    let userLocationHistoryLine = null;
+    let userLocationWatchId = null;
+    let isUserLocationEnabled = false;
+    
+    // Initialize the map when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initMap();
+        loadVehicles();
+        initSocketConnection();
+        
+        // Refresh vehicles every 30 seconds
+        setInterval(loadVehicles, 30000);
+        
+        // Initialize user location tracking
+        initUserLocationTracking();
+    });
+    
+    function initMap() {
+        // Initialize the main map
+        map = L.map('map').setView([0, 0], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Try to center the map on user's location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const userLocation = [position.coords.latitude, position.coords.longitude];
+                    map.setView(userLocation, 13);
+                },
+                function(error) {
+                    console.error('Error getting user location:', error);
+                    // Default to a central location if geolocation fails
+                    map.setView([14.5995, 120.9842], 13); // Manila, Philippines
+                }
+            );
+        } else {
+            // Default to a central location if geolocation is not supported
+            map.setView([14.5995, 120.9842], 13); // Manila, Philippines
+        }
+    }
+    
+    function initSocketConnection() {
+        // Initialize Socket.IO connection
+        const socket = io({
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: Infinity
+        });
+        
+        // Socket connection event handlers
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            updateConnectionStatus('connected');
+            
+            // Request initial vehicle positions
+            socket.emit('request_vehicle_positions');
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+            updateConnectionStatus('disconnected');
+        });
+        
+        socket.on('reconnecting', function(attemptNumber) {
+            console.log(`Reconnecting... (attempt ${attemptNumber})`);
+            updateConnectionStatus('connecting');
+        });
+        
+        socket.on('reconnect', function() {
+            console.log('Reconnected to server');
+            updateConnectionStatus('connected');
+            
+            // Request vehicle positions after reconnection
+            socket.emit('request_vehicle_positions');
+        });
+        
+        // Listen for vehicle position updates
+        socket.on('vehicle_positions', function(data) {
+            updateVehicleMarkers(data.vehicles);
+        });
+        
+        // Listen for individual vehicle updates
+        socket.on('vehicle_update', function(data) {
+            updateVehicleMarker(data);
+        });
+    }
+    
+    function updateConnectionStatus(status) {
+        const indicator = document.getElementById('connection-indicator');
+        const text = document.getElementById('connection-text');
+        
+        indicator.className = 'status-indicator';
+        
+        switch (status) {
+            case 'connected':
+                indicator.classList.add('status-connected');
+                text.textContent = 'Connected';
+                break;
+            case 'disconnected':
+                indicator.classList.add('status-disconnected');
+                text.textContent = 'Disconnected';
+                break;
+            case 'connecting':
+                indicator.classList.add('status-connecting');
+                text.textContent = 'Reconnecting...';
+                break;
+            default:
+                text.textContent = 'Unknown';
+        }
+    }
+    
+    async function loadVehicles() {
+        try {
+            const response = await fetch('/public/vehicles/active');
+            const data = await response.json();
+            
+            if (data.success) {
+                updateVehicleMarkers(data.vehicles);
+                updateVehicleList(data.vehicles);
+            } else {
+                console.error('Error loading vehicles:', data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching vehicles:', error);
+        }
+    }
+    
+    function updateVehicleMarkers(vehicles) {
+        // Track existing vehicle IDs
+        const existingIds = Object.keys(vehicleMarkers).map(id => parseInt(id));
+        const updatedIds = vehicles.map(vehicle => vehicle.id);
+        
+        // Remove markers for vehicles no longer active
+        existingIds.forEach(id => {
+            if (!updatedIds.includes(id)) {
+                if (vehicleMarkers[id]) {
+                    map.removeLayer(vehicleMarkers[id]);
+                    delete vehicleMarkers[id];
+                }
+            }
+        });
+        
+        // Update or create markers for active vehicles
+        vehicles.forEach(vehicle => {
+            updateVehicleMarker(vehicle);
+        });
+    }
+    
+    function updateVehicleMarker(vehicle) {
+        const position = [vehicle.latitude, vehicle.longitude];
+        
+        // Skip if position is invalid
+        if (!position[0] || !position[1]) return;
+        
+        // Create or update marker
+        if (vehicleMarkers[vehicle.id]) {
+            // Use smooth tracking to update position
+            // Only allow prediction if the backend update is fresh (<8s)
+            let speedForPrediction = 0;
+            if (vehicle.last_updated) {
+                const updatedAtMs = new Date(vehicle.last_updated).getTime();
+                const ageMs = Date.now() - updatedAtMs;
+                if (ageMs < 8000) {
+                    speedForPrediction = vehicle.speed_kmh || 0;
+                }
+            }
+            updateVehiclePosition(
+                vehicleMarkers[vehicle.id],
+                position,
+                speedForPrediction
+            );
+        } else {
+            // Create a new marker with appropriate icon
+            const icon = L.divIcon({
+                html: getVehicleIconHtml(vehicle),
+                className: 'vehicle-marker',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+            
+            vehicleMarkers[vehicle.id] = L.marker(position, {icon: icon})
+                .addTo(map)
+                .bindPopup(createVehiclePopup(vehicle));
+                
+            // Add popup close handler to deselect vehicle and remove route line
+            vehicleMarkers[vehicle.id].on('popupclose', function() {
+                if (selectedVehicle && selectedVehicle.id === vehicle.id) {
+                    selectedVehicle = null;
+                    removeRouteLine();
+                    console.log('Vehicle popup closed - route line removed');
+                }
+            });
+                
+            // Add click handler
+            vehicleMarkers[vehicle.id].on('click', function() {
+                // If clicking the same vehicle, deselect it
+                if (selectedVehicle && selectedVehicle.id === vehicle.id) {
+                    selectedVehicle = null;
+                    removeRouteLine();
+                } else {
+                    selectedVehicle = vehicle;
+                    // Show route line if vehicle is departed
+                    if (vehicle.trip_status === 'departed') {
+                        drawRouteLine(vehicle);
+                    }
+                }
+            });
+        }
+        
+        // Update the popup content
+        if (vehicleMarkers[vehicle.id].getPopup()) {
+            vehicleMarkers[vehicle.id].getPopup().setContent(createVehiclePopup(vehicle));
+        }
+        
+        // Ensure popup close handler is attached to existing markers
+        vehicleMarkers[vehicle.id].off('popupclose'); // Remove existing handler first
+        vehicleMarkers[vehicle.id].on('popupclose', function() {
+            if (selectedVehicle && selectedVehicle.id === vehicle.id) {
+                selectedVehicle = null;
+                removeRouteLine();
+                console.log('Vehicle popup closed - route line removed');
+            }
+        });
+        
+        // Update the marker icon
+        vehicleMarkers[vehicle.id].setIcon(L.divIcon({
+            html: getVehicleIconHtml(vehicle),
+            className: 'vehicle-marker',
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+        }));
+        
+        // Update route line if this vehicle is selected
+        updateRouteLineForVehicle(vehicle);
+    }
+    
+    function getVehicleIconHtml(vehicle) {
+        const vehicleTypeIcon = vehicle.type === 'bus' ? 'fa-bus' : 'fa-van-shuttle';
+        const statusColor = vehicle.status === 'active' ? '#4CAF50' : 
+                           (vehicle.status === 'delayed' ? '#FF9800' : '#9E9E9E');
+        const occupancyColor = vehicle.occupancy_status === 'full' ? '#F44336' : '#4CAF50';
+        
+        return `
+            <div style="position: relative; text-align: center;">
+                <i class="fas ${vehicleTypeIcon}" style="font-size: 24px; color: ${statusColor};"></i>
+                <div style="position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; border-radius: 50%; background-color: ${occupancyColor}; border: 2px solid white;"></div>
+            </div>
+        `;
+    }
+    
+    function createVehiclePopup(vehicle) {
+        const lastUpdated = vehicle.last_updated ? new Date(vehicle.last_updated).toLocaleString() : 'Unknown';
+        const occupancyStatus = vehicle.occupancy_status === 'full' ? 'Full' : 'Vacant';
+        const occupancyClass = vehicle.occupancy_status === 'full' ? 'occupancy-full' : 'occupancy-vacant';
+        const etaText = (typeof vehicle.eta_minutes === 'number') ? `${vehicle.eta_minutes} min` : '<span class="loading-dots">Calculating</span>';
+        const routeDistanceText = (typeof vehicle.route_distance_km === 'number') ? `${vehicle.route_distance_km} km` : '<span class="loading-dots">Calculating</span>';
+        
+        // Handle vehicle status with proper capitalization and styling
+        let statusDisplay = vehicle.status;
+        let statusClass = `status-${vehicle.status}`;
+        
+        // Capitalize status for display
+        if (vehicle.status) {
+            statusDisplay = vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1);
+        }
+        
+        // Handle trip status (departed/arrived)
+        let tripStatusDisplay = '';
+        let tripStatusClass = '';
+        if (vehicle.trip_status === 'departed') {
+            tripStatusDisplay = 'Departed';
+            tripStatusClass = 'status-departed';
+        } else if (vehicle.trip_status === 'arrived') {
+            tripStatusDisplay = 'Arrived';
+            tripStatusClass = 'status-arrived';
+        }
+        
+        return `
+            <div class="vehicle-popup">
+                <div class="vehicle-popup-header">
+                    <h5 style="margin: 0;">${vehicle.type === 'bus' ? 'Bus' : 'Van'} #${vehicle.id}</h5>
+                    <span class="vehicle-status ${statusClass}">${statusDisplay}</span>
+                </div>
+                <div class="vehicle-popup-details">
+                    <p><strong>Route:</strong> ${vehicle.route || 'No route set'}</p>
+                    <p><strong>Status:</strong> <span class="vehicle-status ${tripStatusDisplay ? tripStatusClass : occupancyClass}">${tripStatusDisplay || occupancyStatus}</span></p>
+                    ${tripStatusDisplay ? `<p><strong>Occupancy:</strong> <span class="vehicle-status ${occupancyClass}">${occupancyStatus}</span></p>` : ''}
+                    <p><strong>ETA (route-based):</strong> ${etaText}</p>
+                    <p><strong>Route distance:</strong> ${routeDistanceText}</p>
+                    <p><strong>Last Updated:</strong> ${lastUpdated}</p>
+                </div>
+                
+            </div>
+        `;
+    }
+    
+    function updateVehicleList(vehicles) {
+        const listContainer = document.getElementById('vehicle-list-content');
+        
+        if (vehicles.length === 0) {
+            listContainer.innerHTML = '<p>No active vehicles found.</p>';
+            return;
+        }
+        
+        let html = '';
+        vehicles.forEach(vehicle => {
+            const occupancyStatus = vehicle.occupancy_status === 'full' ? 'Full' : 'Vacant';
+            const occupancyClass = vehicle.occupancy_status === 'full' ? 'occupancy-full' : 'occupancy-vacant';
+            
+            // Handle vehicle status with proper capitalization and styling
+            let statusDisplay = vehicle.status;
+            let statusClass = `status-${vehicle.status}`;
+            
+            // Capitalize status for display
+            if (vehicle.status) {
+                statusDisplay = vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1);
+            }
+            
+            // Handle trip status (departed/arrived)
+            let tripStatusDisplay = '';
+            let tripStatusClass = '';
+            if (vehicle.trip_status === 'departed') {
+                tripStatusDisplay = 'Departed';
+                tripStatusClass = 'status-departed';
+            } else if (vehicle.trip_status === 'arrived') {
+                tripStatusDisplay = 'Arrived';
+                tripStatusClass = 'status-arrived';
+            }
+            
+            const isSelected = selectedVehicle && selectedVehicle.id === vehicle.id;
+            const hasRoute = vehicle.trip_status === 'departed';
+            const selectedClass = isSelected ? 'selected-vehicle' : '';
+            
+            html += `
+                <div class="vehicle-info ${selectedClass}" onclick="focusVehicle(${vehicle.id})" style="cursor: pointer; ${isSelected ? 'background-color: #e3f2fd; border-left: 4px solid #2196f3;' : ''}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-${vehicle.type === 'bus' ? 'bus' : 'van-shuttle'}"></i> ${vehicle.type === 'bus' ? 'Bus' : 'Van'} #${vehicle.id} ${hasRoute ? '<i class="fas fa-route text-primary" title="Route visible"></i>' : ''}</span>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                            <span class="vehicle-status ${statusClass}">${statusDisplay}</span>
+                            ${tripStatusDisplay ? `<span class="vehicle-status ${tripStatusClass}" style="font-size: 0.7rem;">${tripStatusDisplay}</span>` : ''}
+                        </div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #666;">
+                        ${vehicle.route || 'No route set'}
+                    </div>
+                </div>
+            `;
+        });
+        
+        listContainer.innerHTML = html;
+    }
+    
+    function focusVehicle(vehicleId) {
+        const marker = vehicleMarkers[vehicleId];
+        if (marker) {
+            // If clicking the same vehicle, deselect it
+            if (selectedVehicle && selectedVehicle.id === vehicleId) {
+                selectedVehicle = null;
+                removeRouteLine();
+                marker.closePopup();
+                console.log('Vehicle deselected from list - route line removed');
+                return;
+            }
+            
+            map.setView(marker.getLatLng(), 15);
+            marker.openPopup();
+            
+            // Find the vehicle data and select it
+            fetch('/public/vehicles/active')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const vehicle = data.vehicles.find(v => v.id === vehicleId);
+                        if (vehicle) {
+                            selectedVehicle = vehicle;
+                            // Show route line if vehicle is departed
+                            if (vehicle.trip_status === 'departed') {
+                                drawRouteLine(vehicle);
+                            }
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching vehicle data:', error));
+        }
+    }
+    
+    // Route line functions
+    function drawRouteLine(vehicle) {
+        // Remove existing route line
+        removeRouteLine();
+        
+        // Check if vehicle has route information and is departed
+        if (!vehicle.route_info || vehicle.trip_status !== 'departed') {
+            return;
+        }
+        
+        try {
+            let routeInfo = vehicle.route_info;
+            if (typeof routeInfo === 'string') {
+                routeInfo = JSON.parse(routeInfo);
+            }
+            
+            const originCoords = routeInfo.origin_coords;
+            const destCoords = routeInfo.dest_coords;
+            
+            if (!originCoords || !destCoords || 
+                !originCoords.lat || !originCoords.lon ||
+                !destCoords.lat || !destCoords.lon) {
+                return;
+            }
+            
+            // Add markers for origin and destination first
+            const originMarker = L.marker([parseFloat(originCoords.lat), parseFloat(originCoords.lon)], {
+                icon: L.divIcon({
+                    html: '<i class="fas fa-map-pin" style="color: #2196F3; font-size: 24px;"></i>',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 24],
+                    className: 'route-marker-a'
+                })
+            }).addTo(map);
+            
+            const destMarker = L.marker([parseFloat(destCoords.lat), parseFloat(destCoords.lon)], {
+                icon: L.divIcon({
+                    html: '<i class="fas fa-flag-checkered" style="color: #F44336; font-size: 24px;"></i>',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 24],
+                    className: 'route-marker-b'
+                })
+            }).addTo(map);
+            
+            currentRouteVehicleId = vehicle.id;
+            
+            // Try to get road-following route using OSRM API
+            const osrmApiUrl = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=full&geometries=geojson`;
+            
+            fetch(osrmApiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                        // Get the route geometry from OSRM response
+                        const routeCoordinates = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                        
+                        currentRouteLine = L.polyline(routeCoordinates, {
+                            color: '#2196F3',
+                            weight: 5,
+                            opacity: 0.8
+                        }).addTo(map);
+                        
+                        // Store markers for cleanup
+                        currentRouteLine.originMarker = originMarker;
+                        currentRouteLine.destMarker = destMarker;
+                        
+                        // Fit the map to the route
+                        map.fitBounds(currentRouteLine.getBounds(), { padding: [30, 30] });
+                    } else {
+                        // Fallback to straight line if OSRM fails
+                        drawStraightRouteLine(originCoords, destCoords, originMarker, destMarker);
+                    }
+                })
+                .catch(error => {
+                    console.error('OSRM API error:', error);
+                    // Fallback to straight line on error
+                    drawStraightRouteLine(originCoords, destCoords, originMarker, destMarker);
+                });
+            
+            console.log('Route line drawn for vehicle', vehicle.id);
+            
+        } catch (error) {
+            console.error('Error drawing route line:', error);
+        }
+    }
+    
+    function removeRouteLine() {
+        if (currentRouteLine) {
+            map.removeLayer(currentRouteLine);
+            if (currentRouteLine.originMarker) {
+                map.removeLayer(currentRouteLine.originMarker);
+            }
+            if (currentRouteLine.destMarker) {
+                map.removeLayer(currentRouteLine.destMarker);
+            }
+            currentRouteLine = null;
+            currentRouteVehicleId = null;
+        }
+    }
+    
+    function drawStraightRouteLine(originCoords, destCoords, originMarker, destMarker) {
+        // Create a straight line between points for fallback
+        const routePoints = [
+            [parseFloat(originCoords.lat), parseFloat(originCoords.lon)],
+            [parseFloat(destCoords.lat), parseFloat(destCoords.lon)]
+        ];
+        
+        currentRouteLine = L.polyline(routePoints, {
+            color: '#2196F3',
+            weight: 5,
+            opacity: 0.8
+        }).addTo(map);
+        
+        // Store markers for cleanup
+        currentRouteLine.originMarker = originMarker;
+        currentRouteLine.destMarker = destMarker;
+        
+        // Fit the map to the route
+        map.fitBounds(currentRouteLine.getBounds(), { padding: [30, 30] });
+    }
+    
+    function updateRouteLineForVehicle(vehicle) {
+        // Only show route line if this is the selected vehicle and it's departed
+        if (selectedVehicle && selectedVehicle.id === vehicle.id && vehicle.trip_status === 'departed') {
+            drawRouteLine(vehicle);
+        } else if (currentRouteVehicleId === vehicle.id && vehicle.trip_status !== 'departed') {
+            // Remove route line if vehicle is no longer departed
+            removeRouteLine();
+        }
+    }
+    
+    function showEtaModal(vehicleId) {
+        selectedVehicle = null;
+        
+        // Find the vehicle data
+        fetch('/public/vehicles/active')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const vehicle = data.vehicles.find(v => v.id === vehicleId);
+                    if (vehicle) {
+                        selectedVehicle = vehicle;
+                        
+                        // Show the modal
+                        document.getElementById('eta-modal').style.display = 'flex';
+                        document.getElementById('eta-result').style.display = 'none';
+                        
+                        // Initialize the ETA map
+                        initEtaMap(vehicle);
+                    } else {
+                        alert('Vehicle not found');
+                    }
+                } else {
+                    alert('Error loading vehicle data');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching vehicle data:', error);
+                alert('Error loading vehicle data');
+            });
+    }
+    
+    function closeEtaModal() {
+        document.getElementById('eta-modal').style.display = 'none';
+        
+        // Clean up
+        if (etaMap) {
+            etaMap.remove();
+            etaMap = null;
+        }
+        etaMarker = null;
+        etaDestination = null;
+        etaPolyline = null;
+    }
+    
+    function initEtaMap(vehicle) {
+        // Create a new map for ETA calculation
+        if (etaMap) {
+            etaMap.remove();
+        }
+        
+        etaMap = L.map('eta-map').setView([vehicle.latitude, vehicle.longitude], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(etaMap);
+        
+        // Add vehicle marker
+        const vehicleIcon = L.divIcon({
+            html: getVehicleIconHtml(vehicle),
+            className: 'vehicle-marker',
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+        });
+        
+        const vehicleMarker = L.marker([vehicle.latitude, vehicle.longitude], {
+            icon: vehicleIcon
+        }).addTo(etaMap);
+        
+        // Add click handler to set destination
+        etaMap.on('click', function(e) {
+            setEtaDestination(e.latlng, vehicle);
+        });
+        
+        // Add map click handler to deselect vehicle and remove route line
+        map.on('click', function(e) {
+            if (selectedVehicle) {
+                selectedVehicle = null;
+                removeRouteLine();
+                console.log('Vehicle deselected - route line removed');
+            }
+        });
+        
+        // Force a resize to ensure the map renders correctly
+        setTimeout(() => {
+            etaMap.invalidateSize();
+        }, 100);
+    }
+    
+    function setEtaDestination(latlng, vehicle) {
+        etaDestination = latlng;
+        
+        // Update or create destination marker
+        if (etaMarker) {
+            etaMarker.setLatLng(latlng);
+        } else {
+            etaMarker = L.marker(latlng, {
+                icon: L.divIcon({
+                    html: '<i class="fas fa-map-marker-alt" style="font-size: 24px; color: #F44336;"></i>',
+                    className: 'destination-marker',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 24]
+                })
+            }).addTo(etaMap);
+        }
+        
+        // Draw a line between vehicle and destination
+        const vehiclePosition = [vehicle.latitude, vehicle.longitude];
+        if (etaPolyline) {
+            etaPolyline.setLatLngs([vehiclePosition, [latlng.lat, latlng.lng]]);
+        } else {
+            etaPolyline = L.polyline([vehiclePosition, [latlng.lat, latlng.lng]], {
+                color: '#2196F3',
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '5, 5'
+            }).addTo(etaMap);
+        }
+        
+        // Fit the map to show both points
+        etaMap.fitBounds([
+            vehiclePosition,
+            [latlng.lat, latlng.lng]
+        ], { padding: [30, 30] });
+        
+        // Calculate ETA
+        calculateEta(vehicle.id, latlng.lat, latlng.lng);
+    }
+    
+    async function calculateEta(vehicleId, destLat, destLng) {
+        try {
+            // Show loading state
+            document.getElementById('eta-result').style.display = 'block';
+            document.getElementById('eta-time').textContent = 'Calculating...';
+            document.getElementById('eta-details').textContent = '';
+            
+            // Call the ETA API
+            const response = await fetch(`/public/vehicle/${vehicleId}/eta?dest_lat=${destLat}&dest_lng=${destLng}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                // Format arrival time
+                const arrivalTime = new Date(data.arrival_time);
+                const formattedTime = arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                // Update the result
+                document.getElementById('eta-time').textContent = `ETA: ${data.eta_minutes} minutes (${formattedTime})`;
+                document.getElementById('eta-details').innerHTML = `
+                    <p>Distance: ${data.distance_km} km</p>
+                    <p>Vehicle Speed: ${data.speed_kmh} km/h</p>
+                    <p>Vehicle Status: ${data.occupancy_status === 'full' ? 'Full' : 'Vacant'}</p>
+                `;
+            } else {
+                document.getElementById('eta-time').textContent = 'Error calculating ETA';
+                document.getElementById('eta-details').textContent = data.error || 'Unknown error';
+            }
+        } catch (error) {
+            console.error('Error calculating ETA:', error);
+            document.getElementById('eta-time').textContent = 'Error calculating ETA';
+            document.getElementById('eta-details').textContent = 'Network error';
+        }
+    }
+    
+    // User Location Tracking Functions
+    function initUserLocationTracking() {
+        console.log('Initializing user location tracking...');
+        console.log('Protocol:', location.protocol);
+        console.log('Hostname:', location.hostname);
+        console.log('Full URL:', location.href);
+        
+        // Check if geolocation is supported
+        if (!navigator.geolocation) {
+            console.log('Geolocation is not supported by this browser');
+            showGeolocationNotSupported();
+            return;
+        }
+        
+        // Check if we're on HTTPS or localhost (required for geolocation)
+        const isSecureContext = location.protocol === 'https:' || 
+                               location.hostname === 'localhost' || 
+                               location.hostname === '127.0.0.1' || 
+                               location.hostname.startsWith('192.168.') ||
+                               location.hostname.startsWith('10.') ||
+                               location.hostname.startsWith('172.');
+        
+        console.log('Is secure context:', isSecureContext);
+        
+        if (!isSecureContext) {
+            console.warn('Geolocation requires HTTPS or local network. Current protocol:', location.protocol, 'Hostname:', location.hostname);
+            showGeolocationSecurityWarning();
+            return;
+        }
+        
+        // Add user location toggle button to the map
+        addUserLocationToggle();
+        
+        // Try to get initial location
+        getCurrentUserLocation();
+    }
+    
+    function addUserLocationToggle() {
+        // Create a custom control for user location
+        const userLocationControl = L.Control.extend({
+            options: {
+                position: 'topleft'
+            },
+            
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const button = L.DomUtil.create('a', 'leaflet-control-zoom-in', container);
+                button.innerHTML = '<i class="fas fa-crosshairs"></i>';
+                button.title = 'Show My Location';
+                button.style.width = '30px';
+                button.style.height = '30px';
+                button.style.lineHeight = '30px';
+                button.style.textAlign = 'center';
+                button.style.backgroundColor = '#fff';
+                button.style.color = '#666';
+                
+                button.onclick = function() {
+                    toggleUserLocation();
+                };
+                
+                return container;
+            }
+        });
+        
+        // Add the control to the map
+        new userLocationControl().addTo(map);
+    }
+    
+    function toggleUserLocation() {
+        if (isUserLocationEnabled) {
+            stopUserLocationTracking();
+        } else {
+            // Get current location and center map
+            getCurrentUserLocation();
+            startUserLocationTracking();
+        }
+    }
+    
+    function refreshVehicles() {
+        console.log('🔄 Refreshing vehicles...');
+        loadVehicles();
+    }
+    
+    function centerMapOnUserLocation() {
+        // Get current location and center map without starting tracking
+        getCurrentUserLocation();
+    }
+    
+    function startUserLocationTracking() {
+        if (isUserLocationEnabled) return;
+        
+        isUserLocationEnabled = true;
+        
+        // Update button appearance
+        const button = document.querySelector('.leaflet-control-zoom-in');
+        if (button) {
+            button.style.backgroundColor = '#4CAF50';
+            button.style.color = '#fff';
+            button.title = 'Stop Location Tracking';
+        }
+        
+        // Start watching position
+        userLocationWatchId = navigator.geolocation.watchPosition(
+            function(position) {
+                updateUserLocation(position);
+            },
+            function(error) {
+                console.error('Error watching user location:', error);
+                
+                // Handle specific error codes
+                if (error.code === 1) { // PERMISSION_DENIED
+                    if (error.message.includes('secure origins')) {
+                        showGeolocationSecurityWarning();
+                        stopUserLocationTracking(); // Stop tracking if security error
+                    } else {
+                        handleLocationError(error);
+                    }
+                } else {
+                    handleLocationError(error);
+                }
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 30000
+            }
+        );
+        
+        console.log('User location tracking started');
+        
+        // Update info panel
+        const infoPanel = document.getElementById('user-location-content');
+        if (infoPanel) {
+            infoPanel.innerHTML = '<p>Starting location tracking...</p>';
+        }
+    }
+    
+    function stopUserLocationTracking() {
+        if (!isUserLocationEnabled) return;
+        
+        isUserLocationEnabled = false;
+        
+        // Update button appearance
+        const button = document.querySelector('.leaflet-control-zoom-in');
+        if (button) {
+            button.style.backgroundColor = '#fff';
+            button.style.color = '#666';
+            button.title = 'Show My Location';
+        }
+        
+        // Stop watching position
+        if (userLocationWatchId) {
+            navigator.geolocation.clearWatch(userLocationWatchId);
+            userLocationWatchId = null;
+        }
+        
+        // Remove user location elements
+        if (userLocationMarker) {
+            map.removeLayer(userLocationMarker);
+            userLocationMarker = null;
+        }
+        if (userLocationCircle) {
+            map.removeLayer(userLocationCircle);
+            userLocationCircle = null;
+        }
+        if (userLocationHistoryLine) {
+            map.removeLayer(userLocationHistoryLine);
+            userLocationHistoryLine = null;
+        }
+        
+        // Clear history
+        userLocationHistory = [];
+        
+        console.log('User location tracking stopped');
+        
+        // Update info panel
+        const infoPanel = document.getElementById('user-location-content');
+        if (infoPanel) {
+            infoPanel.innerHTML = '<p>Click the location button to start tracking</p>';
+        }
+    }
+    
+    function getCurrentUserLocation() {
+        // Check if we're in a secure context before attempting geolocation
+        const isSecureContext = location.protocol === 'https:' || 
+                               location.hostname === 'localhost' || 
+                               location.hostname === '127.0.0.1' || 
+                               location.hostname.startsWith('192.168.') ||
+                               location.hostname.startsWith('10.') ||
+                               location.hostname.startsWith('172.');
+        
+        if (!isSecureContext) {
+            console.warn('Cannot get location - not in secure context');
+            showGeolocationSecurityWarning();
+            return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                updateUserLocation(position);
+                // Center map on user location
+                const userLatLng = [position.coords.latitude, position.coords.longitude];
+                map.setView(userLatLng, 15);
+            },
+            function(error) {
+                console.error('Error getting user location:', error);
+                
+                // Handle specific error codes
+                if (error.code === 1) { // PERMISSION_DENIED
+                    if (error.message.includes('secure origins')) {
+                        showGeolocationSecurityWarning();
+                    } else {
+                        handleLocationError(error);
+                    }
+                } else {
+                    handleLocationError(error);
+                }
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 30000
+            }
+        );
+    }
+    
+    function updateUserLocation(position) {
+        const userLatLng = [position.coords.latitude, position.coords.longitude];
+        const accuracy = position.coords.accuracy;
+        
+        // Add to history (keep last 50 points)
+        userLocationHistory.push({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            timestamp: Date.now(),
+            accuracy: accuracy
+        });
+        
+        if (userLocationHistory.length > 50) {
+            userLocationHistory.shift();
+        }
+        
+        // Update or create user location marker
+        if (userLocationMarker) {
+            userLocationMarker.setLatLng(userLatLng);
+        } else {
+            userLocationMarker = L.marker(userLatLng, {
+                icon: L.divIcon({
+                    html: '<i class="fas fa-user-circle" style="font-size: 24px; color: #2196F3;"></i>',
+                    className: 'user-location-marker',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 24]
+                }),
+                zIndexOffset: 1000
+            }).addTo(map);
+            
+            // Add popup
+            userLocationMarker.bindPopup('<b>Your Location</b><br>Click to center map');
+            userLocationMarker.on('click', function() {
+                map.setView(userLatLng, 15);
+            });
+        }
+        
+        // Update or create accuracy circle
+        if (userLocationCircle) {
+            userLocationCircle.setLatLng(userLatLng);
+            userLocationCircle.setRadius(accuracy);
+        } else {
+            userLocationCircle = L.circle(userLatLng, {
+                radius: accuracy,
+                color: '#2196F3',
+                fillColor: '#2196F3',
+                fillOpacity: 0.1,
+                weight: 1
+            }).addTo(map);
+        }
+        
+        // Update movement history line
+        updateUserLocationHistory();
+        
+        // Update user location info panel
+        updateUserLocationInfo(position);
+        
+        // Auto-center map on first location if not already tracking
+        if (!isUserLocationEnabled) {
+            map.setView(userLatLng, 15);
+        }
+    }
+    
+    function updateUserLocationHistory() {
+        if (userLocationHistory.length < 2) return;
+        
+        // Create array of latlng points
+        const points = userLocationHistory.map(point => [point.lat, point.lng]);
+        
+        // Update or create the history line
+        if (userLocationHistoryLine) {
+            userLocationHistoryLine.setLatLngs(points);
+        } else {
+            userLocationHistoryLine = L.polyline(points, {
+                color: '#2196F3',
+                weight: 3,
+                opacity: 0.6,
+                dashArray: '5, 5'
+            }).addTo(map);
+        }
+    }
+    
+    function updateUserLocationInfo(position) {
+        const infoPanel = document.getElementById('user-location-content');
+        if (!infoPanel) return;
+        
+        const lat = position.coords.latitude.toFixed(6);
+        const lng = position.coords.longitude.toFixed(6);
+        const accuracy = Math.round(position.coords.accuracy);
+        const timestamp = new Date().toLocaleTimeString();
+        
+        // Calculate movement speed if we have history
+        let speed = 'N/A';
+        if (userLocationHistory.length >= 2) {
+            const lastPoint = userLocationHistory[userLocationHistory.length - 1];
+            const prevPoint = userLocationHistory[userLocationHistory.length - 2];
+            
+            if (prevPoint) {
+                const timeDiff = (lastPoint.timestamp - prevPoint.timestamp) / 1000; // seconds
+                if (timeDiff > 0) {
+                    const distance = calculateDistance(lastPoint.lat, lastPoint.lng, prevPoint.lat, prevPoint.lng);
+                    const speedMps = distance / timeDiff; // meters per second
+                    const speedKmh = (speedMps * 3.6).toFixed(1); // convert to km/h
+                    speed = `${speedKmh} km/h`;
+                }
+            }
+        }
+        
+        infoPanel.innerHTML = `
+            
+            <div style="margin-bottom: 8px;">
+                <strong>Last Update:</strong><br>
+                <small>${timestamp}</small>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <strong>Tracking:</strong> ${isUserLocationEnabled ? 'Active' : 'Inactive'}
+            </div>
+        `;
+    }
+    
+    function calculateDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371e3; // Earth's radius in meters
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+    
+    function handleLocationError(error) {
+        let errorMessage = '';
+        
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                errorMessage = 'Location access denied. Please enable location permissions.';
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMessage = 'Location information unavailable.';
+                break;
+            case error.TIMEOUT:
+                errorMessage = 'Location request timed out.';
+                break;
+            default:
+                errorMessage = 'An unknown error occurred while getting location.';
+                break;
+        }
+        
+        console.error('Error getting user location:', error);
+        
+        // Show error in a user-friendly way
+        if (userLocationMarker) {
+            userLocationMarker.bindPopup(`<b>Location Error</b><br>${errorMessage}`);
+            userLocationMarker.openPopup();
+        }
+        
+        // Update button appearance
+        const button = document.querySelector('.leaflet-control-zoom-in');
+        if (button) {
+            button.style.backgroundColor = '#f44336';
+            button.style.color = '#fff';
+            button.title = 'Location Error - Click to retry';
+        }
+    }
+    
+    function showGeolocationNotSupported() {
+        const infoPanel = document.getElementById('user-location-content');
+        if (infoPanel) {
+            infoPanel.innerHTML = `
+                <div style="color: #f44336; margin-bottom: 8px;">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Geolocation Not Supported</strong>
+                </div>
+                <p>Your browser does not support geolocation. Please use a modern browser.</p>
+            `;
+        }
+        
+        // Disable the location button
+        const button = document.querySelector('.leaflet-control-zoom-in');
+        if (button) {
+            button.style.backgroundColor = '#9E9E9E';
+            button.style.color = '#fff';
+            button.title = 'Geolocation Not Supported';
+            button.onclick = null;
+        }
+    }
+    
+    function showGeolocationSecurityWarning() {
+        const infoPanel = document.getElementById('user-location-content');
+        if (infoPanel) {
+            infoPanel.innerHTML = `
+                <div style="color: #FF9800; margin-bottom: 8px;">
+                    <i class="fas fa-shield-alt"></i> <strong>Security Restriction</strong>
+                </div>
+                <p>Geolocation requires HTTPS or local network access.</p>
+                <p><strong>Current:</strong> ${location.protocol}//${location.hostname}</p>
+                <div style="font-size: 0.8rem; color: #666; margin-top: 8px;">
+                    <i class="fas fa-info-circle"></i> Try accessing via localhost or use HTTPS
+                </div>
+                <div style="margin-top: 12px;">
+                    <button class="btn btn-warning btn-sm" onclick="tryAlternativeAccess()">
+                        <i class="fas fa-refresh"></i> Try Alternative Access
+                    </button>
+                </div>
+            `;
+        }
+        
+        // Disable the location button
+        const button = document.querySelector('.leaflet-control-zoom-in');
+        if (button) {
+            button.style.backgroundColor = '#FF9800';
+            button.style.color = '#fff';
+            button.title = 'Security Restriction - HTTPS Required';
+            button.onclick = null;
+        }
+    }
+    
+    function tryAlternativeAccess() {
+        // Try to redirect to localhost if we're on an IP address
+        if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            const newUrl = location.href.replace(location.hostname, 'localhost');
+            if (confirm('Try accessing via localhost instead? This may resolve the geolocation issue.')) {
+                window.location.href = newUrl;
+            }
+        } else {
+            // If already on localhost, try to refresh and reinitialize
+            location.reload();
+        }
+    }
+</script>
+{% endblock %}

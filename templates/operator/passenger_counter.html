@@ -1,0 +1,654 @@
+{% extends 'base.html' %}
+
+{% block title %}Passenger Counter{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    Passenger Counter
+                </h3>
+                <span id="vehicle-badge" class="badge bg-light text-dark">Vehicle #<span id="vehicle-id">Loading...</span></span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="vehicle-info mb-4">
+                        <h4>Vehicle Information</h4>
+                        <div id="vehicleDetails" class="p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="fw-bold">Registration:</span>
+                                <span id="vehicleRegistration">Loading...</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="fw-bold">Type:</span>
+                                <span id="vehicleType">Loading...</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="fw-bold">Route:</span>
+                                <span id="vehicleRoute">None</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="occupancy-controls mb-4">
+                        <h4>Occupancy Status</h4>
+                        <div class="p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="fw-bold">Current Status:</span>
+                                <span id="occupancyStatus" class="badge bg-success">Vacant</span>
+                            </div>
+                            <div class="btn-group w-100" role="group">
+                                <button id="setVacant" class="btn btn-success flex-grow-1">
+                                    <i class="fas fa-user-check me-2"></i>Set Vacant
+                                </button>
+                                <button id="setFull" class="btn btn-danger flex-grow-1">
+                                    <i class="fas fa-user-times me-2"></i>Set Full
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="trip-info mb-4">
+                        <h4>Current Trip</h4>
+                        <div class="p-3 border rounded">
+                            <div id="noActiveTrip">
+                                <p class="text-center text-muted">No active trip</p>
+                                <div class="d-grid">
+                                    <button id="startTrip" class="btn btn-success">
+                                        <i class="fas fa-play-circle me-2"></i>Start Trip
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="activeTrip" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="fw-bold">Trip ID:</span>
+                                    <span id="tripId"></span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="fw-bold">Started:</span>
+                                    <span id="tripStartTime"></span>
+                                </div>
+                                <div class="d-grid">
+                                    <button id="endTrip" class="btn btn-danger">
+                                        <i class="fas fa-stop-circle me-2"></i>End Trip
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="passenger-counter mb-4">
+                        <h4>Passenger Counter</h4>
+                        <div class="p-3 border rounded">
+                            <div class="text-center mb-4">
+                                <h2 id="currentPassengerCount" class="display-4">0</h2>
+                                <p class="text-muted">Current Passengers</p>
+                            </div>
+                            
+                            <div class="row g-2 mb-3">
+                                <div class="col">
+                                    <div class="d-grid">
+                                        <button id="boardOne" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-plus me-2"></i>Board 1
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="d-grid">
+                                        <button id="alightOne" class="btn btn-secondary btn-lg">
+                                            <i class="fas fa-minus me-2"></i>Alight 1
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-2">
+                                <div class="col">
+                                    <div class="d-grid">
+                                        <button id="boardMultiple" class="btn btn-outline-primary">
+                                            <i class="fas fa-users me-2"></i>Board Multiple
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="d-grid">
+                                        <button id="alightMultiple" class="btn btn-outline-secondary">
+                                            <i class="fas fa-users-slash me-2"></i>Alight Multiple
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <div class="passenger-log mb-4">
+                        <h4>Passenger Log</h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Event</th>
+                                        <th>Count</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="passengerLogBody">
+                                    <tr>
+                                        <td colspan="4" class="text-center">No passenger events recorded</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmationTitle">Confirm Action</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="confirmationMessage">
+                    Are you sure you want to proceed?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmButton">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multiple Passenger Modal -->
+    <div class="modal fade" id="multiplePassengerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="multiplePassengerTitle">Enter Passenger Count</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="passengerCountInput" class="form-label">Number of passengers:</label>
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" id="decrementCount">-</button>
+                            <input type="number" class="form-control text-center" id="passengerCountInput" min="1" value="1">
+                            <button class="btn btn-outline-secondary" type="button" id="incrementCount">+</button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="passengerNotes" class="form-label">Notes (optional):</label>
+                        <textarea class="form-control" id="passengerNotes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmMultiplePassengers">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentVehicleId = null;
+    let currentVehicleData = null;
+    let currentTripId = null;
+    let pendingAction = null;
+    let pendingEventType = null;
+    let passengerCount = 0;
+    let passengerEvents = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get vehicle ID from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        currentVehicleId = urlParams.get('vehicle_id');
+        
+        if (!currentVehicleId) {
+            alert('No vehicle ID provided');
+            return;
+        }
+        
+        // Update vehicle ID display
+        document.getElementById('vehicle-id').textContent = currentVehicleId;
+        
+        // Load vehicle details
+        loadVehicleDetails();
+        
+        // Check for active trip
+        checkActiveTrip();
+        
+        // Set up event listeners
+        setupEventListeners();
+    });
+    
+    function setupEventListeners() {
+        // Occupancy buttons
+        document.getElementById('setVacant').addEventListener('click', () => {
+            showConfirmation(
+                'Set Vehicle as Vacant?', 
+                'Are you sure you want to mark this vehicle as vacant?',
+                () => updateOccupancyStatus('vacant')
+            );
+        });
+        
+        document.getElementById('setFull').addEventListener('click', () => {
+            showConfirmation(
+                'Set Vehicle as Full?', 
+                'Are you sure you want to mark this vehicle as full?',
+                () => updateOccupancyStatus('full')
+            );
+        });
+        
+        // Trip buttons
+        document.getElementById('startTrip').addEventListener('click', () => {
+            showConfirmation(
+                'Start Trip?', 
+                'Are you sure you want to start a new trip?',
+                startTrip
+            );
+        });
+        
+        document.getElementById('endTrip').addEventListener('click', () => {
+            showConfirmation(
+                'End Trip?', 
+                'Are you sure you want to end the current trip?',
+                endTrip
+            );
+        });
+        
+        // Passenger counter buttons
+        document.getElementById('boardOne').addEventListener('click', () => {
+            recordPassengerEvent('board', 1, '');
+        });
+        
+        document.getElementById('alightOne').addEventListener('click', () => {
+            if (passengerCount > 0) {
+                recordPassengerEvent('alight', 1, '');
+            } else {
+                alert('No passengers to alight');
+            }
+        });
+        
+        document.getElementById('boardMultiple').addEventListener('click', () => {
+            showMultiplePassengerModal('board');
+        });
+        
+        document.getElementById('alightMultiple').addEventListener('click', () => {
+            if (passengerCount > 0) {
+                showMultiplePassengerModal('alight');
+            } else {
+                alert('No passengers to alight');
+            }
+        });
+        
+        // Multiple passenger modal
+        document.getElementById('decrementCount').addEventListener('click', () => {
+            const input = document.getElementById('passengerCountInput');
+            const currentValue = parseInt(input.value);
+            if (currentValue > 1) {
+                input.value = currentValue - 1;
+            }
+        });
+        
+        document.getElementById('incrementCount').addEventListener('click', () => {
+            const input = document.getElementById('passengerCountInput');
+            const currentValue = parseInt(input.value);
+            input.value = currentValue + 1;
+        });
+        
+        document.getElementById('confirmMultiplePassengers').addEventListener('click', () => {
+            const count = parseInt(document.getElementById('passengerCountInput').value);
+            const notes = document.getElementById('passengerNotes').value.trim();
+            
+            if (isNaN(count) || count < 1) {
+                alert('Please enter a valid passenger count');
+                return;
+            }
+            
+            // If alighting, check if we have enough passengers
+            if (pendingEventType === 'alight' && count > passengerCount) {
+                alert(`Cannot alight ${count} passengers. Only ${passengerCount} passengers on board.`);
+                return;
+            }
+            
+            recordPassengerEvent(pendingEventType, count, notes);
+            $('#multiplePassengerModal').modal('hide');
+        });
+    }
+    
+    async function loadVehicleDetails() {
+        try {
+            const response = await fetch(`/api/vehicles/${currentVehicleId}`);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to load vehicle details');
+            }
+            
+            currentVehicleData = data.vehicle;
+            updateVehicleUI(currentVehicleData);
+        } catch (error) {
+            console.error('Error loading vehicle details:', error);
+            alert('Error loading vehicle details: ' + error.message);
+        }
+    }
+    
+    function updateVehicleUI(vehicle) {
+        document.getElementById('vehicleRegistration').textContent = vehicle.registration_number;
+        document.getElementById('vehicleType').textContent = vehicle.vehicle_type;
+        document.getElementById('vehicleRoute').textContent = vehicle.route || 'None';
+        
+        // Update occupancy status
+        const occupancyStatus = document.getElementById('occupancyStatus');
+        occupancyStatus.textContent = vehicle.occupancy_status === 'full' ? 'Full' : 'Vacant';
+        occupancyStatus.className = vehicle.occupancy_status === 'full' ? 'badge bg-danger' : 'badge bg-success';
+        
+        // Update button states
+        document.getElementById('setVacant').disabled = vehicle.occupancy_status === 'vacant';
+        document.getElementById('setFull').disabled = vehicle.occupancy_status === 'full';
+    }
+    
+    async function checkActiveTrip() {
+        try {
+            const response = await fetch(`/driver/current-trip/${currentVehicleId}`);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to check active trip');
+            }
+            
+            if (data.trip) {
+                // Show active trip UI
+                currentTripId = data.trip.id;
+                document.getElementById('noActiveTrip').style.display = 'none';
+                document.getElementById('activeTrip').style.display = 'block';
+                
+                // Update trip details
+                document.getElementById('tripId').textContent = data.trip.id;
+                document.getElementById('tripStartTime').textContent = new Date(data.trip.start_time).toLocaleString();
+                
+                // Update passenger count
+                passengerCount = data.trip.passenger_summary ? data.trip.passenger_summary.current_passengers : 0;
+                document.getElementById('currentPassengerCount').textContent = passengerCount;
+                
+                // Load passenger events
+                loadPassengerEvents(currentTripId);
+            } else {
+                // Show no active trip UI
+                currentTripId = null;
+                document.getElementById('noActiveTrip').style.display = 'block';
+                document.getElementById('activeTrip').style.display = 'none';
+                
+                // Reset passenger count
+                passengerCount = 0;
+                document.getElementById('currentPassengerCount').textContent = '0';
+                
+                // Clear passenger log
+                document.getElementById('passengerLogBody').innerHTML = '<tr><td colspan="4" class="text-center">No passenger events recorded</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error checking active trip:', error);
+            // Default to no active trip
+            currentTripId = null;
+            document.getElementById('noActiveTrip').style.display = 'block';
+            document.getElementById('activeTrip').style.display = 'none';
+            passengerCount = 0;
+            document.getElementById('currentPassengerCount').textContent = '0';
+        }
+    }
+    
+    async function loadPassengerEvents(tripId) {
+        try {
+            const response = await fetch(`/driver/trip/${tripId}/events`);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to load passenger events');
+            }
+            
+            passengerEvents = data.events;
+            updatePassengerLog();
+        } catch (error) {
+            console.error('Error loading passenger events:', error);
+        }
+    }
+    
+    function updatePassengerLog() {
+        const logBody = document.getElementById('passengerLogBody');
+        
+        if (passengerEvents.length === 0) {
+            logBody.innerHTML = '<tr><td colspan="4" class="text-center">No passenger events recorded</td></tr>';
+            return;
+        }
+        
+        logBody.innerHTML = '';
+        
+        passengerEvents.forEach(event => {
+            const row = document.createElement('tr');
+            
+            const timeCell = document.createElement('td');
+            timeCell.textContent = new Date(event.created_at).toLocaleString();
+            
+            const eventCell = document.createElement('td');
+            eventCell.textContent = event.event_type === 'board' ? 'Boarding' : 'Alighting';
+            eventCell.className = event.event_type === 'board' ? 'text-success' : 'text-secondary';
+            
+            const countCell = document.createElement('td');
+            countCell.textContent = event.count;
+            
+            const notesCell = document.createElement('td');
+            notesCell.textContent = event.notes || '-';
+            
+            row.appendChild(timeCell);
+            row.appendChild(eventCell);
+            row.appendChild(countCell);
+            row.appendChild(notesCell);
+            
+            logBody.appendChild(row);
+        });
+    }
+    
+    async function updateOccupancyStatus(status) {
+        try {
+            const response = await fetch(`/driver/vehicle/${currentVehicleId}/occupancy`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ occupancy_status: status })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to update occupancy status');
+            }
+            
+            // Reload vehicle details
+            loadVehicleDetails();
+            
+            // Show success message
+            alert(`Vehicle occupancy status updated to ${status}`);
+        } catch (error) {
+            console.error('Error updating occupancy status:', error);
+            alert('Error updating occupancy status: ' + error.message);
+        }
+    }
+    
+    async function startTrip() {
+        try {
+            const response = await fetch('/driver/trip/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    vehicle_id: currentVehicleId,
+                    route_name: currentVehicleData.route || 'No route'
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to start trip');
+            }
+            
+            // Check for active trip
+            checkActiveTrip();
+            
+            // Show success message
+            alert('Trip started successfully');
+        } catch (error) {
+            console.error('Error starting trip:', error);
+            alert('Error starting trip: ' + error.message);
+        }
+    }
+    
+    async function endTrip() {
+        try {
+            const response = await fetch('/driver/trip/end', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    vehicle_id: currentVehicleId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to end trip');
+            }
+            
+            // Check for active trip
+            checkActiveTrip();
+            
+            // Show success message
+            alert('Trip ended successfully');
+        } catch (error) {
+            console.error('Error ending trip:', error);
+            alert('Error ending trip: ' + error.message);
+        }
+    }
+    
+    async function recordPassengerEvent(eventType, count, notes) {
+        try {
+            // If no active trip, start one first
+            if (!currentTripId) {
+                await startTrip();
+                // Wait a moment for the trip to be created
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await checkActiveTrip();
+                
+                if (!currentTripId) {
+                    throw new Error('Failed to start trip');
+                }
+            }
+            
+            const response = await fetch('/driver/passenger', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    vehicle_id: currentVehicleId,
+                    event_type: eventType,
+                    count: count,
+                    notes: notes
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to record passenger event');
+            }
+            
+            // Update passenger count
+            if (eventType === 'board') {
+                passengerCount += count;
+            } else {
+                passengerCount = Math.max(0, passengerCount - count);
+            }
+            
+            document.getElementById('currentPassengerCount').textContent = passengerCount;
+            
+            // Update occupancy status based on passenger count
+            // This is optional - you might want to let the driver control this manually
+            if (passengerCount === 0 && currentVehicleData.occupancy_status === 'full') {
+                updateOccupancyStatus('vacant');
+            } else if (passengerCount > 0 && passengerCount >= currentVehicleData.capacity && currentVehicleData.occupancy_status === 'vacant') {
+                updateOccupancyStatus('full');
+            }
+            
+            // Reload passenger events
+            loadPassengerEvents(currentTripId);
+        } catch (error) {
+            console.error('Error recording passenger event:', error);
+            alert('Error recording passenger event: ' + error.message);
+        }
+    }
+    
+    function showConfirmation(title, message, confirmCallback) {
+        document.getElementById('confirmationTitle').textContent = title;
+        document.getElementById('confirmationMessage').textContent = message;
+        
+        // Store the callback
+        pendingAction = confirmCallback;
+        
+        // Set up confirm button
+        document.getElementById('confirmButton').onclick = function() {
+            if (pendingAction) {
+                pendingAction();
+            }
+            $('#confirmationModal').modal('hide');
+        };
+        
+        // Show the modal
+        $('#confirmationModal').modal('show');
+    }
+    
+    function showMultiplePassengerModal(eventType) {
+        pendingEventType = eventType;
+        
+        document.getElementById('multiplePassengerTitle').textContent = 
+            eventType === 'board' ? 'Board Multiple Passengers' : 'Alight Multiple Passengers';
+        
+        document.getElementById('passengerCountInput').value = '1';
+        document.getElementById('passengerNotes').value = '';
+        
+        // If alighting, limit the max value to current passenger count
+        if (eventType === 'alight') {
+            document.getElementById('passengerCountInput').max = passengerCount;
+        } else {
+            document.getElementById('passengerCountInput').removeAttribute('max');
+        }
+        
+        // Show the modal
+        $('#multiplePassengerModal').modal('show');
+    }
+</script>
+{% endblock %}

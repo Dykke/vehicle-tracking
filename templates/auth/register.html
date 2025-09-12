@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Register - TransportWatch{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 40px auto;">
+    <h2 style="margin-bottom: 24px; text-align: center;">
+        <i class="fas fa-user-plus"></i> Register
+    </h2>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-error" style="background-color: var(--error-color); color: white; padding: 10px; border-radius: 4px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>{{ message }}</span>
+              <button onclick="this.parentElement.parentElement.style.display='none'" style="background: transparent; border: none; color: white; cursor: pointer;">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth.register') }}">
+        <div class="form-group">
+            <label class="form-label" for="username">Username</label>
+            <input type="text" id="username" name="username" class="form-input" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="email">Email</label>
+            <input type="email" id="email" name="email" class="form-input" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input type="password" id="password" name="password" class="form-input" required>
+        </div>
+        <input type="hidden" name="user_type" value="commuter">
+        <div class="alert alert-info" style="background-color: var(--primary-color); color: white; padding: 10px; border-radius: 4px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center;">
+                <i class="fas fa-info-circle me-2" style="margin-right: 8px;"></i>
+                <span>You are registering as a commuter. Operator and driver accounts can only be created by administrators.</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <div style="display: flex; align-items: flex-start;">
+                <input type="checkbox" id="terms_accepted" name="terms_accepted" required style="margin-top: 5px;">
+                <label for="terms_accepted" style="margin-left: 8px; font-size: 0.9em;">
+                    I agree to the <a href="#" id="show-terms" style="color: var(--primary-color);">Terms and Conditions</a>
+                </label>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+            <i class="fas fa-user-plus"></i> Register
+        </button>
+    </form>
+    <p style="text-align: center; margin-top: 16px;">
+        Already have an account? 
+        <a href="{{ url_for('auth.login') }}" style="color: var(--primary-color); text-decoration: none;">
+            Login here
+        </a>
+    </p>
+</div>
+
+<!-- Terms and Conditions Modal -->
+<div id="termsModal" class="modal" style="display: none;">
+    <div class="modal-content card" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="margin: 0;"><i class="fas fa-file-contract"></i> Terms & Conditions</h2>
+            <button class="btn" onclick="hideTermsModal()" style="padding: 4px 8px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div id="terms-content">
+            <p class="text-secondary">Effective Date: May 9, 2025</p>
+
+            <p>Welcome to TransportWatch ("we," "us," or "our"). These Terms and Conditions ("Terms") govern your use of our website (the "Site"), which allows users to view the location and route of incoming vehicles (the "Service").</p>
+
+            <p>By accessing or using the Site, you agree to be bound by these Terms. If you do not agree with any part of these Terms, you must not use our Service.</p>
+
+            <hr>
+            
+            <h3>1. Use of Service</h3>
+            <p>Our Service is intended solely for personal, non-commercial use to track the real-time location and estimated route of vehicles operated by or in affiliation with Transport Watch. Users must not use the Service for any illegal or unauthorized purpose.</p>
+
+            <hr>
+            
+            <h3>2. Eligibility</h3>
+            <p>You must be at least 13 years old to use the Service. By using the Site, you represent that you meet this requirement.</p>
+
+            <hr>
+            
+            <h3>3. User Responsibilities</h3>
+            <p>You agree:</p>
+            <ul>
+                <li>Not to interfere with or disrupt the Service or servers/networks connected to it.</li>
+                <li>Not to reverse-engineer, decompile, or disassemble any part of the Service.</li>
+                <li>Not to use the Service in any way that could harm or impair the functionality of the system or the experience of other users.</li>
+            </ul>
+
+            <hr>
+            
+            <h3>4. Privacy</h3>
+            <p>Use of the Site is also governed by our Privacy Policy, which explains how we collect, use, and protect your information. By using the Service, you consent to the practices described in the Privacy Policy.</p>
+        </div>
+        
+        <div style="margin-top: 24px; text-align: center;">
+            <button class="btn btn-primary" onclick="acceptTerms()">I Accept</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showTermsModal() {
+    document.getElementById('termsModal').style.display = 'flex';
+}
+
+function hideTermsModal() {
+    document.getElementById('termsModal').style.display = 'none';
+}
+
+function acceptTerms() {
+    document.getElementById('terms_accepted').checked = true;
+    hideTermsModal();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('show-terms').addEventListener('click', function(e) {
+        e.preventDefault();
+        showTermsModal();
+    });
+    
+    // Close modal when clicking outside
+    document.getElementById('termsModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideTermsModal();
+        }
+    });
+});
+</script>
+
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    padding: 24px;
+    overflow-y: auto;
+}
+
+h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.text-secondary {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+hr {
+    margin: 20px 0;
+    border: 0;
+    border-top: 1px solid #eee;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+    .modal-content {
+        padding: 16px;
+        width: 95%;
+    }
+}
+</style>
+{% endblock %} 
