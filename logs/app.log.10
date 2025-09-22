@@ -1,93 +1,94 @@
-2025-09-12 07:35:36,138 - app - INFO - Flask app using database: sqlite:///transport_monitoring.db
-2025-09-12 07:35:36,142 - app - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-09-12 07:35:36,297 - app - INFO - BYPASSING migrations and using safe table creation...
-2025-09-12 07:35:36,298 - app - INFO - Models imported successfully
-2025-09-12 07:35:36,299 - app - INFO - Database file path: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring\transport_monitoring.db
-2025-09-12 07:35:36,299 - app - INFO - Database file exists: True
-2025-09-12 07:35:36,300 - app - INFO - Database file size: 65536 bytes
-2025-09-12 07:35:36,440 - app - INFO - Existing tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
-2025-09-12 07:35:36,441 - app - INFO - Database exists with data, skipping table creation to preserve data
-2025-09-12 07:35:36,441 - app - INFO - All required tables exist ✓
-2025-09-12 07:35:36,443 - app - INFO - Final tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
-2025-09-12 07:35:36,443 - app - INFO - Ensuring required columns exist in vehicles table...
-2025-09-12 07:35:36,445 - app - INFO - Existing columns in vehicles table: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
-2025-09-12 07:35:36,445 - app - INFO - Column accuracy already exists
-2025-09-12 07:35:36,445 - app - INFO - Column route already exists
-2025-09-12 07:35:36,446 - app - INFO - Column route_info already exists
-2025-09-12 07:35:36,446 - app - INFO - Column check completed
-2025-09-12 07:35:36,447 - app - INFO - VERIFICATION - Vehicle columns after setup: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
-2025-09-12 07:35:36,447 - app - INFO - ALL REQUIRED COLUMNS VERIFIED ✓
-2025-09-12 07:35:38,638 - app - INFO - Flask app using database: sqlite:///transport_monitoring.db
-2025-09-12 07:35:38,639 - app - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-09-12 07:35:38,788 - app - INFO - BYPASSING migrations and using safe table creation...
-2025-09-12 07:35:38,789 - app - INFO - Models imported successfully
-2025-09-12 07:35:38,790 - app - INFO - Database file path: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring\transport_monitoring.db
-2025-09-12 07:35:38,790 - app - INFO - Database file exists: True
-2025-09-12 07:35:38,790 - app - INFO - Database file size: 65536 bytes
-2025-09-12 07:35:38,811 - app - INFO - Existing tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
-2025-09-12 07:35:38,811 - app - INFO - Database exists with data, skipping table creation to preserve data
-2025-09-12 07:35:38,812 - app - INFO - All required tables exist ✓
-2025-09-12 07:35:38,813 - app - INFO - Final tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
-2025-09-12 07:35:38,814 - app - INFO - Ensuring required columns exist in vehicles table...
-2025-09-12 07:35:38,815 - app - INFO - Existing columns in vehicles table: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
-2025-09-12 07:35:38,816 - app - INFO - Column accuracy already exists
-2025-09-12 07:35:38,816 - app - INFO - Column route already exists
-2025-09-12 07:35:38,816 - app - INFO - Column route_info already exists
-2025-09-12 07:35:38,817 - app - INFO - Column check completed
-2025-09-12 07:35:38,817 - app - INFO - VERIFICATION - Vehicle columns after setup: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
-2025-09-12 07:35:38,818 - app - INFO - ALL REQUIRED COLUMNS VERIFIED ✓
-2025-09-12 07:35:44,370 - app - DEBUG - Client connected: 1qn5CeQVHwMpOPD7AAAB
-2025-09-12 07:35:44,507 - app - DEBUG - Vehicle positions cache updated with 1 vehicles
-2025-09-12 07:35:44,508 - app - DEBUG - Sent vehicle positions to client: 1qn5CeQVHwMpOPD7AAAB
-2025-09-12 07:35:50,910 - app - DEBUG - Client disconnected: 1qn5CeQVHwMpOPD7AAAB
-2025-09-12 07:35:51,842 - app - DEBUG - Client connected: EtYI2HO9RlVrMYQFAAAD
-2025-09-12 07:35:51,912 - app - DEBUG - Vehicle positions cache updated with 1 vehicles
-2025-09-12 07:35:51,913 - app - DEBUG - Sent vehicle positions to client: EtYI2HO9RlVrMYQFAAAD
-2025-09-12 07:36:01,405 - app - DEBUG - Client disconnected: EtYI2HO9RlVrMYQFAAAD
-2025-09-12 07:37:55,210 - app - DEBUG - Client connected: Eihb-_Jcdh-eLf6FAAAG
-2025-09-12 07:37:55,220 - app - DEBUG - User 2 joined room: user_2
-2025-09-12 07:37:55,524 - app - DEBUG - Client connected: oswCLwqLcVwMYNROAAAH
-2025-09-12 07:37:55,530 - app - DEBUG - User 2 joined room: user_2
-2025-09-12 07:38:02,951 - app - ERROR - Error emitting vehicle update: 'Request' object has no attribute 'namespace'
-2025-09-12 07:38:17,228 - app - DEBUG - Client connected: 93IhuCsg-kd2QlbOAAAJ
-2025-09-12 07:38:17,245 - app - DEBUG - Vehicle positions cache updated with 1 vehicles
-2025-09-12 07:38:17,246 - app - DEBUG - Sent vehicle positions to client: 93IhuCsg-kd2QlbOAAAJ
-2025-09-12 07:38:21,464 - app - DEBUG - Client disconnected: 93IhuCsg-kd2QlbOAAAJ
-2025-09-12 07:38:22,195 - app - DEBUG - Client connected: T7Fde6BSY8RK1gWJAAAL
-2025-09-12 07:38:22,508 - app - DEBUG - Vehicle positions cache updated with 1 vehicles
-2025-09-12 07:38:22,508 - app - DEBUG - Sent vehicle positions to client: T7Fde6BSY8RK1gWJAAAL
-2025-09-12 07:38:39,343 - app - DEBUG - Client disconnected: T7Fde6BSY8RK1gWJAAAL
-2025-09-12 07:38:40,296 - app - DEBUG - Client connected: nac83dV8_X8H8CD1AAAN
-2025-09-12 07:38:40,310 - app - DEBUG - Vehicle positions cache updated with 1 vehicles
-2025-09-12 07:38:40,311 - app - DEBUG - Sent vehicle positions to client: nac83dV8_X8H8CD1AAAN
-2025-09-12 07:39:00,137 - app - INFO - Flask app using database: sqlite:///transport_monitoring.db
-2025-09-12 07:39:00,137 - app - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-09-12 07:39:00,292 - app - INFO - BYPASSING migrations and using safe table creation...
-2025-09-12 07:39:00,292 - app - INFO - Models imported successfully
-2025-09-12 07:39:00,293 - app - INFO - Database file path: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring\transport_monitoring.db
-2025-09-12 07:39:00,293 - app - INFO - Database file exists: True
-2025-09-12 07:39:00,293 - app - INFO - Database file size: 69632 bytes
-2025-09-12 07:39:00,312 - app - INFO - Existing tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
-2025-09-12 07:39:00,313 - app - INFO - Database exists with data, skipping table creation to preserve data
-2025-09-12 07:39:00,313 - app - INFO - All required tables exist ✓
-2025-09-12 07:39:00,314 - app - INFO - Final tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
-2025-09-12 07:39:00,315 - app - INFO - Ensuring required columns exist in vehicles table...
-2025-09-12 07:39:00,316 - app - INFO - Existing columns in vehicles table: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
-2025-09-12 07:39:00,317 - app - INFO - Column accuracy already exists
-2025-09-12 07:39:00,317 - app - INFO - Column route already exists
-2025-09-12 07:39:00,317 - app - INFO - Column route_info already exists
-2025-09-12 07:39:00,317 - app - INFO - Column check completed
-2025-09-12 07:39:00,318 - app - INFO - VERIFICATION - Vehicle columns after setup: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
-2025-09-12 07:39:00,318 - app - INFO - ALL REQUIRED COLUMNS VERIFIED ✓
-2025-09-12 07:40:08,156 - app - DEBUG - Client connected: WRWudfRrxkzweoTlAAAP
-2025-09-12 07:40:08,220 - app - DEBUG - Vehicle positions cache updated with 1 vehicles
-2025-09-12 07:40:08,220 - app - DEBUG - Sent vehicle positions to client: WRWudfRrxkzweoTlAAAP
-2025-09-12 07:40:12,963 - app - DEBUG - Client connected: YgPudFX6XznZreGhAAAR
-2025-09-12 07:40:12,967 - app - DEBUG - User 1 joined room: user_1
-2025-09-12 07:40:17,284 - app - DEBUG - Client disconnected: Eihb-_Jcdh-eLf6FAAAG
-2025-09-12 07:40:17,284 - app - DEBUG - Client disconnected: oswCLwqLcVwMYNROAAAH
-2025-09-12 07:40:18,631 - app - DEBUG - Client connected: cDq2HkfjzAjlXtmhAAAU
-2025-09-12 07:40:18,636 - app - DEBUG - User 2 joined room: user_2
-2025-09-12 07:40:18,696 - app - DEBUG - Client connected: TzPyumPqSQg6pvtgAAAV
-2025-09-12 07:40:18,700 - app - DEBUG - User 2 joined room: user_2
-2025-09-12 07:40:21,877 - app - DEBUG - Client disconnected: cDq2HkfjzAjlXtmhAAAU
+2025-09-12 10:28:14,604 - app - INFO - Flask app using database: sqlite:///transport_monitoring.db
+2025-09-12 10:28:14,606 - app - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
+2025-09-12 10:28:14,751 - app - INFO - BYPASSING migrations and using safe table creation...
+2025-09-12 10:28:14,752 - app - INFO - Models imported successfully
+2025-09-12 10:28:14,752 - app - INFO - Database file path: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring\transport_monitoring.db
+2025-09-12 10:28:14,753 - app - INFO - Database file exists: True
+2025-09-12 10:28:14,753 - app - INFO - Database file size: 69632 bytes
+2025-09-12 10:28:14,773 - app - INFO - Existing tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-09-12 10:28:14,779 - app - INFO - Database exists with data, skipping table creation to preserve data
+2025-09-12 10:28:14,780 - app - INFO - All required tables exist ✓
+2025-09-12 10:28:14,782 - app - INFO - Final tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-09-12 10:28:14,782 - app - INFO - Ensuring required columns exist in vehicles table...
+2025-09-12 10:28:14,784 - app - INFO - Existing columns in vehicles table: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-09-12 10:28:14,784 - app - INFO - Column accuracy already exists
+2025-09-12 10:28:14,784 - app - INFO - Column route already exists
+2025-09-12 10:28:14,785 - app - INFO - Column route_info already exists
+2025-09-12 10:28:14,785 - app - INFO - Column check completed
+2025-09-12 10:28:14,785 - app - INFO - VERIFICATION - Vehicle columns after setup: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-09-12 10:28:14,786 - app - INFO - ALL REQUIRED COLUMNS VERIFIED ✓
+2025-09-12 10:28:16,562 - app - INFO - Flask app using database: sqlite:///transport_monitoring.db
+2025-09-12 10:28:16,563 - app - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
+2025-09-12 10:28:16,708 - app - INFO - BYPASSING migrations and using safe table creation...
+2025-09-12 10:28:16,708 - app - INFO - Models imported successfully
+2025-09-12 10:28:16,708 - app - INFO - Database file path: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring\transport_monitoring.db
+2025-09-12 10:28:16,709 - app - INFO - Database file exists: True
+2025-09-12 10:28:16,709 - app - INFO - Database file size: 69632 bytes
+2025-09-12 10:28:16,729 - app - INFO - Existing tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-09-12 10:28:16,730 - app - INFO - Database exists with data, skipping table creation to preserve data
+2025-09-12 10:28:16,730 - app - INFO - All required tables exist ✓
+2025-09-12 10:28:16,732 - app - INFO - Final tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-09-12 10:28:16,733 - app - INFO - Ensuring required columns exist in vehicles table...
+2025-09-12 10:28:16,735 - app - INFO - Existing columns in vehicles table: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-09-12 10:28:16,735 - app - INFO - Column accuracy already exists
+2025-09-12 10:28:16,735 - app - INFO - Column route already exists
+2025-09-12 10:28:16,736 - app - INFO - Column route_info already exists
+2025-09-12 10:28:16,736 - app - INFO - Column check completed
+2025-09-12 10:28:16,737 - app - INFO - VERIFICATION - Vehicle columns after setup: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-09-12 10:28:16,737 - app - INFO - ALL REQUIRED COLUMNS VERIFIED ✓
+2025-09-12 10:28:16,746 - app - DEBUG - Client connected: Lt2AJico0WBRNx0DAAAB
+2025-09-12 10:28:16,784 - app - DEBUG - User 1 joined room: user_1
+2025-09-12 10:28:21,142 - app - INFO - Flask app using database: sqlite:///transport_monitoring.db
+2025-09-12 10:28:21,143 - app - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
+2025-09-12 10:28:21,296 - app - INFO - BYPASSING migrations and using safe table creation...
+2025-09-12 10:28:21,296 - app - INFO - Models imported successfully
+2025-09-12 10:28:21,297 - app - INFO - Database file path: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring\transport_monitoring.db
+2025-09-12 10:28:21,297 - app - INFO - Database file exists: True
+2025-09-12 10:28:21,297 - app - INFO - Database file size: 69632 bytes
+2025-09-12 10:28:21,318 - app - INFO - Existing tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-09-12 10:28:21,318 - app - INFO - Database exists with data, skipping table creation to preserve data
+2025-09-12 10:28:21,318 - app - INFO - All required tables exist ✓
+2025-09-12 10:28:21,320 - app - INFO - Final tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-09-12 10:28:21,320 - app - INFO - Ensuring required columns exist in vehicles table...
+2025-09-12 10:28:21,322 - app - INFO - Existing columns in vehicles table: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-09-12 10:28:21,322 - app - INFO - Column accuracy already exists
+2025-09-12 10:28:21,323 - app - INFO - Column route already exists
+2025-09-12 10:28:21,323 - app - INFO - Column route_info already exists
+2025-09-12 10:28:21,323 - app - INFO - Column check completed
+2025-09-12 10:28:21,324 - app - INFO - VERIFICATION - Vehicle columns after setup: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-09-12 10:28:21,324 - app - INFO - ALL REQUIRED COLUMNS VERIFIED ✓
+2025-09-12 10:28:21,332 - app - DEBUG - Client connected: 0acpvlnRE6wucY3xAAAB
+2025-09-12 10:28:21,367 - app - DEBUG - User 1 joined room: user_1
+2025-09-12 10:28:27,137 - app - DEBUG - Client connected: S9NIhL3AVfKLlIjMAAAE
+2025-09-12 10:28:27,141 - app - DEBUG - User 1 joined room: user_1
+2025-09-12 10:28:27,200 - app - DEBUG - Client connected: Rtv0LdtC4V3mzim2AAAF
+2025-09-12 10:28:27,207 - app - DEBUG - User 1 joined room: user_1
+2025-09-12 10:28:27,228 - app - DEBUG - Vehicle positions cache updated with 0 vehicles
+2025-09-12 10:28:27,229 - app - DEBUG - Sent vehicle positions to client: Rtv0LdtC4V3mzim2AAAF
+2025-09-12 10:28:31,349 - app - DEBUG - Client disconnected: S9NIhL3AVfKLlIjMAAAE
+2025-09-12 10:28:31,350 - app - DEBUG - Client disconnected: Rtv0LdtC4V3mzim2AAAF
+2025-09-12 10:28:32,334 - app - DEBUG - Client connected: YoM2DC2T35nKqQL_AAAH
+2025-09-12 10:28:32,338 - app - DEBUG - User 1 joined room: user_1
+2025-09-12 10:28:32,808 - app - DEBUG - Client connected: sMN_rhuDmvUjqglxAAAJ
+2025-09-12 10:28:32,813 - app - DEBUG - User 1 joined room: user_1
+2025-09-12 10:28:34,836 - app - DEBUG - Client disconnected: sMN_rhuDmvUjqglxAAAJ
+2025-09-12 10:28:35,805 - app - DEBUG - Client connected: sO0sg2Rex7aOAggVAAAL
+2025-09-12 10:28:35,808 - app - DEBUG - User 1 joined room: user_1
+2025-09-12 10:28:48,288 - app - ERROR - Error emitting assignment change: 'Request' object has no attribute 'namespace'
+2025-09-12 10:28:56,053 - app - DEBUG - Client disconnected: sO0sg2Rex7aOAggVAAAL
+2025-09-12 10:28:57,083 - app - DEBUG - Client connected: 3OEujH-r9KXEi_bnAAAN
+2025-09-12 10:28:57,409 - app - DEBUG - Vehicle positions cache updated with 0 vehicles
+2025-09-12 10:28:57,410 - app - DEBUG - Sent vehicle positions to client: 3OEujH-r9KXEi_bnAAAN
+2025-09-12 10:28:59,904 - app - DEBUG - Client disconnected: 3OEujH-r9KXEi_bnAAAN
+2025-09-12 10:29:06,811 - app - DEBUG - Client connected: qhWlnKULzGGzdQzyAAAQ
+2025-09-12 10:29:06,821 - app - DEBUG - User 2 joined room: user_2
+2025-09-12 10:29:07,123 - app - DEBUG - Client connected: 6SxfN8iXr-TcvJmUAAAR
+2025-09-12 10:29:07,128 - app - DEBUG - User 2 joined room: user_2
+2025-09-12 10:29:12,600 - app - ERROR - Error emitting vehicle update: 'Request' object has no attribute 'namespace'
+2025-09-12 10:29:13,966 - app - DEBUG - Client disconnected: qhWlnKULzGGzdQzyAAAQ
+2025-09-12 10:29:13,967 - app - DEBUG - Client disconnected: 6SxfN8iXr-TcvJmUAAAR
+2025-09-12 10:29:14,955 - app - DEBUG - Client connected: COgB5JDeuk4coM4tAAAT
+2025-09-12 10:29:15,193 - app - DEBUG - Vehicle positions cache updated with 1 vehicles
+2025-09-12 10:29:15,193 - app - DEBUG - Sent vehicle positions to client: COgB5JDeuk4coM4tAAAT
+2025-09-12 10:29:28,050 - app - DEBUG - Client disconnected: YoM2DC2T35nKqQL_AAAH
+2025-09-12 10:31:30,512 - app - DEBUG - Client disconnected: COgB5JDeuk4coM4tAAAT

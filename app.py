@@ -74,39 +74,46 @@ app.config.update(db_config)
 # Initialize database with proper configuration
 db.init_app(app)
 
-# Verify database path for debugging and ensure consistency
-from db_config import verify_database_path, get_database_url
-with app.app_context():
-    verify_database_path()
-    db_url = get_database_url()
-    logger.info(f"Flask app using database: {db_url}")
-    
-    # Ensure the database directory exists (only for SQLite)
-    if db_url.startswith('sqlite:///'):
-        db_path = db_url.replace('sqlite:///', '')
-        # Handle both absolute and relative paths
-        if os.path.isabs(db_path):
-            db_dir = os.path.dirname(db_path)
-        else:
-            # For relative paths, resolve against current working directory
-            db_dir = os.path.dirname(os.path.abspath(db_path))
+# Initialize database setup only once at startup
+def initialize_database_setup():
+    """Initialize database setup - called only once at startup"""
+    try:
+        from db_config import verify_database_path, get_database_url
+        verify_database_path()
+        db_url = get_database_url()
+        logger.info(f"Flask app using database: {db_url}")
         
-        # Only create directory if it's not empty and doesn't exist
-        if db_dir and not os.path.exists(db_dir):
-            try:
-                os.makedirs(db_dir)
-                logger.info(f"Created database directory: {db_dir}")
-            except Exception as e:
-                logger.warning(f"Could not create database directory {db_dir}: {e}")
-                logger.info("Database will be created in current working directory if possible")
-        elif db_dir:
-            logger.info(f"Database directory exists: {db_dir}")
-        else:
-            logger.warning("Database directory path is empty - using current working directory")
+        # Ensure the database directory exists (only for SQLite)
+        if db_url.startswith('sqlite:///'):
+            db_path = db_url.replace('sqlite:///', '')
+            # Handle both absolute and relative paths
+            if os.path.isabs(db_path):
+                db_dir = os.path.dirname(db_path)
+            else:
+                # For relative paths, resolve against current working directory
+                db_dir = os.path.dirname(os.path.abspath(db_path))
+            
+            # Only create directory if it's not empty and doesn't exist
+            if db_dir and not os.path.exists(db_dir):
+                try:
+                    os.makedirs(db_dir)
+                    logger.info(f"Created database directory: {db_dir}")
+                except Exception as e:
+                    logger.warning(f"Could not create database directory {db_dir}: {e}")
+                    logger.info("Database will be created in current working directory if possible")
+            elif db_dir:
+                logger.info(f"Database directory exists: {db_dir}")
+            else:
+                logger.warning("Database directory path is empty - using current working directory")
+        
+        # Create .env.example file if it doesn't exist
+        create_env_example()
+        
+    except Exception as e:
+        logger.error(f"Database setup error: {e}")
 
-# Create .env.example file if it doesn't exist
-with app.app_context():
-    create_env_example()
+# Run database setup only once at startup
+initialize_database_setup()
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -137,7 +144,8 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode=async_mode)
 
 # Register Socket.IO event handlers
 @socketio.on('connect')
-def handle_connect():
+def handle_connect(auth=None):
+    # Accept auth parameter but don't use it
     events_optimized.handle_connect()
 
 @socketio.on('disconnect')

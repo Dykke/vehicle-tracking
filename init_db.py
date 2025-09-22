@@ -57,9 +57,12 @@ def create_app():
         logger.info("PostgreSQL detected - enabling SSL context for pg8000 driver")
     
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_size': 5,
-        'pool_recycle': 60,
-        'pool_pre_ping': True,
+        'pool_size': 1,  # Minimal for free tier
+        'pool_recycle': 300,  # 5 minutes
+        'pool_pre_ping': False,  # Disable pre-ping to avoid connection issues
+        'pool_timeout': 5,  # 5 seconds timeout
+        'max_overflow': 0,  # No additional connections
+        'pool_reset_on_return': 'commit',  # Reset connections on return
         'connect_args': connect_args
     }
 

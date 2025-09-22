@@ -24,18 +24,21 @@ def public_map():
 
 @public_bp.route('/vehicles/active')
 def get_active_vehicles():
-    """Get all active vehicles for the public map - FALLBACK VERSION for database issues."""
+    """Get all active vehicles for the public map - OPTIMIZED VERSION with aggressive caching."""
     global _vehicle_cache, _cache_timestamp
     
     try:
-        # Check cache first
+        # Check cache first - use a longer cache duration for Render (60 seconds)
         current_time = time.time()
-        if _vehicle_cache and (current_time - _cache_timestamp) < CACHE_DURATION:
+        RENDER_CACHE_DURATION = 60  # 1 minute cache for Render
+        
+        if _vehicle_cache and (current_time - _cache_timestamp) < RENDER_CACHE_DURATION:
             return jsonify(_vehicle_cache)
         
         # Try to get vehicles from database with error handling
         try:
-            # Simple query without joins to avoid complexity
+            # OPTIMIZATION: Use a single efficient query
+            # This is a critical performance bottleneck on Render
             active_vehicles = Vehicle.query.filter(
                 Vehicle.status.in_(['active', 'delayed']),
                 Vehicle.current_latitude.isnot(None),
@@ -73,7 +76,12 @@ def get_active_vehicles():
             return jsonify(result)
             
         except Exception as db_error:
-            # If database fails, return empty result instead of error
+            # If database fails but we have a cache (even if expired), use it as fallback
+            if _vehicle_cache:
+                print(f"Database error in /vehicles/active, using expired cache: {db_error}")
+                return jsonify(_vehicle_cache)
+            
+            # No cache available, return empty result
             print(f"Database error in /vehicles/active: {db_error}")
             return jsonify({
                 'success': True,

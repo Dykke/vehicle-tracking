@@ -134,23 +134,43 @@ def get_sqlalchemy_config():
             connect_args['ssl_context'] = ssl_context
             logger.info("PostgreSQL detected - enabling SSL context for pg8000 driver")
         
+        # RENDER OPTIMIZATION: Use SQLite connection pooling settings
+        # that are optimized for Render's free tier constraints
         config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'pool_size': 1,  # Minimal for free tier
-            'pool_recycle': 300,  # 5 minutes
-            'pool_pre_ping': False,  # Disable pre-ping to avoid connection issues
-            'pool_timeout': 10,  # 10 seconds timeout
-            'max_overflow': 1,  # Allow only 1 additional connection
-            'pool_reset_on_return': 'commit',  # Reset connections on return
+            # Use a single persistent connection
+            'pool_size': 1,
+            # Recycle connection every 5 minutes
+            'pool_recycle': 300,
+            # No pre-ping to avoid overhead
+            'pool_pre_ping': False,
+            # Short timeout to fail fast
+            'pool_timeout': 3,
+            # No overflow connections
+            'max_overflow': 0,
+            # Reset connections on return
+            'pool_reset_on_return': 'commit',
+            # Reduce statement cache size
+            'pool_use_lifo': True,  # Last in, first out for better cache locality
             'connect_args': connect_args
         }
     elif database_url.startswith('mysql'):
+        # RENDER OPTIMIZATION: Use MySQL connection pooling settings
+        # that are optimized for Render's free tier constraints
         config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'pool_size': 1,  # Minimal for free tier
-            'pool_recycle': 300,  # 5 minutes
-            'pool_pre_ping': False,  # Disable pre-ping to avoid connection issues
-            'pool_timeout': 10,  # 10 seconds timeout
-            'max_overflow': 1,  # Allow only 1 additional connection
-            'pool_reset_on_return': 'commit',  # Reset connections on return
+            # Use a single persistent connection
+            'pool_size': 1,
+            # Recycle connection every 5 minutes
+            'pool_recycle': 300,
+            # No pre-ping to avoid overhead
+            'pool_pre_ping': False,
+            # Short timeout to fail fast
+            'pool_timeout': 3,
+            # No overflow connections
+            'max_overflow': 0,
+            # Reset connections on return
+            'pool_reset_on_return': 'commit',
+            # Reduce statement cache size
+            'pool_use_lifo': True,  # Last in, first out for better cache locality
             'connect_args': {
                 'charset': 'utf8mb4'
             }
