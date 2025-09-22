@@ -135,16 +135,22 @@ def get_sqlalchemy_config():
             logger.info("PostgreSQL detected - enabling SSL context for pg8000 driver")
         
         config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'pool_size': 10,
-            'pool_recycle': 60,
-            'pool_pre_ping': True,
+            'pool_size': 1,  # Minimal for free tier
+            'pool_recycle': 300,  # 5 minutes
+            'pool_pre_ping': False,  # Disable pre-ping to avoid connection issues
+            'pool_timeout': 10,  # 10 seconds timeout
+            'max_overflow': 1,  # Allow only 1 additional connection
+            'pool_reset_on_return': 'commit',  # Reset connections on return
             'connect_args': connect_args
         }
     elif database_url.startswith('mysql'):
         config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'pool_size': 10,
-            'pool_recycle': 60,
-            'pool_pre_ping': True,
+            'pool_size': 1,  # Minimal for free tier
+            'pool_recycle': 300,  # 5 minutes
+            'pool_pre_ping': False,  # Disable pre-ping to avoid connection issues
+            'pool_timeout': 10,  # 10 seconds timeout
+            'max_overflow': 1,  # Allow only 1 additional connection
+            'pool_reset_on_return': 'commit',  # Reset connections on return
             'connect_args': {
                 'charset': 'utf8mb4'
             }

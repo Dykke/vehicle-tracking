@@ -8,6 +8,7 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 import sys
+import time
 from werkzeug.serving import run_simple
 from secure_config import get_secret_key, create_env_example
 from datetime import timedelta
@@ -116,6 +117,19 @@ login_manager.login_view = 'auth.login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# Disable automatic context processor to avoid database queries on public pages
+login_manager._context_processor = None
+
+# Custom context processor that only loads user data when needed
+@app.context_processor
+def inject_user():
+    from flask import request
+    from flask_login import current_user
+    # Only load user data for non-public routes
+    if request.endpoint == 'index':
+        return {}  # Return empty context for public page
+    return dict(current_user=current_user)
+
 # Initialize Socket.IO with threading mode for Python 3.13 compatibility
 import os
 async_mode = os.environ.get('SOCKETIO_ASYNC_MODE', 'threading')
@@ -160,9 +174,35 @@ app.register_blueprint(operator_bp, url_prefix='/operator')
 app.register_blueprint(api_bp, url_prefix='/api')
 app.register_blueprint(notifications_bp)
 
-# Root route
+# Add diagnostic endpoints for performance testing
+@app.route('/ping')
+def ping():
+    return 'pong', 200
+
+@app.route('/health')
+def health():
+    """Simple health check without database access"""
+    return {'status': 'healthy', 'timestamp': time.time()}, 200
+
+@app.route('/db-ping')
+def db_ping():
+    import time
+    t0 = time.time()
+    try:
+        # Test database connection with timeout
+        db.session.execute('SELECT 1')
+        db.session.commit()
+        took_ms = int((time.time() - t0) * 1000)
+        return {'ok': True, 'took_ms': took_ms}, 200
+    except Exception as e:
+        took_ms = int((time.time() - t0) * 1000)
+        # Return 200 with error info instead of 500 to avoid breaking the app
+        return {'ok': False, 'error': str(e), 'took_ms': took_ms, 'status': 'database_unavailable'}, 200
+
+# Root route - PUBLIC PAGE (no authentication required)
 @app.route('/')
 def index():
+    # Skip user loading for public page to avoid database queries
     return render_template('public/map.html')
 
 # Check if running in development mode

@@ -1,1 +1,1 @@
-web: python init_db.py && gunicorn -k gunicorn.workers.sync.SyncWorker -w 1 wsgi:app
+web: gunicorn -k sync -w 1 --timeout 60 --keep-alive 2 --max-requests 100 --max-requests-jitter 10 wsgi:app
