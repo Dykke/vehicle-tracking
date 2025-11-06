@@ -157,6 +157,9 @@ def register():
         username = request.form.get('username', '').strip()
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
+        first_name = request.form.get('first_name', '').strip()
+        middle_name = request.form.get('middle_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
         # Force user_type to commuter for public registration
         user_type = 'commuter'
         terms_accepted = request.form.get('terms_accepted')
@@ -188,7 +191,14 @@ def register():
             return redirect(url_for('auth.register'))
             
         try:
-            user = User(username=username, email=email, user_type=user_type)
+            user = User(
+                username=username, 
+                email=email, 
+                user_type=user_type,
+                first_name=first_name if first_name else None,
+                middle_name=middle_name if middle_name else None,
+                last_name=last_name if last_name else None
+            )
             user.set_password(password)
             db.session.add(user)
             db.session.commit()

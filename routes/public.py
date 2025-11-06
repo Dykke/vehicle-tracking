@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify
 from models.vehicle import Vehicle
 from models.location_log import LocationLog
-from models.user import Trip
+from models.user import Trip, User
 from models import db
 from datetime import datetime, timedelta
 from sqlalchemy import desc
@@ -15,6 +15,13 @@ _vehicle_cache = {}
 _cache_timestamp = 0
 CACHE_DURATION = 30  # Cache for 30 seconds
 
+def clear_vehicle_cache():
+    """Clear the vehicle cache to force refresh."""
+    global _vehicle_cache, _cache_timestamp
+    _vehicle_cache = {}
+    _cache_timestamp = 0
+    print("🔄 Vehicle cache cleared")
+
 public_bp = Blueprint('public', __name__)
 
 @public_bp.route('/public/map')
@@ -22,24 +29,41 @@ def public_map():
     """Public map view that doesn't require login."""
     return render_template('public/map.html')
 
+@public_bp.route('/public/clear-cache')
+def clear_cache_endpoint():
+    """Manually clear the vehicle cache - for testing."""
+    clear_vehicle_cache()
+    return jsonify({'success': True, 'message': 'Cache cleared successfully'})
+
 @public_bp.route('/vehicles/active')
 def get_active_vehicles():
     """Get all active vehicles for the public map - OPTIMIZED VERSION with aggressive caching."""
     global _vehicle_cache, _cache_timestamp
     
     try:
-        # Check cache first - use a longer cache duration for Render (60 seconds)
-        current_time = time.time()
-        RENDER_CACHE_DURATION = 60  # 1 minute cache for Render
+        # Check if cache should be bypassed (for manual refresh)
+        force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
         
-        if _vehicle_cache and (current_time - _cache_timestamp) < RENDER_CACHE_DURATION:
-            return jsonify(_vehicle_cache)
+        # Check cache first - use shorter cache for better UX (10 seconds)
+        current_time = time.time()
+        CACHE_DURATION_SECONDS = 5  # 10 seconds cache - good balance between performance and freshness
+        
+        if not force_refresh and _vehicle_cache and (current_time - _cache_timestamp) < CACHE_DURATION_SECONDS:
+            # Return cached data with no-cache headers
+            response = jsonify(_vehicle_cache)
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
         
         # Try to get vehicles from database with error handling
         try:
-            # OPTIMIZATION: Use a single efficient query
+            # OPTIMIZATION: Use a single efficient query with eager loading of drivers
             # This is a critical performance bottleneck on Render
-            active_vehicles = Vehicle.query.filter(
+            from sqlalchemy.orm import joinedload
+            active_vehicles = Vehicle.query.options(
+                joinedload(Vehicle.assigned_driver)
+            ).filter(
                 Vehicle.status.in_(['active', 'delayed']),
                 Vehicle.current_latitude.isnot(None),
                 Vehicle.current_longitude.isnot(None)
@@ -48,11 +72,60 @@ def get_active_vehicles():
             # Format vehicle data for public consumption (no PII) - SIMPLIFIED
             vehicles_data = []
             for vehicle in active_vehicles:
+                # Check if vehicle has an active trip
+                active_trip = Trip.query.filter_by(
+                    vehicle_id=vehicle.id,
+                    status='active'
+                ).first()
+                
+                # Only show vehicles with active trips (departed)
+                if not active_trip:
+                    continue  # Skip vehicles without active trips
+                
+                # Calculate route distance and ETA from route_info
+                route_distance_km = None
+                eta_minutes = None
+                
+                if vehicle.route_info:
+                    try:
+                        route_info = json.loads(vehicle.route_info) if isinstance(vehicle.route_info, str) else vehicle.route_info
+                        
+                        # Get destination coordinates
+                        if 'dest_coords' in route_info and route_info['dest_coords']:
+                            dest_coords = route_info['dest_coords']
+                            dest_lat = float(dest_coords.get('lat'))
+                            dest_lon = float(dest_coords.get('lon'))
+                            
+                            # Calculate distance from current position to destination
+                            route_distance_km = round(calculate_distance_km(
+                                vehicle.current_latitude, vehicle.current_longitude,
+                                dest_lat, dest_lon
+                            ), 2)
+                            
+                            # Calculate ETA based on current speed
+                            speed_kmh = vehicle.last_speed_kmh or 40  # Default 40 km/h
+                            if speed_kmh > 0 and route_distance_km > 0:
+                                eta_minutes = round((route_distance_km / speed_kmh) * 60)
+                            
+                            print(f"✓ Vehicle {vehicle.id}: distance={route_distance_km}km, eta={eta_minutes}min, speed={speed_kmh}km/h")
+                        else:
+                            print(f"✗ Vehicle {vehicle.id}: No dest_coords in route_info")
+                    except Exception as e:
+                        print(f"✗ Error calculating route info for vehicle {vehicle.id}: {e}")
+                
+                # Get driver information (already loaded via joinedload, no extra query!)
+                driver_name = None
+                if vehicle.assigned_driver:
+                    driver_name = vehicle.assigned_driver.get_full_name()
+                    print(f"✓ Vehicle {vehicle.id}: Driver = {driver_name}")
+                else:
+                    print(f"✗ Vehicle {vehicle.id}: No assigned driver")
+                
                 vehicles_data.append({
                     'id': vehicle.id,
                     'type': vehicle.vehicle_type,
                     'status': vehicle.status,
-                    'trip_status': 'active',  # Default status
+                    'trip_status': 'departed',  # Vehicle is on an active trip
                     'occupancy_status': vehicle.occupancy_status or 'unknown',
                     'latitude': vehicle.current_latitude,
                     'longitude': vehicle.current_longitude,
@@ -60,8 +133,9 @@ def get_active_vehicles():
                     'route_info': vehicle.route_info,
                     'last_updated': vehicle.last_updated.isoformat() if vehicle.last_updated else None,
                     'speed_kmh': vehicle.last_speed_kmh or 60,
-                    'route_distance_km': None,
-                    'eta_minutes': None
+                    'route_distance_km': route_distance_km,
+                    'eta_minutes': eta_minutes,
+                    'driver_name': driver_name
                 })
             
             # Cache the result
@@ -73,7 +147,12 @@ def get_active_vehicles():
             _vehicle_cache = result
             _cache_timestamp = current_time
             
-            return jsonify(result)
+            # Return with cache-busting headers to prevent browser caching
+            response = jsonify(result)
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
             
         except Exception as db_error:
             # If database fails but we have a cache (even if expired), use it as fallback

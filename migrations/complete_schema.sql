@@ -21,12 +21,17 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     user_type VARCHAR(20) NOT NULL,  -- 'admin', 'operator', 'driver'
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_name VARCHAR(100),
+    middle_name VARCHAR(100),
+    last_name VARCHAR(100),
     is_active BOOLEAN DEFAULT 1 NOT NULL,
     profile_image_url VARCHAR(500),
     current_latitude FLOAT,
     current_longitude FLOAT,
     accuracy FLOAT,
     created_by_id INTEGER,
+    company_name VARCHAR(200),
+    contact_number VARCHAR(50),
     FOREIGN KEY (created_by_id) REFERENCES users(id)
 );
 

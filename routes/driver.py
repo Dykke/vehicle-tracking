@@ -175,6 +175,13 @@ def start_trip():
         status='active'
     )
     
+    # Clear the public vehicle cache so the vehicle immediately appears on the map
+    try:
+        from routes.public import clear_vehicle_cache
+        clear_vehicle_cache()
+    except Exception as e:
+        print(f"Could not clear vehicle cache: {e}")
+    
     # Create a driver action log
     log = DriverActionLog(
         driver_id=current_user.id,
@@ -242,6 +249,13 @@ def end_trip():
     # End the trip
     active_trip.end_time = datetime.utcnow()
     active_trip.status = 'completed'
+    
+    # Clear the public vehicle cache so the vehicle is immediately hidden from the map
+    try:
+        from routes.public import clear_vehicle_cache
+        clear_vehicle_cache()
+    except Exception as e:
+        print(f"Could not clear vehicle cache: {e}")
     
     # Create a driver action log
     log = DriverActionLog(

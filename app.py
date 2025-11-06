@@ -4,6 +4,7 @@ from flask_socketio import SocketIO
 from flask_cors import CORS
 from models import db
 from models.user import User
+from sqlalchemy import text
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -12,6 +13,7 @@ import time
 from werkzeug.serving import run_simple
 from secure_config import get_secret_key, create_env_example
 from datetime import timedelta
+from db_config import get_database_url
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
@@ -324,6 +326,37 @@ with app.app_context():
                     logger.info("ALL REQUIRED COLUMNS VERIFIED ✓")
                 else:
                     logger.warning("Vehicles table not found, skipping column verification")
+                
+                # Auto-migrate: Add name fields to users table if they don't exist
+                if 'users' in table_names:
+                    logger.info("Checking for name fields in users table...")
+                    user_columns = [column['name'] for column in inspector.get_columns('users')]
+                    
+                    name_fields_missing = []
+                    if 'first_name' not in user_columns:
+                        name_fields_missing.append('first_name')
+                    if 'middle_name' not in user_columns:
+                        name_fields_missing.append('middle_name')
+                    if 'last_name' not in user_columns:
+                        name_fields_missing.append('last_name')
+                    
+                    if name_fields_missing:
+                        logger.info(f"Adding missing name fields to users table: {name_fields_missing}")
+                        try:
+                            # Add name columns
+                            if 'first_name' not in user_columns:
+                                db.session.execute(text("ALTER TABLE users ADD COLUMN first_name VARCHAR(100)"))
+                            if 'middle_name' not in user_columns:
+                                db.session.execute(text("ALTER TABLE users ADD COLUMN middle_name VARCHAR(100)"))
+                            if 'last_name' not in user_columns:
+                                db.session.execute(text("ALTER TABLE users ADD COLUMN last_name VARCHAR(100)"))
+                            db.session.commit()
+                            logger.info("✓ Name fields added successfully to users table")
+                        except Exception as migration_error:
+                            logger.warning(f"Could not add name fields (may already exist): {migration_error}")
+                            db.session.rollback()
+                    else:
+                        logger.info("✓ All name fields already exist in users table")
             except Exception as inner_e:
                 logger.error(f"Error during model import or table creation: {str(inner_e)}")
     except Exception as e:

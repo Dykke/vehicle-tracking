@@ -123,3 +123,21 @@ def db_ping():
 ---
 
 *End of README*
+
+
+
+curl https://drive-monitoring-iha2.onrender.com/db-ping
+
+curl https://drive-monitoring-iha2.onrender.com/health
+
+curl https://drive-monitoring-iha2.onrender.com/public/vehicles/active
+
+curl -o /dev/null -s -w "ttfb=%{time_starttransfer}s total=%{time_total}s\n" https://drive-monitoring-iha2.onrender.com
+
+
+
+
+
+
+
+

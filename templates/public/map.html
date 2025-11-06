@@ -462,11 +462,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (resourcesLoaded) {
             clearTimeout(maxTimeout);
             initMap();
-            loadVehicles();
+            loadVehicles(true);  // Force refresh on initial load to get fresh data
             initSocketConnection();
             
-            // Refresh vehicles every 30 seconds
-            setInterval(loadVehicles, 30000);
+            // Refresh vehicles every 15 seconds (cache is 10s, so this ensures fresh data)
+            setInterval(() => loadVehicles(false), 15000);
             
             // Initialize user location tracking
             initUserLocationTracking();
@@ -509,19 +509,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     let userLocationHistoryLine = null;
     let userLocationWatchId = null;
     let isUserLocationEnabled = false;
-    
-    // Initialize the map when the page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        initMap();
-        loadVehicles();
-        initSocketConnection();
-        
-        // Refresh vehicles every 30 seconds
-        setInterval(loadVehicles, 30000);
-        
-        // Initialize user location tracking
-        initUserLocationTracking();
-    });
     
     function initMap() {
         // Hide loading indicator
@@ -626,9 +613,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     
-    async function loadVehicles() {
+    async function loadVehicles(forceRefresh = false) {
         try {
-            const response = await fetch('/public/vehicles/active');
+            const url = forceRefresh ? '/public/vehicles/active?force_refresh=true' : '/public/vehicles/active';
+            const response = await fetch(url);
             const data = await response.json();
             
             if (data.success) {
@@ -798,6 +786,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <h5 style="margin: 0;">${vehicle.type === 'bus' ? 'Bus' : 'Van'} #${vehicle.id}</h5>
                     <span class="vehicle-status ${statusClass}">${statusDisplay}</span>
                 </div>
+                ${vehicle.driver_name ? `
+                    <div style="padding: 8px 0; border-bottom: 1px solid #eee; margin-bottom: 8px;">
+                        <strong><i class="fas fa-user-circle"></i> Driver:</strong> ${vehicle.driver_name}
+                    </div>
+                ` : ''}
                 <div class="vehicle-popup-details">
                     <p><strong>Route:</strong> ${vehicle.route || 'No route set'}</p>
                     <p><strong>Status:</strong> <span class="vehicle-status ${tripStatusDisplay ? tripStatusClass : occupancyClass}">${tripStatusDisplay || occupancyStatus}</span></p>
@@ -1273,7 +1266,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     function refreshVehicles() {
         console.log('🔄 Refreshing vehicles...');
-        loadVehicles();
+        loadVehicles(true);  // Force refresh to bypass cache
     }
     
     function centerMapOnUserLocation() {

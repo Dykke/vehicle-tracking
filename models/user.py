@@ -15,6 +15,11 @@ class User(UserMixin, db.Model):
     user_type = db.Column(db.String(20), nullable=False)  # 'admin', 'operator', 'driver'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Name fields
+    first_name = db.Column(db.String(100), nullable=True)
+    middle_name = db.Column(db.String(100), nullable=True)
+    last_name = db.Column(db.String(100), nullable=True)
+    
     # New fields for 55% scope
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     profile_image_url = db.Column(db.String(500), nullable=True)
@@ -44,6 +49,18 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
     
+    def get_full_name(self):
+        """Get the full name of the user formatted as: First Middle_Initial. Last"""
+        name_parts = []
+        if self.first_name:
+            name_parts.append(self.first_name)
+        if self.middle_name:
+            # Use only the first letter of middle name with a period
+            name_parts.append(self.middle_name[0].upper() + '.')
+        if self.last_name:
+            name_parts.append(self.last_name)
+        return ' '.join(name_parts) if name_parts else self.username
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -51,6 +68,10 @@ class User(UserMixin, db.Model):
             'email': self.email,
             'user_type': self.user_type,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+            'first_name': self.first_name,
+            'middle_name': self.middle_name,
+            'last_name': self.last_name,
+            'full_name': self.get_full_name(),
             'current_latitude': self.current_latitude,
             'current_longitude': self.current_longitude,
             'accuracy': self.accuracy,

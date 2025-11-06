@@ -403,6 +403,9 @@ def add_driver():
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
+    first_name = data.get('first_name', '')
+    middle_name = data.get('middle_name', '')
+    last_name = data.get('last_name', '')
     is_active = data.get('is_active', True)
     
     if not all([username, email, password]):
@@ -428,6 +431,9 @@ def add_driver():
         email=email,
         password_hash=generate_password_hash(password),
         user_type='driver',
+        first_name=first_name if first_name else None,
+        middle_name=middle_name if middle_name else None,
+        last_name=last_name if last_name else None,
         is_active=is_active,
         created_by_id=current_user.id
     )
@@ -500,6 +506,10 @@ def add_driver():
             'id': driver.id,
             'username': driver.username,
             'email': driver.email,
+            'first_name': driver.first_name,
+            'middle_name': driver.middle_name,
+            'last_name': driver.last_name,
+            'full_name': driver.get_full_name(),
             'is_active': driver.is_active
         },
         'debug': {
@@ -535,6 +545,10 @@ def get_driver(driver_id):
             'id': driver.id,
             'username': driver.username,
             'email': driver.email,
+            'first_name': driver.first_name,
+            'middle_name': driver.middle_name,
+            'last_name': driver.last_name,
+            'full_name': driver.get_full_name(),
             'is_active': driver.is_active,
             'created_at': driver.created_at.isoformat(),
             'profile_image_url': driver.profile_image_url
@@ -1419,6 +1433,10 @@ def get_drivers():
                 'id': driver.id,
                 'username': driver.username,
                 'email': driver.email,
+                'first_name': driver.first_name,
+                'middle_name': driver.middle_name,
+                'last_name': driver.last_name,
+                'full_name': driver.get_full_name(),
                 'is_active': driver.is_active
             }
             for driver in drivers
