@@ -60,6 +60,10 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # Set secret key from environment or generate a secure one
 app.config['SECRET_KEY'] = get_secret_key()
 
+# CRITICAL: Enable template auto-reload for development
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable static file caching
+
 # Configure Flask session settings for better persistence
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)  # 24 hour session lifetime
 app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS

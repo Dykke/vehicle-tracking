@@ -115,8 +115,10 @@ def get_active_vehicles():
                 
                 # Get driver information (already loaded via joinedload, no extra query!)
                 driver_name = None
+                driver_image_url = None
                 if vehicle.assigned_driver:
                     driver_name = vehicle.assigned_driver.get_full_name()
+                    driver_image_url = vehicle.assigned_driver.profile_image_url
                     print(f"✓ Vehicle {vehicle.id}: Driver = {driver_name}")
                 else:
                     print(f"✗ Vehicle {vehicle.id}: No assigned driver")
@@ -144,7 +146,8 @@ def get_active_vehicles():
                     'speed_kmh': vehicle.last_speed_kmh or 60,
                     'route_distance_km': route_distance_km,
                     'eta_minutes': eta_minutes,
-                    'driver_name': driver_name
+                    'driver_name': driver_name,
+                    'driver_image_url': driver_image_url
                 })
             
             # Cache the result

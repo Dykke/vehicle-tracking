@@ -21,220 +21,140 @@
 
 
 <style>
-    /* Driver Info Card - BOOTSTRAP COMPATIBLE APPROACH */
-    .driver-info-card {
-        border: none;
-        border-radius: 15px;
-        overflow: hidden;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        min-height: 400px;
+    /* Driver Info Card - Modern Horizontal Layout */
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     
-    /* Work WITH Bootstrap, not against it */
-    .driver-info-body {
-        min-height: 400px;
-        padding: 2rem 1rem;
+    /* Driver Profile Image - Responsive Sizing */
+    .driver-profile-img {
+        transition: transform 0.2s ease;
     }
     
-    .driver-details {
-        text-align: center;
-        width: 100%;
-        max-width: 280px;
+    .driver-profile-img:hover {
+        transform: scale(1.05);
     }
     
-    .driver-name {
-        text-align: center;
-        margin-bottom: 1.5rem;
-    }
-    
-    .driver-name-icon {
-        display: block;
-        font-size: 3rem;
-        color: #667eea;
-        margin: 0 auto 0.75rem auto;
-        text-align: center;
-    }
-    
-    .driver-name h4 {
-        color: #2c3e50;
-        font-weight: 700;
-        margin: 0;
-        text-transform: capitalize;
-        text-align: center;
-    }
-    
-    .driver-info-item {
-        text-align: center;
-        margin-bottom: 0.5rem;
-        font-size: 0.95rem;
-    }
-    
-    .driver-info-item i {
-        font-size: 1rem;
-        margin-right: 0.5rem;
-    }
-    
-    .driver-stats {
-        padding-top: 1.5rem;
-        margin-top: 1.5rem;
-        text-align: center;
-    }
-    
-    .stat-item {
-        text-align: center;
-        padding: 0.5rem;
-    }
-    
-    .stat-number {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #667eea;
-        margin-bottom: 0.25rem;
-        text-align: center;
-    }
-    
-    .stat-label {
-        font-size: 0.8rem;
-        color: #6c757d;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        text-align: center;
-    }
-    
-    .driver-info-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
-    }
-    
-    .bg-gradient-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .bg-gradient-primary::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
-        pointer-events: none;
-    }
-    
-    .driver-avatar {
-        font-size: 4rem;
-        color: rgba(255, 255, 255, 0.9);
-        margin-bottom: 0.5rem;
-    }
-    
-    .driver-name {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        margin-bottom: 1.5rem !important;
-    }
-    
-    .driver-name-icon {
-        font-size: 3rem !important;
-        color: #667eea !important;
-        margin-bottom: 0.75rem !important;
-    }
-    
-    .driver-name h4 {
-        color: #2c3e50 !important;
-        font-weight: 700 !important;
-        margin: 0 !important;
-        text-transform: capitalize !important;
-        text-align: center !important;
-    }
-    
-    .driver-info-item {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-align: center !important;
-        margin-bottom: 0.5rem !important;
-        font-size: 0.95rem !important;
-        width: 100% !important;
-    }
-    
-    .driver-info-item i {
-        font-size: 1rem !important;
-    }
-    
-    .driver-info-item span {
-        text-align: center !important;
-    }
-    
-    .status-text .badge {
-        font-size: 0.85rem;
-        font-weight: 600;
-        border-radius: 20px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .driver-stats {
-        padding-top: 1.5rem !important;
-        margin-top: 1.5rem !important;
-        width: 100% !important;
-        text-align: center !important;
-    }
-    
-    .driver-stats .row {
-        margin: 0 !important;
-        justify-content: center !important;
-    }
-    
-    .stat-item {
-        padding: 0.5rem !important;
-        text-align: center !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-    
-    .stat-number {
-        font-size: 1.5rem !important;
-        font-weight: 700 !important;
-        color: #667eea !important;
-        margin-bottom: 0.25rem !important;
-        text-align: center !important;
-    }
-    
-    .stat-label {
-        font-size: 0.8rem !important;
-        color: #6c757d !important;
-        font-weight: 500 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
-        text-align: center !important;
-    }
-    
-    /* Mobile optimizations for driver info card */
+    /* Mobile optimizations for driver profile card */
     @media (max-width: 767.98px) {
-        .driver-avatar {
-            font-size: 3rem;
+        /* Stack everything vertically on mobile and center align */
+        .driver-profile-img {
+            width: 60px !important;
+            height: 60px !important;
+            border-width: 2px !important;
+            margin: 0 auto 0.75rem auto !important;
+            display: block !important;
         }
         
-        .driver-name h4 {
-            font-size: 1.5rem;
+        .driver-name-text {
+            font-size: 1.1rem !important;
+            margin-bottom: 0.5rem !important;
+            text-align: center !important;
         }
         
-        .stat-number {
-            font-size: 1.25rem;
+        .driver-email-text {
+            font-size: 0.8rem !important;
+            margin-bottom: 0.5rem !important;
+            text-align: center !important;
         }
         
-        .stat-label {
-            font-size: 0.75rem;
+        .driver-stat-number {
+            font-size: 1.25rem !important;
         }
         
-        .driver-info-item {
-            font-size: 0.9rem;
+        .driver-stat-label {
+            font-size: 0.6rem !important;
+        }
+        
+        /* Reduce padding on mobile for driver profile card specifically */
+        .driver-profile-body {
+            padding: 0.75rem 0.5rem !important;
+        }
+        
+        /* Make stats boxes more compact on mobile */
+        .driver-profile-body .border.rounded {
+            padding: 0.5rem 0.25rem !important;
+            margin-bottom: 0 !important;
+        }
+        
+        /* Center align all content on mobile */
+        .col-12.col-md-2,
+        .col-12.col-md-5 {
+            text-align: center !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+        
+        .col-12.col-md-2 {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .col-12.col-md-5:first-of-type {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .col-12.col-md-5:last-child {
+            margin-bottom: 0 !important;
+            margin-top: 0.5rem !important;
+        }
+        
+        /* Remove extra margin from row */
+        .row.align-items-center > .col-12 {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .row.align-items-center > .col-12:last-child {
+            margin-bottom: 0 !important;
+        }
+        
+        /* Reduce gap between rows on mobile */
+        .row.align-items-center {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        
+        .row.g-2 {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        
+        /* Smaller gaps between stat boxes */
+        .row.g-2 > div {
+            padding-left: 0.25rem !important;
+            padding-right: 0.25rem !important;
+        }
+        
+        /* Compact badge on mobile */
+        .badge {
+            font-size: 0.7rem !important;
+            padding: 0.35rem 0.65rem !important;
+        }
+    }
+    
+    /* Desktop: Larger image and better spacing */
+    @media (min-width: 768px) {
+        .driver-profile-img {
+            width: 100px !important;
+            height: 100px !important;
+            border-width: 4px !important;
+        }
+        
+        .driver-name-text {
+            font-size: 1.5rem !important;
+        }
+        
+        .driver-email-text {
+            font-size: 1rem !important;
+        }
+        
+        .driver-stat-number {
+            font-size: 2rem !important;
+        }
+        
+        .driver-stat-label {
+            font-size: 0.8rem !important;
         }
     }
     
@@ -262,11 +182,12 @@
         }
         
         .card-header h5 {
-            font-size: 1.1rem;
+            font-size: 1rem;
+            padding: 0.75rem 1rem !important;
         }
         
         .card-body {
-            padding: 1rem;
+            padding: 0.75rem !important;
         }
         
         /* Optimize button sizes for touch */
@@ -289,15 +210,9 @@
             gap: 0.5rem;
         }
         
-        /* OVERRIDE: Don't affect driver info card on mobile */
-        .driver-info-card .card-body {
-            padding: 2rem 1rem !important;
-        }
-        
-        .driver-info-card .d-flex {
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
+        /* Driver info card on mobile - keep horizontal layout but adjust sizes */
+        .card-body .d-flex {
+            flex-wrap: wrap;
         }
         
         .vehicle-status-card .btn {
@@ -381,55 +296,7 @@
 <!-- Vehicle Controls Section - Full Height -->
 <div class="controls-container">
     <div class="container-fluid">
-        <div class="row">
-            <!-- Driver Info Card -->
-            <div class="col-12 col-md-4 mb-3">
-                <div class="card shadow-sm h-100 driver-info-card">
-                    <div class="card-body driver-info-body d-flex align-items-center justify-content-center">
-                        <div class="driver-details text-center">
-                            <div class="driver-name">
-                                <i class="fas fa-user-tie driver-name-icon"></i>
-                                <h4>{{ current_user.username }}</h4>
-                    </div>
-                            <div class="driver-info-item">
-                                <i class="fas fa-envelope text-muted me-2"></i>
-                                <span class="text-muted">{{ current_user.email }}</span>
-                            </div>
-                            <div class="driver-info-item mt-3">
-                                <i class="fas fa-circle text-success me-2"></i>
-                                <span class="status-text">
-                            {% if current_user.is_active %}
-                                    <span class="badge bg-success px-3 py-2">Active Driver</span>
-                            {% else %}
-                                    <span class="badge bg-danger px-3 py-2">Inactive</span>
-                            {% endif %}
-                                </span>
-                    </div>
-                            <div class="driver-stats mt-4">
-                                <div class="row text-center">
-                                    <div class="col-6">
-                                        <div class="stat-item">
-                                            <div class="stat-number" id="todayTripsCount">0</div>
-                                            <div class="stat-label">Today's Trips</div>
-                </div>
-            </div>
-                                    <div class="col-6">
-                                        <div class="stat-item">
-                                            <div class="stat-number" id="totalTripsCount">0</div>
-                                            <div class="stat-label">Total Trips</div>
-                    </div>
-                                    </div>
-                                </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            </div>
-
-            
-        </div>
-
-        <!-- Route Management Section - MOVED TO TOP -->
+        <!-- Route Management Section - AT TOP -->
         <div class="row">
             <div class="col-12">
                 <div class="card shadow-sm">
@@ -498,7 +365,7 @@
             </div>
         </div>
 
-        <!-- Vehicle Control Section - MOVED TO BOTTOM -->
+        <!-- Vehicle Control Section -->
         <div class="row mt-3">
             <div class="col-12">
                 <div class="card shadow-sm">
@@ -519,7 +386,6 @@
                                                 <div class="occupancy-btn-content" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; height: 100% !important; width: 100% !important; gap: 0.5rem !important; padding: 0.5rem !important; box-sizing: border-box !important;">
                                                     <i class="fas fa-door-open occupancy-icon" style="font-size: 3rem !important; margin-bottom: 0.25rem !important; line-height: 1 !important;"></i>
                                                     <div class="occupancy-text" style="text-align: center !important; width: 100% !important;">
-                                                        <div class="occupancy-main" style="font-weight: 800 !important; font-size: 1.6rem !important; margin-bottom: 0.25rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Set</div>
                                                         <div class="occupancy-sub" style="font-weight: 600 !important; font-size: 1.2rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Vacant (V)</div>
                                     </div>
                                     </div>
@@ -530,7 +396,6 @@
                                                 <div class="occupancy-btn-content" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; height: 100% !important; width: 100% !important; gap: 0.5rem !important; padding: 0.5rem !important; box-sizing: border-box !important;">
                                                     <i class="fas fa-door-closed occupancy-icon" style="font-size: 3rem !important; margin-bottom: 0.25rem !important; line-height: 1 !important;"></i>
                                                     <div class="occupancy-text" style="text-align: center !important; width: 100% !important;">
-                                                        <div class="occupancy-main" style="font-weight: 800 !important; font-size: 1.6rem !important; margin-bottom: 0.25rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Set</div>
                                                         <div class="occupancy-sub" style="font-weight: 600 !important; font-size: 1.2rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Full (F)</div>
                                      </div>
                                         </div>
@@ -538,9 +403,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Vehicle Data Refresh -->
-                                
                             </div>
                         {% else %}
                             <div class="alert alert-warning">
@@ -548,6 +410,78 @@
                                 No vehicles assigned. Please contact your operator.
                             </div>
                         {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Driver Profile Section - BELOW VEHICLE CONTROLS -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card shadow-sm driver-profile-card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-tie me-2"></i>
+                            Driver Profile
+                        </h5>
+                    </div>
+                    <div class="card-body driver-profile-body">
+                        <div class="row align-items-center">
+                            <!-- Profile Image - Mobile: Centered, Desktop: Left Column -->
+                            <div class="col-12 col-md-2 text-center mb-2 mb-md-0">
+                                {% set user_to_display = driver_user if driver_user else current_user %}
+                                {% if user_to_display.profile_image_url %}
+                                    <img src="{{ user_to_display.profile_image_url }}" alt="Driver Profile" 
+                                         class="rounded-circle driver-profile-img" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #667eea;">
+                                {% else %}
+                                    {% set driver_name = user_to_display.get_full_name() if user_to_display.get_full_name() else user_to_display.username %}
+                                    {% set placeholder_url = "https://ui-avatars.com/api/?name=" + driver_name|urlencode + "&size=160&background=667eea&color=fff&bold=true&font-size=0.45" %}
+                                    <img src="{{ placeholder_url }}" alt="Driver Profile" 
+                                         class="rounded-circle driver-profile-img" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #667eea;">
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Driver Info - Mobile: Centered, Desktop: Left Aligned -->
+                            <div class="col-12 col-md-5 mb-2 mb-md-0 text-center text-md-start">
+                                {% set user_to_display = driver_user if driver_user else current_user %}
+                                <h5 class="mb-1 driver-name-text" style="color: #2c3e50; font-weight: 600;">
+                                    {{ user_to_display.get_full_name() if user_to_display.get_full_name() else user_to_display.username }}
+                                </h5>
+                                <p class="text-muted mb-2 driver-email-text" style="font-size: 0.9rem;">
+                                    <i class="fas fa-envelope me-1"></i>
+                                    {{ user_to_display.email }}
+                                </p>
+                                <div class="mb-2 mb-md-0">
+                                    {% if user_to_display.is_active %}
+                                        <span class="badge bg-success px-2 py-1">
+                                            <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>Active Driver
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger px-2 py-1">
+                                            <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>Inactive
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Stats - Mobile: Full Width, Desktop: Right Column -->
+                            <div class="col-12 col-md-5">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <div class="text-center p-2 border rounded bg-light">
+                                            <div class="h4 mb-0 text-primary driver-stat-number" id="todayTripsCount" style="font-weight: 700;">0</div>
+                                            <small class="text-muted d-block mt-1 driver-stat-label" style="font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Today's Trips</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-center p-2 border rounded bg-light">
+                                            <div class="h4 mb-0 text-primary driver-stat-number" id="totalTripsCount" style="font-weight: 700;">0</div>
+                                            <small class="text-muted d-block mt-1 driver-stat-label" style="font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Total Trips</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

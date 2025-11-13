@@ -203,22 +203,9 @@
 
 {% block extra_js %}
 <script>
-// Frontend authentication debugging
-function debugFrontendAuth() {
-    console.log('🔍 Frontend Auth Debug:');
-    console.log('   - Current URL:', window.location.href);
-    console.log('   - localStorage keys:', Object.keys(localStorage));
-    console.log('   - sessionStorage keys:', Object.keys(sessionStorage));
-    console.log('   - Cookies:', document.cookie);
-    console.log('   - Is on login page?', window.location.pathname === '/login');
-}
-
-// Call debugging on page load
-debugFrontendAuth();
 
 // Define the handler at the very beginning to ensure it's available
 function handleSaveDriver() {
-    console.log('Save Driver button clicked (inline handler)');
     const firstName = document.getElementById('first_name').value;
     const middleName = document.getElementById('middle_name').value;
     const lastName = document.getElementById('last_name').value;
@@ -250,6 +237,10 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
     saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
     saveBtn.disabled = true;
     
+    // Get profile image file if selected
+    const profileImageInput = document.getElementById('profile_image');
+    const profileImageFile = profileImageInput.files.length > 0 ? profileImageInput.files[0] : null;
+    
     fetch('/operator/drivers/add', {
         method: 'POST',
         headers: {
@@ -269,13 +260,11 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
     .then(async response => {
         console.log('Backend response status:', response.status);
         
-        // Always restore button state first
-        saveBtn.innerHTML = originalText;
-        saveBtn.disabled = false;
-        
         // Check if response is redirect (authentication issue)
         if (response.redirected) {
             console.log('⚠️ Response was redirected - likely authentication issue');
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
             showToast('Session Expired', 'Please log in again.', 'error');
             setTimeout(() => window.location.href = '/login', 1500);
             return Promise.reject('redirected');
@@ -289,13 +278,44 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
         if (response.ok) {
             // Success (200-299)
             if (data.success) {
+                const driverId = data.driver.id;
+                
+                // Upload profile image if selected
+                if (profileImageFile && driverId) {
+                    try {
+                        await uploadDriverImage(driverId, profileImageFile);
+                    } catch (imageError) {
+                        console.error('Error uploading profile image:', imageError);
+                        // Don't fail the entire operation if image upload fails
+                        showToast('Warning', 'Driver added but image upload failed. You can upload it later.', 'warning');
+                    }
+                }
+                
                 showToast('Success', 'Driver added successfully!', 'success');
-                setTimeout(() => location.reload(), 1500);
+                
+                // Close modal
+                const addModal = bootstrap.Modal.getInstance(document.getElementById('addDriverModal'));
+                if (addModal) {
+                    addModal.hide();
+                }
+                
+                // Reset form
+                document.getElementById('addDriverForm').reset();
+                document.getElementById('profile_image_preview').style.display = 'none';
+                
+                // Refresh driver list via AJAX
+                setTimeout(() => {
+                    refreshDriverList();
+                }, 500);
             } else {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
                 showToast('Error', data.error || 'Failed to add driver', 'error');
             }
         } else {
             // Error (400+)
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
             showToast('Error', data.error || `Server error (${response.status})`, 'error');
         }
     })
@@ -321,10 +341,118 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
         }
     });
 }
+
+// Function to upload driver profile image
+async function uploadDriverImage(driverId, imageFile) {
+    const formData = new FormData();
+    formData.append('profile_image', imageFile);
+    formData.append('driver_id', driverId);
+    
+    const response = await fetch('/operator/drivers/profile-picture/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload image');
+    }
+    
+    return data;
+}
+
+// Function to preview image before upload
+function previewImage(input, previewId, previewImgId) {
+    const preview = document.getElementById(previewId);
+    const previewImg = document.getElementById(previewImgId);
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.style.display = 'none';
+    }
+}
 </script>
 {% endblock %}
 
 {% block content %}
+<script>
+// Prevent all form submissions to avoid page reloads
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    }, true);
+});
+
+// Define refreshDriverList IMMEDIATELY - before any onclick handlers that use it
+window.refreshDriverList = async function() {
+    try {
+        // Add cache-busting timestamp to force fresh fetch
+        const cacheBuster = new Date().getTime();
+        const response = await fetch(`/operator/drivers/manage?_=${cacheBuster}`, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
+            }
+        });
+        
+        if (response.ok) {
+            let html = await response.text();
+            
+            // Add fresh timestamp to all profile image URLs BEFORE inserting into DOM
+            // This prevents browser from loading cached images
+            const freshTimestamp = new Date().getTime();
+            
+            // Improved regex: matches URLs with or without existing query params
+            html = html.replace(
+                /src="([^"]*\/uploads\/profiles\/[^"]*\.(jpg|jpeg|png|gif|webp))(\?[^"]*)?"/gi,
+                (match, baseUrl, ext, existingQuery) => {
+                    return `src="${baseUrl}?v=${freshTimestamp}"`;
+                }
+            );
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Find the driver table container
+            const newTable = doc.querySelector('.table-responsive');
+            const currentTable = document.querySelector('.table-responsive');
+            
+            if (newTable && currentTable) {
+                currentTable.innerHTML = newTable.innerHTML;
+                
+                // Force browser to recognize the change by triggering a reflow
+                currentTable.offsetHeight;
+                
+                // Reinitialize action buttons after refresh
+                setTimeout(() => {
+                    if (typeof initializeActionButtons === 'function') {
+                        initializeActionButtons();
+                    } else if (typeof attachActionButtonHandlers === 'function') {
+                        attachActionButtonHandlers();
+                    }
+                }, 100);
+            }
+        }
+    } catch (error) {
+        console.error('Error refreshing driver list:', error);
+    }
+};
+</script>
 <div class="container mt-4">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
@@ -333,9 +461,11 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                     <i class="fas fa-users me-2"></i>
                     Manage Drivers
                 </h3>
-                <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addDriverModal">
-                    <i class="fas fa-plus me-1"></i> Add Driver
-                </button>
+                <div>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addDriverModal">
+                        <i class="fas fa-plus me-1"></i> Add Driver
+                    </button>
+                </div>
             </div>
         </div>
         <div class="card-body">
@@ -357,9 +487,11 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                                 <tr>
                                     <td>
                                         {% if driver.profile_image_url %}
-                                            <img src="{{ driver.profile_image_url }}" alt="Profile" class="rounded-circle me-2" style="width: 30px; height: 30px;">
+                                            <img src="{{ driver.profile_image_url }}" alt="Profile" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
                                         {% else %}
-                                            <i class="fas fa-user-circle me-2"></i>
+                                            {% set driver_name = driver.get_full_name() if driver.get_full_name() else driver.username %}
+                                            {% set placeholder_url = "https://ui-avatars.com/api/?name=" + driver_name|urlencode + "&size=64&background=667eea&color=fff&bold=true&font-size=0.33" %}
+                                            <img src="{{ placeholder_url }}" alt="Profile" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
                                         {% endif %}
                                         {{ driver.get_full_name() }}
                                     </td>
@@ -418,7 +550,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addDriverForm">
+                <form id="addDriverForm" onsubmit="return false;">
                     <div class="mb-3">
                         <label for="first_name" class="form-label">First Name</label>
                         <input type="text" class="form-control" id="first_name" name="first_name">
@@ -452,6 +584,14 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                         <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
                         <label class="form-check-label" for="is_active">Active</label>
                     </div>
+                    <div class="mb-3">
+                        <label for="profile_image" class="form-label">Profile Picture (Optional)</label>
+                        <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/*">
+                        <div class="form-text">Upload a profile picture for this driver (JPG, PNG, etc.)</div>
+                        <div id="profile_image_preview" class="mt-2" style="display: none;">
+                            <img id="profile_image_preview_img" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 50%; object-fit: cover;">
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -459,8 +599,10 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                 <!-- Use type="submit" to make this act like a form submit button -->
                 <button type="button" class="btn btn-primary" id="saveDriverBtn" style="position: relative; z-index: 1100;">Save Driver</button>
                 <script>
-                    // Immediate event binding
-                    document.getElementById('saveDriverBtn').addEventListener('click', function() {
+                    // Immediate event binding with preventDefault
+                    document.getElementById('saveDriverBtn').addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
                         handleSaveDriver();
                     });
                 </script>
@@ -478,7 +620,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="editDriverForm">
+                <form id="editDriverForm" onsubmit="return false;">
                     <input type="hidden" id="edit_driver_id" name="driver_id">
                     <div class="mb-3">
                         <label for="edit_username" class="form-label">Username</label>
@@ -493,15 +635,131 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                         <input type="checkbox" class="form-check-input" id="edit_is_active" name="is_active">
                         <label class="form-check-label" for="edit_is_active">Active</label>
                     </div>
+                    <div class="mb-3">
+                        <label for="edit_profile_image" class="form-label">Profile Picture</label>
+                        <div id="edit_profile_image_current" class="mb-2"></div>
+                        <input type="file" class="form-control" id="edit_profile_image" name="profile_image" accept="image/*">
+                        <div class="form-text">Upload a new profile picture to replace the current one</div>
+                        <div id="edit_profile_image_preview" class="mt-2" style="display: none;">
+                            <img id="edit_profile_image_preview_img" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 50%; object-fit: cover;">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="remove_profile_image_btn" style="display: none;">
+                            <i class="fas fa-trash me-1"></i> Remove Picture
+                        </button>
+                    </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="updateDriverBtn">Update Driver</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="updateDriverBtn" data-handler-attached="true">Update Driver</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+    <script>
+    // PREVENT FORM SUBMISSION IN EDIT MODAL
+    (function() {
+        const editForm = document.getElementById('editDriverForm');
+        if (editForm) {
+            editForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }, true);
+        }
+    })();
+    
+    // ATTACH LISTENER IMMEDIATELY - ALL LOGIC INLINE
+    (function() {
+        const btn = document.getElementById('updateDriverBtn');
+        if (btn) {
+            // Mark button to prevent driver_actions.js from attaching its listener
+            btn.setAttribute('data-custom-handler', 'true');
+            
+            btn.onclick = async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                const driverId = document.getElementById('edit_driver_id').value;
+                const email = document.getElementById('edit_email').value;
+                const isActive = document.getElementById('edit_is_active').checked;
+                const fileInput = document.getElementById('edit_profile_image');
+                const profileImageFile = (fileInput && fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
+                
+                // UPLOAD IMAGE FIRST if file exists
+                if (profileImageFile) {
+                    showToast('Processing', 'Uploading profile picture...', 'info');
+                    
+                    const formData = new FormData();
+                    formData.append('profile_image', profileImageFile);
+                    formData.append('driver_id', driverId);
+                    
+                    try {
+                        const uploadResponse = await fetch('/operator/drivers/profile-picture/upload', {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'same-origin'
+                        });
+                        
+                        const uploadData = await uploadResponse.json();
+                        
+                        if (!uploadResponse.ok) {
+                            showToast('Error', 'Image upload failed: ' + (uploadData.error || 'Unknown error'), 'error');
+                            return false;
+                        }
+                        
+                        showToast('Success', 'Profile picture uploaded!', 'success');
+                    } catch (uploadError) {
+                        console.error('Upload error:', uploadError);
+                        showToast('Error', 'Image upload failed: ' + uploadError.message, 'error');
+                        return false;
+                    }
+                }
+                
+                // NOW UPDATE DRIVER INFO
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating...';
+                btn.disabled = true;
+                
+                try {
+                    const updateResponse = await fetch(`/operator/drivers/${driverId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, is_active: isActive }),
+                        credentials: 'same-origin'
+                    });
+                    
+                    const updateData = await updateResponse.json();
+                    
+                    if (updateResponse.ok) {
+                        showToast('Success', 'Driver updated successfully!', 'success');
+                        
+                        // Close modal
+                        const editModal = bootstrap.Modal.getInstance(document.getElementById('editDriverModal'));
+                        if (editModal) editModal.hide();
+                        
+                        // Refresh list via AJAX - wait for database commit and file system sync
+                        if (typeof window.refreshDriverList === 'function') {
+                            setTimeout(() => {
+                                window.refreshDriverList();
+                            }, 800);
+                        }
+                    } else {
+                        showToast('Error', updateData.error || 'Update failed', 'error');
+                    }
+                } catch (updateError) {
+                    console.error('Update error:', updateError);
+                    showToast('Error', 'Update failed: ' + updateError.message, 'error');
+                } finally {
+                    btn.innerHTML = 'Update Driver';
+                    btn.disabled = false;
+                }
+                
+                return false;
+            };
+        }
+    })();
+    </script>
 
 <!-- Reset Password Modal -->
 <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
@@ -546,9 +804,9 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
             </div>
             <div class="modal-body">
                 <div class="text-center mb-4">
-                    <div id="profileImageContainer" class="mb-3">
-                        <img id="profileImage" src="" alt="Profile" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover; display: none;">
-                        <div id="profilePlaceholder" class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 100px; height: 100px; margin: 0 auto;">
+                    <div id="profileImageContainer" class="mb-3 text-center">
+                        <img id="profileImage" src="" alt="Profile" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #667eea; margin: 0 auto;">
+                        <div id="profilePlaceholder" class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 100px; height: 100px; margin: 0 auto; display: none;">
                             <i class="fas fa-user text-white" style="font-size: 40px;"></i>
                         </div>
                     </div>
@@ -607,6 +865,13 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
 <script>
     let pendingAction = null;
     let pendingDriverId = null;
+    
+    // PREVENT ALL FORM SUBMISSIONS - CRITICAL FIX FOR PAGE RELOAD
+    document.addEventListener('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    }, true); // Use capture phase to catch early
 
     // Global function to handle saving driver
     window.handleSaveDriver = function() {
@@ -982,7 +1247,14 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
         // Update driver form submission
         const updateDriverBtn = document.getElementById('updateDriverBtn');
         if (updateDriverBtn) {
-            updateDriverBtn.addEventListener('click', function() {
+            // Remove any existing listeners first
+            const newBtn = updateDriverBtn.cloneNode(true);
+            updateDriverBtn.parentNode.replaceChild(newBtn, updateDriverBtn);
+            
+            newBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const driverId = document.getElementById('edit_driver_id').value;
                 const email = document.getElementById('edit_email').value;
                 const isActive = document.getElementById('edit_is_active').checked;
@@ -993,6 +1265,32 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                 }
                 
                 updateDriver(driverId, email, isActive);
+            });
+        }
+        
+        // Image preview event listeners
+        const profileImageInput = document.getElementById('profile_image');
+        if (profileImageInput) {
+            profileImageInput.addEventListener('change', function() {
+                previewImage(this, 'profile_image_preview', 'profile_image_preview_img');
+            });
+        }
+        
+        const editProfileImageInput = document.getElementById('edit_profile_image');
+        if (editProfileImageInput) {
+            editProfileImageInput.addEventListener('change', function() {
+                previewImage(this, 'edit_profile_image_preview', 'edit_profile_image_preview_img');
+            });
+        }
+        
+        // Remove image button event listener
+        const removeImageBtn = document.getElementById('remove_profile_image_btn');
+        if (removeImageBtn) {
+            removeImageBtn.addEventListener('click', function() {
+                const driverId = document.getElementById('edit_driver_id').value;
+                if (driverId) {
+                    removeDriverImage(driverId);
+                }
             });
         }
         
@@ -1022,8 +1320,6 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
     // Making addDriver a global function to be accessible from anywhere
     window.addDriver = async function(firstName, middleName, lastName, username, email, password, isActive) {
         try {
-            console.log('Making API request to add driver');
-            
             // Show loading state on the Save Driver button
             const saveBtn = document.getElementById('saveDriverBtn');
             const originalText = saveBtn.innerHTML;
@@ -1039,7 +1335,6 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                     password,
                     is_active: isActive
             };
-            console.log('Request payload:', requestBody);
             
             // Get CSRF token if it exists (for Flask)
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -1057,23 +1352,24 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(requestBody),
-                credentials: 'same-origin' // Include cookies in the request
+                credentials: 'same-origin'
             });
             
-            console.log('API response status:', response.status);
             const data = await response.json();
-            console.log('API response data:', data);
             
             // Handle response
             if (response.ok) {
                 showToast('Success', 'Driver added successfully!', 'success');
-                // Keep loading state until page reload
-                // Don't reset the button state since we're reloading the page
-                setTimeout(() => location.reload(), 2500);
-                return; // Exit early to keep loading state
+                // Reset button state
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+                // Close modal and refresh
+                const addModal = bootstrap.Modal.getInstance(document.getElementById('addDriverModal'));
+                if (addModal) addModal.hide();
+                setTimeout(() => refreshDriverList(), 500);
+                return;
             } else {
                 const errorMsg = data.error || 'Failed to add driver.';
-                console.error('API error:', errorMsg);
                 showToast('Error', errorMsg, 'error');
             }
         } catch (error) {
@@ -1086,17 +1382,14 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                 saveBtn.disabled = false;
             }
             
-            showToast('Error', 'An error occurred while adding the driver. Check the browser console for details.', 'error');
+            showToast('Error', 'An error occurred while adding the driver.', 'error');
         }
     }
     
     // Make all action functions globally available
     window.loadDriverForEdit = async function(driverId) {
         try {
-            // Show loading toast
-            showToast('Loading', 'Loading driver details...', 'info');
-            
-            const response = await fetch(`/drivers/${driverId}`);
+            const response = await fetch(`/operator/drivers/${driverId}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -1104,6 +1397,37 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                 document.getElementById('edit_username').value = data.driver.username;
                 document.getElementById('edit_email').value = data.driver.email;
                 document.getElementById('edit_is_active').checked = data.driver.is_active;
+                
+                // Display current profile image if exists, or show placeholder
+                const currentImageContainer = document.getElementById('edit_profile_image_current');
+                const removeImageBtn = document.getElementById('remove_profile_image_btn');
+                const driverName = data.driver.full_name || data.driver.username || 'Driver';
+                const encodedName = encodeURIComponent(driverName);
+                
+                if (data.driver.profile_image_url) {
+                    currentImageContainer.innerHTML = `
+                        <img src="${data.driver.profile_image_url}" alt="Current Profile Picture" 
+                             style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6;">
+                        <div class="form-text mt-2">Current profile picture</div>
+                    `;
+                    removeImageBtn.style.display = 'inline-block';
+                } else {
+                    // Show placeholder image
+                    const placeholderUrl = `https://ui-avatars.com/api/?name=${encodedName}&size=300&background=667eea&color=fff&bold=true&font-size=0.5`;
+                    currentImageContainer.innerHTML = `
+                        <img src="${placeholderUrl}" alt="Placeholder Profile Picture" 
+                             style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6;">
+                        <div class="form-text mt-2">No profile picture (placeholder shown)</div>
+                    `;
+                    removeImageBtn.style.display = 'none';
+                }
+                
+                // DON'T reset the file input - keep any selected file for upload
+                // Only reset the preview if no file is currently selected
+                const fileInput = document.getElementById('edit_profile_image');
+                if (fileInput && (!fileInput.files || fileInput.files.length === 0)) {
+                    document.getElementById('edit_profile_image_preview').style.display = 'none';
+                }
                 
                 // Show the modal with proper backdrop fix
                 const modal = new bootstrap.Modal(document.getElementById('editDriverModal'));
@@ -1121,13 +1445,41 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
     
     window.updateDriver = async function(driverId, email, isActive) {
         try {
-            // Show loading state
+            // Check for file FIRST, BEFORE any other operations
+            const profileImageInput = document.getElementById('edit_profile_image');
+            
+            if (profileImageInput) {
+                const hasFiles = profileImageInput.files && profileImageInput.files.length > 0;
+                
+                if (hasFiles) {
+                    const profileImageFile = profileImageInput.files[0];
+                    
+                    // UPLOAD FILE FIRST, BEFORE updating driver
+                    try {
+                        showToast('Processing', 'Uploading profile picture...', 'info');
+                        
+                        const uploadResult = await uploadDriverImage(driverId, profileImageFile);
+                        
+                        if (uploadResult && uploadResult.success) {
+                            showToast('Success', 'Profile picture uploaded!', 'success');
+                        } else {
+                            showToast('Error', 'Image upload failed.', 'error');
+                            return;
+                        }
+                    } catch (imageError) {
+                        showToast('Error', 'Image upload failed: ' + imageError.message, 'error');
+                        return;
+                    }
+                }
+            }
+            
+            // Now update driver info
             const updateBtn = document.getElementById('updateDriverBtn');
             const originalText = updateBtn.textContent;
             updateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
             updateBtn.disabled = true;
             
-            const response = await fetch(`/drivers/${driverId}`, {
+            const response = await fetch(`/operator/drivers/${driverId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1141,16 +1493,28 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
             
             const data = await response.json();
             
-            // Reset button state
-            updateBtn.innerHTML = originalText;
-            updateBtn.disabled = false;
-            
             if (response.ok) {
                 showToast('Success', 'Driver updated successfully!', 'success');
-                setTimeout(() => location.reload(), 1500);
+                
+                // Close modal
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editDriverModal'));
+                if (editModal) {
+                    editModal.hide();
+                }
+                
+                // Reset button state
+                updateBtn.innerHTML = originalText;
+                updateBtn.disabled = false;
+                
+                // Refresh driver list via AJAX
+                if (typeof window.refreshDriverList === 'function') {
+                    window.refreshDriverList();
+                }
             } else {
+                // Reset button state on error
+                updateBtn.innerHTML = originalText;
+                updateBtn.disabled = false;
                 showToast('Error', data.error || 'Failed to update driver.', 'error');
-                console.error('Error response from backend:', data);
             }
         } catch (error) {
             console.error('Error updating driver:', error);
@@ -1163,6 +1527,52 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
         }
     }
     
+    // refreshDriverList is now defined at the top of the page (line ~414)
+    // This ensures it's available when onclick handlers are created
+    
+    // Function to remove profile image
+    window.removeDriverImage = async function(driverId) {
+        try {
+            if (!confirm('Are you sure you want to remove the profile picture?')) {
+                return;
+            }
+            
+            const response = await fetch('/operator/drivers/profile-picture/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    driver_id: driverId
+                }),
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showToast('Success', 'Profile picture removed successfully!', 'success');
+                // Update the current image display
+                // Show placeholder image after removal
+                const driverName = document.getElementById('edit_username').value || 'Driver';
+                const encodedName = encodeURIComponent(driverName);
+                const placeholderUrl = `https://ui-avatars.com/api/?name=${encodedName}&size=300&background=667eea&color=fff&bold=true&font-size=0.5`;
+                document.getElementById('edit_profile_image_current').innerHTML = `
+                    <img src="${placeholderUrl}" alt="Placeholder Profile Picture" 
+                         style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6;">
+                    <div class="form-text mt-2">No profile picture (placeholder shown)</div>
+                `;
+                document.getElementById('remove_profile_image_btn').style.display = 'none';
+                setTimeout(() => refreshDriverList(), 500);
+            } else {
+                showToast('Error', data.error || 'Failed to remove profile picture.', 'error');
+            }
+        } catch (error) {
+            console.error('Error removing profile image:', error);
+            showToast('Error', 'An error occurred while removing the profile picture.', 'error');
+        }
+    }
+    
     window.activateDriver = async function(driverId) {
         try {
             // Close the confirmation modal if it's open
@@ -1171,7 +1581,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
             
             showToast('Processing', 'Activating driver...', 'info');
             
-            const response = await fetch(`/drivers/${driverId}/activate`, {
+            const response = await fetch(`/operator/drivers/${driverId}/activate`, {
                 method: 'POST',
                 credentials: 'same-origin'
             });
@@ -1180,7 +1590,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
             
             if (response.ok) {
                 showToast('Success', 'Driver activated successfully!', 'success');
-                setTimeout(() => location.reload(), 1500);
+                setTimeout(() => refreshDriverList(), 500);
             } else {
                 showToast('Error', data.error || 'Failed to activate driver.', 'error');
                 console.error('Error response from backend:', data);
@@ -1199,7 +1609,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
             
             showToast('Processing', 'Deactivating driver...', 'info');
             
-            const response = await fetch(`/drivers/${driverId}/deactivate`, {
+            const response = await fetch(`/operator/drivers/${driverId}/deactivate`, {
                 method: 'POST',
                 credentials: 'same-origin'
             });
@@ -1208,7 +1618,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
             
             if (response.ok) {
                 showToast('Success', 'Driver deactivated successfully!', 'success');
-                setTimeout(() => location.reload(), 1500);
+                setTimeout(() => refreshDriverList(), 500);
             } else {
                 showToast('Error', data.error || 'Failed to deactivate driver.', 'error');
                 console.error('Error response from backend:', data);
@@ -1221,10 +1631,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
     
     window.loadDriverForPasswordReset = async function(driverId) {
         try {
-            // Show loading toast
-            showToast('Loading', 'Loading driver details...', 'info');
-            
-            const response = await fetch(`/drivers/${driverId}`);
+            const response = await fetch(`/operator/drivers/${driverId}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -1258,7 +1665,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
             resetBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Resetting...';
             resetBtn.disabled = true;
             
-            const response = await fetch(`/drivers/${driverId}/reset-password`, {
+            const response = await fetch(`/operator/drivers/${driverId}/reset-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1305,10 +1712,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
     
     window.loadDriverDetails = async function(driverId) {
         try {
-            // Show loading toast
-            showToast('Loading', 'Loading driver details...', 'info');
-            
-            const response = await fetch(`/drivers/${driverId}/details`);
+            const response = await fetch(`/operator/drivers/${driverId}/details`);
             const data = await response.json();
             
             if (response.ok) {
@@ -1328,14 +1732,19 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                 // Update profile image
                 const profileImage = document.getElementById('profileImage');
                 const profilePlaceholder = document.getElementById('profilePlaceholder');
+                const driverName = driver.full_name || driver.username || 'Driver';
+                const encodedName = encodeURIComponent(driverName);
                 
                 if (driver.profile_image_url) {
                     profileImage.src = driver.profile_image_url;
                     profileImage.style.display = 'block';
                     profilePlaceholder.style.display = 'none';
                 } else {
-                    profileImage.style.display = 'none';
-                    profilePlaceholder.style.display = 'flex';
+                    // Show placeholder image instead of icon
+                    const placeholderUrl = `https://ui-avatars.com/api/?name=${encodedName}&size=200&background=667eea&color=fff&bold=true&font-size=0.5`;
+                    profileImage.src = placeholderUrl;
+                    profileImage.style.display = 'block';
+                    profilePlaceholder.style.display = 'none';
                 }
                 
                 // Format assigned vehicles data

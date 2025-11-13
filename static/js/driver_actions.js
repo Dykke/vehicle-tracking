@@ -112,9 +112,6 @@ function fixModalZIndex() {
 // View driver details
 async function loadDriverDetails(driverId) {
     try {
-        // Show loading toast
-        showToast('Loading', 'Loading driver details...', 'info');
-        
         const response = await fetch(`/operator/drivers/${driverId}/details`);
         const data = await response.json();
         
@@ -191,9 +188,6 @@ async function loadDriverDetails(driverId) {
 // Edit driver
 async function loadDriverForEdit(driverId) {
     try {
-        // Show loading toast
-        showToast('Loading', 'Loading driver details...', 'info');
-        
         const response = await fetch(`/operator/drivers/${driverId}`);
         const data = await response.json();
         
@@ -225,9 +219,6 @@ async function loadDriverForEdit(driverId) {
 // Reset password
 async function loadDriverForPasswordReset(driverId) {
     try {
-        // Show loading toast
-        showToast('Loading', 'Loading driver details...', 'info');
-        
         const response = await fetch(`/operator/drivers/${driverId}`);
         const data = await response.json();
         
@@ -447,19 +438,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize buttons for update/edit driver
     const updateDriverBtn = document.getElementById('updateDriverBtn');
     if (updateDriverBtn) {
-        console.log('Found update driver button, attaching handler');
-        updateDriverBtn.addEventListener('click', function() {
-            const driverId = document.getElementById('edit_driver_id').value;
-            const email = document.getElementById('edit_email').value;
-            const isActive = document.getElementById('edit_is_active').checked;
-            
-            if (!email) {
-                showToast('Validation Error', 'Please fill in all required fields.', 'error');
-                return;
-            }
-            
-            updateDriver(driverId, email, isActive);
-        });
+        // Check if this button has a custom handler already attached (from manage_drivers.html)
+        if (updateDriverBtn.hasAttribute('data-custom-handler')) {
+            console.log('✋ Update driver button has custom handler - SKIPPING default listener');
+            console.log('This prevents double-firing and page reloads');
+        } else {
+            console.log('Found update driver button, attaching handler');
+            updateDriverBtn.addEventListener('click', function() {
+                const driverId = document.getElementById('edit_driver_id').value;
+                const email = document.getElementById('edit_email').value;
+                const isActive = document.getElementById('edit_is_active').checked;
+                
+                if (!email) {
+                    showToast('Validation Error', 'Please fill in all required fields.', 'error');
+                    return;
+                }
+                
+                updateDriver(driverId, email, isActive);
+            });
+        }
     }
     
     // Initialize buttons for reset password

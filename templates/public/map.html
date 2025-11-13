@@ -1013,8 +1013,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <span class="vehicle-status ${statusClass}">${statusDisplay}</span>
                 </div>
                 ${vehicle.driver_name ? `
-                    <div style="padding: 8px 0; border-bottom: 1px solid #eee; margin-bottom: 8px;">
-                        <strong><i class="fas fa-user-circle"></i> Driver:</strong> ${vehicle.driver_name}
+                    <div style="padding: 8px 0; border-bottom: 1px solid #eee; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+                        ${vehicle.driver_image_url ? `
+                            <img src="${vehicle.driver_image_url}" alt="Driver" 
+                                 style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #667eea;">
+                        ` : `
+                            ${(() => {
+                                const driverName = vehicle.driver_name || 'Driver';
+                                const encodedName = encodeURIComponent(driverName);
+                                const placeholderUrl = `https://ui-avatars.com/api/?name=${encodedName}&size=100&background=667eea&color=fff&bold=true&font-size=0.4`;
+                                return `<img src="${placeholderUrl}" alt="Driver" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #667eea;">`;
+                            })()}
+                        `}
+                        <div>
+                            <strong>Driver:</strong><br>
+                            <span>${vehicle.driver_name}</span>
+                        </div>
                     </div>
                 ` : ''}
                 <div class="vehicle-popup-details">

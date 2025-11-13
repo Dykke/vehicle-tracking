@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from models.user import User, DriverActionLog, OperatorActionLog
 from models.vehicle import Vehicle
@@ -7,9 +7,11 @@ from models import db
 from datetime import datetime, timedelta
 from sqlalchemy import text, desc, func
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import json
 import requests
 import time # Added for rate limiting retry logic
+import os
 
 operator_bp = Blueprint('operator', __name__)
 
@@ -382,14 +384,31 @@ def update_vehicle_location(vehicle_id):
 @login_required
 def manage_drivers_page():
     """Manage drivers page."""
+    from flask import make_response
+    from datetime import datetime
+    
     if current_user.user_type != 'operator' and current_user.user_type != 'admin':
         flash('Access denied. Operator account required.', 'error')
         return redirect(url_for('index'))
     
-    # Get drivers created by this operator
+    # Force fresh database query - expire any cached User objects
+    db.session.expire_all()
+    
+    # Get drivers created by this operator - force fresh query
     drivers = User.query.filter_by(created_by_id=current_user.id, user_type='driver').all()
     
-    return render_template('operator/manage_drivers.html', drivers=drivers)
+    # Refresh each driver object to ensure we have latest profile_image_url
+    for driver in drivers:
+        db.session.refresh(driver)
+    
+    # Render template with aggressive cache busting
+    response = make_response(render_template('operator/manage_drivers.html', drivers=drivers))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    response.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+    
+    return response
 
 @operator_bp.route('/drivers/add', methods=['POST'])
 @login_required
@@ -1762,6 +1781,313 @@ def test_commit_persistence():
 def test_route():
     """Test route to verify blueprint is working"""
     return jsonify({'message': 'Operator blueprint is working!', 'user': current_user.username})
+
+@operator_bp.route('/drivers/profile-picture/upload', methods=['POST'])
+@login_required
+def upload_profile_picture():
+    """Upload driver profile picture."""
+    print("=" * 50)
+    print("🚀 UPLOAD PROFILE PICTURE ROUTE CALLED")
+    print("=" * 50)
+    
+    if current_user.user_type != 'admin' and current_user.user_type != 'operator':
+        print("❌ Access denied - user type:", current_user.user_type)
+        return jsonify({'error': 'Access denied'}), 403
+    
+    # Debug: Check request content type
+    print(f"📋 Request method: {request.method}")
+    print(f"📋 Request content type: {request.content_type}")
+    print(f"📋 Request form keys: {list(request.form.keys())}")
+    print(f"📋 Request files keys: {list(request.files.keys())}")
+    
+    driver_id = request.form.get('driver_id')
+    if not driver_id:
+        print("❌ Driver ID is missing")
+        return jsonify({'error': 'Driver ID is required'}), 400
+    
+    print(f"✅ Driver ID: {driver_id}")
+    driver = User.query.get_or_404(int(driver_id))
+    print(f"✅ Driver found: {driver.username}")
+    
+    # Check if operator has permission to update this driver
+    if current_user.user_type == 'operator' and driver.created_by_id != current_user.id:
+        print("❌ Permission denied")
+        return jsonify({'error': 'You do not have permission to update this driver'}), 403
+    
+    if 'profile_image' not in request.files:
+        print("❌ No 'profile_image' in request.files")
+        print(f"❌ Available files: {list(request.files.keys())}")
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['profile_image']
+    print(f"✅ File object received: {file}")
+    print(f"✅ File filename: {file.filename}")
+    print(f"✅ File content type: {file.content_type}")
+    
+    if file.filename == '':
+        print("❌ Empty filename")
+        return jsonify({'error': 'No selected file'}), 400
+    
+    # Skip file size check before save - FileStorage objects don't reliably report size
+    # We'll verify after saving instead
+    print(f"⚠️ Skipping pre-save file size check (will verify after save)")
+    file_size = None  # Will be determined after save
+    
+    if file:
+        # Get the Flask app root path - Flask automatically sets this correctly
+        # on both development and production (Render, Heroku, etc.)
+        # current_app.root_path will be the correct path wherever Flask runs
+        app_root = current_app.root_path
+        
+        # Check if we're in production
+        is_production = os.environ.get('FLASK_ENV') == 'production' or \
+                       os.environ.get('ENVIRONMENT') == 'production' or \
+                       os.environ.get('RENDER') == 'true'
+        
+        # IMPORTANT: On Render, the filesystem is ephemeral (files are lost on restart)
+        # For production, you should use cloud storage (S3, Cloudinary, etc.)
+        # For now, we'll use local storage, but files will NOT persist on Render
+        if is_production:
+            print("⚠️ WARNING: Running in production mode. Files will NOT persist on Render.")
+            print("⚠️ Consider using cloud storage (S3, Cloudinary) for production.")
+        
+        # Use app root path - this works correctly on both dev and production
+        static_dir = os.path.join(app_root, 'static')
+        upload_dir = os.path.join(static_dir, 'uploads', 'profiles')
+        
+        print(f"📁 App root path: {app_root}")
+        print(f"📁 Static directory: {static_dir}")
+        print(f"📁 Upload directory: {upload_dir}")
+        print(f"📁 Is Production: {is_production}")
+        
+        # Delete old profile image if it exists
+        if driver.profile_image_url:
+            try:
+                # Remove query parameters and /static/ prefix if present
+                old_url = driver.profile_image_url.split('?')[0]  # Remove query params
+                old_url = old_url.replace('/static/', '')  # Remove /static/ prefix
+                old_file_path = os.path.join(static_dir, old_url)
+                if os.path.exists(old_file_path) and os.path.isfile(old_file_path):
+                    os.remove(old_file_path)
+                    print(f"🗑️ Deleted old profile image: {old_file_path}")
+                else:
+                    print(f"⚠️ Old profile image not found: {old_file_path}")
+            except Exception as e:
+                print(f"⚠️ Error deleting old profile image: {e}")
+                # Don't fail the upload if old file deletion fails
+        
+        # Create uploads directory if it doesn't exist
+        os.makedirs(upload_dir, exist_ok=True)
+        print(f"✅ Created/verified upload directory: {upload_dir}")
+        
+        # Check if directory was created successfully
+        if not os.path.exists(upload_dir):
+            print(f"❌ ERROR: Failed to create upload directory: {upload_dir}")
+            return jsonify({'error': f'Failed to create upload directory: {upload_dir}'}), 500
+        
+        # Check if directory is writable
+        if not os.access(upload_dir, os.W_OK):
+            print(f"❌ ERROR: Upload directory is not writable: {upload_dir}")
+            return jsonify({'error': f'Upload directory is not writable: {upload_dir}'}), 500
+        
+        # Generate a unique filename with timestamp to prevent caching
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        filename = secure_filename(f"{driver.username}_{timestamp}.jpg")
+        file_path = os.path.join(upload_dir, filename)
+        
+        print(f"📝 Saving file to: {file_path}")
+        print(f"📝 File name: {filename}")
+        print(f"📝 File object: {file}")
+        print(f"📝 File filename: {file.filename}")
+        
+        # Save the file with explicit error handling
+        print(f"🔍 Attempting to save file...")
+        print(f"🔍 File path: {file_path}")
+        print(f"🔍 Absolute file path: {os.path.abspath(file_path)}")
+        print(f"🔍 File path exists (before save): {os.path.exists(file_path)}")
+        print(f"🔍 Directory exists: {os.path.exists(upload_dir)}")
+        print(f"🔍 Directory is writable: {os.access(upload_dir, os.W_OK)}")
+        print(f"🔍 Directory permissions: {oct(os.stat(upload_dir).st_mode)}")
+        
+        # Verify file object before saving
+        print(f"🔍 File object type: {type(file)}")
+        print(f"🔍 File object has save method: {hasattr(file, 'save')}")
+        
+        try:
+            # Save the file directly - don't test read as it consumes the stream
+            absolute_file_path = os.path.abspath(file_path)
+            print(f"🔍 Saving to absolute path: {absolute_file_path}")
+            
+            # Save the file
+            file.save(absolute_file_path)
+            print(f"✅ file.save() completed without error")
+            
+            # Force file system sync
+            import sys
+            if sys.platform != 'win32':
+                os.sync()
+            
+            # Wait a moment for file system to catch up
+            import time
+            time.sleep(0.1)
+            
+            # Verify file was saved immediately
+            if os.path.exists(absolute_file_path):
+                saved_file_size = os.path.getsize(absolute_file_path)
+                print(f"✅ File saved successfully!")
+                print(f"✅ Saved file path: {absolute_file_path}")
+                print(f"✅ Saved file size: {saved_file_size} bytes")
+                
+                if saved_file_size == 0:
+                    print(f"❌ ERROR: File was saved but size is 0 bytes!")
+                    return jsonify({'error': 'File was saved but is empty (0 bytes)'}), 500
+            else:
+                # Check alternative paths
+                print(f"❌ ERROR: File was not saved! Path does not exist: {absolute_file_path}")
+                print(f"❌ Checking relative path: {file_path}")
+                if os.path.exists(file_path):
+                    print(f"⚠️ File exists at relative path but not absolute path")
+                    saved_file_size = os.path.getsize(file_path)
+                    absolute_file_path = os.path.abspath(file_path)
+                else:
+                    # List directory contents to see what's there
+                    print(f"❌ Upload directory contents: {os.listdir(upload_dir) if os.path.exists(upload_dir) else 'Directory does not exist'}")
+                    return jsonify({
+                        'error': f'File was not saved to: {absolute_file_path}',
+                        'upload_dir': upload_dir,
+                        'upload_dir_exists': os.path.exists(upload_dir),
+                        'upload_dir_contents': os.listdir(upload_dir) if os.path.exists(upload_dir) else []
+                    }), 500
+                
+        except PermissionError as perm_error:
+            print(f"❌ PERMISSION ERROR: {perm_error}")
+            print(f"❌ Upload directory: {upload_dir}")
+            print(f"❌ Upload directory writable: {os.access(upload_dir, os.W_OK)}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            return jsonify({'error': f'Permission denied: {str(perm_error)}'}), 500
+        except OSError as os_error:
+            print(f"❌ OS ERROR: {os_error}")
+            print(f"❌ Error number: {os_error.errno}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            return jsonify({'error': f'File system error: {str(os_error)}'}), 500
+        except Exception as save_error:
+            print(f"❌ ERROR saving file: {save_error}")
+            print(f"❌ Error type: {type(save_error)}")
+            print(f"❌ Error args: {save_error.args}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            return jsonify({'error': f'Failed to save file: {str(save_error)}'}), 500
+        
+        # Use absolute path for verification
+        file_path = absolute_file_path
+        
+        # Update the driver's profile image URL with cache-busting timestamp
+        relative_path = os.path.join('uploads', 'profiles', filename).replace('\\', '/')
+        cache_buster = int(datetime.now().timestamp() * 1000)  # Milliseconds timestamp
+        new_image_url = f'/static/{relative_path}?v={cache_buster}'
+        driver.profile_image_url = new_image_url
+        
+        print(f"📝 Setting profile_image_url to: {new_image_url}")
+        print(f"📝 Driver object before commit: profile_image_url = {driver.profile_image_url}")
+        
+        # Commit the changes to database
+        db.session.commit()
+        print(f"✅ Database commit successful")
+        
+        # Verify the update was saved by querying the database again (fresh query)
+        db.session.expire(driver)  # Expire the object to force fresh query
+        fresh_driver = User.query.get(driver.id)
+        print(f"🔍 Fresh query result: driver {fresh_driver.id} profile_image_url = {fresh_driver.profile_image_url}")
+        
+        # Double-check file exists after save
+        if not os.path.exists(file_path):
+            print(f"❌ ERROR: File does NOT exist at: {file_path}")
+            print(f"❌ Upload directory exists: {os.path.exists(upload_dir)}")
+            if os.path.exists(upload_dir):
+                print(f"❌ Upload directory contents: {os.listdir(upload_dir)}")
+            return jsonify({
+                'error': f'File was not saved. Expected path: {file_path}',
+                'file_path': file_path,
+                'upload_dir': upload_dir,
+                'upload_dir_exists': os.path.exists(upload_dir)
+            }), 500
+        
+        # Verify file was saved correctly
+        saved_file_size = os.path.getsize(file_path)
+        print(f"✅ File exists at: {file_path}")
+        print(f"✅ Saved file size: {saved_file_size} bytes")
+        
+        if saved_file_size == 0:
+            print(f"⚠️ WARNING: Saved file size is 0 bytes - file may be empty")
+            return jsonify({'error': 'File was saved but is empty (0 bytes)'}), 500
+        
+        # Verify file is readable
+        if not os.access(file_path, os.R_OK):
+            print(f"❌ ERROR: File is not readable")
+            return jsonify({'error': 'File was saved but is not readable'}), 500
+        
+        # Clear the public map cache to force refresh
+        try:
+            from routes.public import clear_vehicle_cache
+            clear_vehicle_cache()
+            print("🔄 Cleared public map vehicle cache")
+        except Exception as e:
+            print(f"⚠️ Could not clear vehicle cache: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Profile picture uploaded successfully',
+            'profile_image_url': fresh_driver.profile_image_url,
+            'file_path': file_path,
+            'file_exists': True,
+            'file_size': saved_file_size,
+            'absolute_path': os.path.abspath(file_path),
+            'upload_dir': upload_dir
+        })
+    
+    return jsonify({'error': 'Failed to upload file'}), 500
+
+@operator_bp.route('/drivers/profile-picture/remove', methods=['POST'])
+@login_required
+def remove_profile_picture():
+    """Remove driver profile picture."""
+    if current_user.user_type != 'admin' and current_user.user_type != 'operator':
+        return jsonify({'error': 'Access denied'}), 403
+    
+    data = request.get_json()
+    driver_id = data.get('driver_id')
+    
+    if not driver_id:
+        return jsonify({'error': 'Driver ID is required'}), 400
+    
+    driver = User.query.get_or_404(int(driver_id))
+    
+    # Check if operator has permission to update this driver
+    if current_user.user_type == 'operator' and driver.created_by_id != current_user.id:
+        return jsonify({'error': 'You do not have permission to update this driver'}), 403
+    
+    # Check if driver has a profile image
+    if not driver.profile_image_url:
+        return jsonify({'error': 'Driver does not have a profile image'}), 400
+    
+    # Try to delete the file
+    try:
+        file_path = os.path.join('static', driver.profile_image_url.replace('/static/', ''))
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except Exception as e:
+        print(f"Error removing file: {e}")
+    
+    # Update the driver record
+    driver.profile_image_url = None
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Profile picture removed successfully'
+    })
 
 @operator_bp.route('/geocode')
 def geocode():

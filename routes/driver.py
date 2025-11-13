@@ -23,8 +23,15 @@ def dashboard(cache_buster=None):
     
     print(f"✅ ROUTE SUCCESS: User {current_user.id} is a driver")
     
+    # Reload user object from database to get latest profile_image_url
+    # Flask-Login might cache the user object, so we need to refresh it
+    user_id = current_user.id
+    db.session.expire(current_user)  # Expire the current session object
+    fresh_user = User.query.get(user_id)  # Query fresh from database
+    print(f"🔍 DEBUG: Driver profile_image_url: {fresh_user.profile_image_url}")
+    
     # Get vehicles assigned to this driver
-    vehicles = Vehicle.query.filter_by(assigned_driver_id=current_user.id).all()
+    vehicles = Vehicle.query.filter_by(assigned_driver_id=user_id).all()
     
     # Debug logging
     print(f"🔍 DEBUG: Driver dashboard request for user {current_user.id}")
@@ -33,7 +40,12 @@ def dashboard(cache_buster=None):
         print(f"🔍 DEBUG: Vehicle {vehicle.id} - Route: {vehicle.route}, Route Info: {vehicle.route_info}")
     
     print("🚨 ROUTE: About to render template with version 1.0.2")
-    response = make_response(render_template('driver/dashboard.html', vehicles=vehicles, template_version='1.0.2'))
+    # Pass fresh_user to template as driver_user to ensure we use latest profile_image_url
+    # The template can use driver_user.profile_image_url if available, otherwise fall back to current_user
+    response = make_response(render_template('driver/dashboard.html', 
+                                             vehicles=vehicles, 
+                                             driver_user=fresh_user,
+                                             template_version='1.0.2'))
     
     # Add aggressive cache-busting headers
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
