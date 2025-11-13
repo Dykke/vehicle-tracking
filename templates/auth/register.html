@@ -153,6 +153,50 @@ document.addEventListener('DOMContentLoaded', function() {
             hideTermsModal();
         }
     });
+    
+    // Form validation with toasts
+    const registerForm = document.querySelector('form');
+    registerForm.addEventListener('submit', function(e) {
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const termsAccepted = document.getElementById('terms_accepted').checked;
+        
+        if (!username || !email || !password) {
+            e.preventDefault();
+            showToast('Validation Error', 'Please fill in all required fields.', 'error');
+            return false;
+        }
+        
+        if (!termsAccepted) {
+            e.preventDefault();
+            showToast('Terms Required', 'You must accept the Terms and Conditions to register.', 'warning');
+            return false;
+        }
+        
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            e.preventDefault();
+            showToast('Invalid Email', 'Please enter a valid email address.', 'error');
+            return false;
+        }
+        
+        // Password strength check
+        if (password.length < 6) {
+            e.preventDefault();
+            showToast('Weak Password', 'Password must be at least 6 characters long.', 'warning');
+            return false;
+        }
+    });
+    
+    // Check for flash messages and show them as toasts
+    const flashMessages = document.querySelectorAll('.alert-error');
+    flashMessages.forEach(function(alert) {
+        const message = alert.querySelector('span').textContent.trim();
+        showToast('Registration Failed', message, 'error');
+        alert.style.display = 'none'; // Hide the original alert
+    });
 });
 </script>
 

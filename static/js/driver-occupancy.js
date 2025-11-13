@@ -41,34 +41,7 @@ async function loadDriverVehicleAssignment() {
     }
 }
 
-// Toast notification function
-function showToast(title, message, type = 'info') {
-    console.log(`📢 ${title}: ${message} (${type})`);
-    
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff'};
-        color: white;
-        padding: 15px 20px;
-        border-radius: 5px;
-        z-index: 9999;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        font-family: Arial, sans-serif;
-        max-width: 300px;
-    `;
-    toast.innerHTML = `<strong>${title}:</strong> ${message}`;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
-        }
-    }, 3000);
-}
+// Toast notification function is globally available from base.html
 
 // Update vehicle information display
 function updateVehicleInfo(vehicleId) {

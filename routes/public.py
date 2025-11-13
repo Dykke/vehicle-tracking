@@ -121,6 +121,15 @@ def get_active_vehicles():
                 else:
                     print(f"✗ Vehicle {vehicle.id}: No assigned driver")
                 
+                # Parse route_info if it's a JSON string
+                parsed_route_info = None
+                if vehicle.route_info:
+                    try:
+                        parsed_route_info = json.loads(vehicle.route_info) if isinstance(vehicle.route_info, str) else vehicle.route_info
+                    except json.JSONDecodeError:
+                        print(f"⚠ Vehicle {vehicle.id}: Failed to parse route_info")
+                        parsed_route_info = None
+                
                 vehicles_data.append({
                     'id': vehicle.id,
                     'type': vehicle.vehicle_type,
@@ -130,7 +139,7 @@ def get_active_vehicles():
                     'latitude': vehicle.current_latitude,
                     'longitude': vehicle.current_longitude,
                     'route': vehicle.route,
-                    'route_info': vehicle.route_info,
+                    'route_info': parsed_route_info,  # Send parsed object instead of JSON string
                     'last_updated': vehicle.last_updated.isoformat() if vehicle.last_updated else None,
                     'speed_kmh': vehicle.last_speed_kmh or 60,
                     'route_distance_km': route_distance_km,

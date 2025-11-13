@@ -7,6 +7,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
+    /* Toast animation */
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
     /* MOBILE-FIRST RESPONSIVE DESIGN FOR MANAGE DRIVERS */
     
     /* Base mobile styles */
@@ -216,65 +228,20 @@ function handleSaveDriver() {
     const confirmPassword = document.getElementById('confirm_password').value;
     const isActive = document.getElementById('is_active').checked;
     
-    console.log('Form values:', { firstName, middleName, lastName, username, email, isActive });
-    
     if (!username || !email || !password || !confirmPassword) {
         showToast('Validation Error', 'Please fill in all required fields.', 'error');
-        console.log('Form validation failed: missing fields');
         return;
     }
     
     if (password !== confirmPassword) {
         showToast('Validation Error', 'Passwords do not match.', 'error');
-        console.log('Form validation failed: passwords do not match');
         return;
     }
     
-    console.log('Form validation passed, calling addDriver()');
     submitDriverForm(firstName, middleName, lastName, username, email, password, isActive);
 }
 
-    // Function to show toast notification - make global
-window.showToast = function(title, message, type = 'success') {
-    // Create toast container if it doesn't exist
-    let toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container';
-        toastContainer.style.position = 'fixed';
-        toastContainer.style.bottom = '20px';
-        toastContainer.style.right = '20px';
-        toastContainer.style.zIndex = '9999';
-        document.body.appendChild(toastContainer);
-    }
-    
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.style.backgroundColor = type === 'success' ? '#34a853' : '#ea4335';
-    toast.style.color = 'white';
-    toast.style.borderRadius = '4px';
-    toast.style.padding = '12px 20px';
-    toast.style.marginBottom = '10px';
-    toast.style.minWidth = '250px';
-    toast.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
-    
-    // Add content
-    toast.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 5px;">${title}</div>
-        <div>${message}</div>
-    `;
-    
-    // Add to container
-    toastContainer.appendChild(toast);
-    
-    // Remove after 5 seconds
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.5s ease';
-        setTimeout(() => toast.remove(), 500);
-    }, 5000);
-}
+    // Toast notification function is now globally available from base.html
 
 function submitDriverForm(firstName, middleName, lastName, username, email, password, isActive) {
     // Show loading indicator
@@ -282,8 +249,6 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
     const originalText = saveBtn.innerHTML;
     saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
     saveBtn.disabled = true;
-    
-    console.log('Submitting driver form to backend:', firstName, middleName, lastName, username, email, isActive);
     
     fetch('/operator/drivers/add', {
         method: 'POST',
@@ -304,64 +269,56 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
     .then(async response => {
         console.log('Backend response status:', response.status);
         
-        // Check if response is redirect (authentication issue)
-        if (response.redirected) {
-            console.log('⚠️ Response was redirected - likely authentication issue');
-            showToast('Error', 'Session expired. Please log in again.', 'error');
-            // Redirect to login page
-            window.location.href = '/login';
-            return;
-        }
-        
-        // Check content type to ensure we're getting JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            console.error('❌ Response is not JSON:', contentType);
-            const responseText = await response.text();
-            console.error('❌ Response text:', responseText);
-            showToast('Error', 'Server returned invalid response format. Please try again.', 'error');
-            return;
-        }
-        
-        return response.json().then(data => {
-            console.log('Backend response data:', data);
-            return { status: response.status, data: data };
-        });
-    })
-    .then(({ status, data }) => {
-        if (!status) return; // Skip if we returned early due to auth issues
-        
+        // Always restore button state first
         saveBtn.innerHTML = originalText;
         saveBtn.disabled = false;
         
-        if (status >= 200 && status < 300) {
+        // Check if response is redirect (authentication issue)
+        if (response.redirected) {
+            console.log('⚠️ Response was redirected - likely authentication issue');
+            showToast('Session Expired', 'Please log in again.', 'error');
+            setTimeout(() => window.location.href = '/login', 1500);
+            return Promise.reject('redirected');
+        }
+        
+        // Parse JSON response
+        const data = await response.json();
+        console.log('Backend response data:', data);
+        
+        // Handle response based on status
+        if (response.ok) {
+            // Success (200-299)
             if (data.success) {
                 showToast('Success', 'Driver added successfully!', 'success');
                 setTimeout(() => location.reload(), 1500);
             } else {
                 showToast('Error', data.error || 'Failed to add driver', 'error');
-                console.error('Error from backend:', data.error);
             }
         } else {
-            showToast('Error', data.error || 'Server error occurred', 'error');
-            console.error('Error response from backend:', data);
+            // Error (400+)
+            showToast('Error', data.error || `Server error (${response.status})`, 'error');
         }
     })
     .catch(error => {
-        console.error('Error adding driver:', error);
-        saveBtn.innerHTML = originalText;
-        saveBtn.disabled = false;
+        // Restore button state if not already restored
+        if (saveBtn.disabled) {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
         
-        // Check if it's a JSON parsing error (likely HTML response)
-        if (error.message && error.message.includes('Unexpected token') && error.message.includes('<!DOCTYPE')) {
-            console.error('❌ Received HTML instead of JSON - likely authentication redirect');
-            showToast('Error', 'Session expired. Please log in again.', 'error');
-            // Redirect to login page
-            window.location.href = '/login';
+        // Don't show toast if it was a redirect (already handled)
+        if (error === 'redirected') {
             return;
         }
         
-        showToast('Error', 'Network or server error', 'error');
+        // Show user-friendly error message
+        showToast('Connection Error', 'Unable to add driver. Please check your connection and try again.', 'error');
+        
+        // Check if it's a JSON parsing error (likely HTML response)
+        if (error.message && error.message.includes('Unexpected token')) {
+            // Redirect to login page
+            setTimeout(() => window.location.href = '/login', 1500);
+        }
     });
 }
 </script>

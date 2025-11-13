@@ -429,63 +429,8 @@
             
         </div>
 
-        <!-- Vehicle Control Section -->
+        <!-- Route Management Section - MOVED TO TOP -->
         <div class="row">
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0">
-                            <i class="fas fa-sliders-h me-2"></i>
-                            Vehicle Controls
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        {% if vehicles %}
-                            <div class="row">
-                                <div class="col-12">
-                                    <h6 class="mb-3">Occupancy Status Control</h6>
-                                    <div class="row g-4 mb-3">
-                                        <div class="col-6">
-                                            <button class="btn btn-success occupancy-btn occupancy-btn-large" data-status="vacant" id="vacantBtn" style="background-color: #28a745 !important; min-height: 150px !important; height: 150px !important; width: 100% !important; padding: 2rem !important; font-size: 1.5rem !important; border-radius: 1rem !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important; border: 3px solid #1e7e34 !important; color: white !important;">
-                                                <div class="occupancy-btn-content" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; height: 100% !important; width: 100% !important; gap: 0.5rem !important; padding: 0.5rem !important; box-sizing: border-box !important;">
-                                                    <i class="fas fa-door-open occupancy-icon" style="font-size: 3rem !important; margin-bottom: 0.25rem !important; line-height: 1 !important;"></i>
-                                                    <div class="occupancy-text" style="text-align: center !important; width: 100% !important;">
-                                                        <div class="occupancy-main" style="font-weight: 800 !important; font-size: 1.6rem !important; margin-bottom: 0.25rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Set</div>
-                                                        <div class="occupancy-sub" style="font-weight: 600 !important; font-size: 1.2rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Vacant (V)</div>
-                                    </div>
-                                    </div>
-                                        </button>
-                                </div>
-                                        <div class="col-6">
-                                            <button class="btn btn-danger occupancy-btn occupancy-btn-large" data-status="full" id="fullBtn" style="background-color: #dc3545 !important; min-height: 150px !important; height: 150px !important; width: 100% !important; padding: 2rem !important; font-size: 1.5rem !important; border-radius: 1rem !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important; border: 3px solid #c82333 !important; color: white !important;">
-                                                <div class="occupancy-btn-content" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; height: 100% !important; width: 100% !important; gap: 0.5rem !important; padding: 0.5rem !important; box-sizing: border-box !important;">
-                                                    <i class="fas fa-door-closed occupancy-icon" style="font-size: 3rem !important; margin-bottom: 0.25rem !important; line-height: 1 !important;"></i>
-                                                    <div class="occupancy-text" style="text-align: center !important; width: 100% !important;">
-                                                        <div class="occupancy-main" style="font-weight: 800 !important; font-size: 1.6rem !important; margin-bottom: 0.25rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Set</div>
-                                                        <div class="occupancy-sub" style="font-weight: 600 !important; font-size: 1.2rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Full (F)</div>
-                                     </div>
-                                        </div>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Vehicle Data Refresh -->
-                                
-                            </div>
-                        {% else %}
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                No vehicles assigned. Please contact your operator.
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Route Management Section -->
-        <div class="row mt-3">
             <div class="col-12">
                 <div class="card shadow-sm">
                     <div class="card-header bg-info text-white">
@@ -546,6 +491,61 @@
                             <div class="alert alert-warning">
                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                 No vehicles assigned. Please contact your operator to get a vehicle and route assignment.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vehicle Control Section - MOVED TO BOTTOM -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-sliders-h me-2"></i>
+                            Vehicle Controls
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if vehicles %}
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="mb-3">Occupancy Status Control</h6>
+                                    <div class="row g-4 mb-3">
+                                        <div class="col-6">
+                                            <button class="btn btn-success occupancy-btn occupancy-btn-large" data-status="vacant" id="vacantBtn" style="background-color: #28a745 !important; min-height: 150px !important; height: 150px !important; width: 100% !important; padding: 2rem !important; font-size: 1.5rem !important; border-radius: 1rem !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important; border: 3px solid #1e7e34 !important; color: white !important;">
+                                                <div class="occupancy-btn-content" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; height: 100% !important; width: 100% !important; gap: 0.5rem !important; padding: 0.5rem !important; box-sizing: border-box !important;">
+                                                    <i class="fas fa-door-open occupancy-icon" style="font-size: 3rem !important; margin-bottom: 0.25rem !important; line-height: 1 !important;"></i>
+                                                    <div class="occupancy-text" style="text-align: center !important; width: 100% !important;">
+                                                        <div class="occupancy-main" style="font-weight: 800 !important; font-size: 1.6rem !important; margin-bottom: 0.25rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Set</div>
+                                                        <div class="occupancy-sub" style="font-weight: 600 !important; font-size: 1.2rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Vacant (V)</div>
+                                    </div>
+                                    </div>
+                                        </button>
+                                </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-danger occupancy-btn occupancy-btn-large" data-status="full" id="fullBtn" style="background-color: #dc3545 !important; min-height: 150px !important; height: 150px !important; width: 100% !important; padding: 2rem !important; font-size: 1.5rem !important; border-radius: 1rem !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important; border: 3px solid #c82333 !important; color: white !important;">
+                                                <div class="occupancy-btn-content" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; height: 100% !important; width: 100% !important; gap: 0.5rem !important; padding: 0.5rem !important; box-sizing: border-box !important;">
+                                                    <i class="fas fa-door-closed occupancy-icon" style="font-size: 3rem !important; margin-bottom: 0.25rem !important; line-height: 1 !important;"></i>
+                                                    <div class="occupancy-text" style="text-align: center !important; width: 100% !important;">
+                                                        <div class="occupancy-main" style="font-weight: 800 !important; font-size: 1.6rem !important; margin-bottom: 0.25rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Set</div>
+                                                        <div class="occupancy-sub" style="font-weight: 600 !important; font-size: 1.2rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Full (F)</div>
+                                     </div>
+                                        </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Vehicle Data Refresh -->
+                                
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                No vehicles assigned. Please contact your operator.
                             </div>
                         {% endif %}
                     </div>

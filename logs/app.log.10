@@ -1,105 +1,86 @@
-2025-10-08 23:35:38,191 - __main__ - INFO - Flask app using database: sqlite:///app.db
-2025-10-08 23:35:38,193 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:35:38,291 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:35:38,291 - __main__ - INFO - Models imported successfully
-2025-10-08 23:35:38,291 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:35:38,291 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:35:38,291 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:35:38,291 - __main__ - INFO - Flask version: 2.0.1
-2025-10-08 23:35:38,939 - __main__ - INFO - Flask app using database: sqlite:///app.db
-2025-10-08 23:35:38,940 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:35:39,033 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:35:39,034 - __main__ - INFO - Models imported successfully
-2025-10-08 23:35:39,034 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:35:39,034 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:35:39,034 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:35:39,034 - __main__ - INFO - Flask version: 2.0.1
-2025-10-08 23:40:36,999 - __main__ - INFO - Flask app using database: sqlite:///transport_monitoring.db
-2025-10-08 23:40:37,000 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:40:37,056 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:40:37,056 - __main__ - INFO - Models imported successfully
-2025-10-08 23:40:37,056 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:40:37,056 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:40:37,056 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:40:37,076 - __main__ - INFO - Flask version: 3.0.0
-2025-10-08 23:40:38,112 - __main__ - INFO - Flask app using database: sqlite:///transport_monitoring.db
-2025-10-08 23:40:38,112 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:40:38,168 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:40:38,168 - __main__ - INFO - Models imported successfully
-2025-10-08 23:40:38,168 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:40:38,168 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:40:38,168 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:40:38,169 - __main__ - INFO - Flask version: 3.0.0
-2025-10-08 23:40:44,415 - __main__ - INFO - Flask app using database: sqlite:///transport_monitoring.db
-2025-10-08 23:40:44,416 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:40:44,512 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:40:44,512 - __main__ - INFO - Models imported successfully
-2025-10-08 23:40:44,513 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:40:44,513 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:40:44,513 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:40:44,513 - __main__ - INFO - Flask version: 2.0.1
-2025-10-08 23:40:45,154 - __main__ - INFO - Flask app using database: sqlite:///transport_monitoring.db
-2025-10-08 23:40:45,154 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:40:45,247 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:40:45,247 - __main__ - INFO - Models imported successfully
-2025-10-08 23:40:45,247 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:40:45,247 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:40:45,248 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:40:45,248 - __main__ - INFO - Flask version: 2.0.1
-2025-10-08 23:41:46,969 - __main__ - INFO - Flask app using database: sqlite:///app.db
-2025-10-08 23:41:46,969 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:41:47,058 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:41:47,059 - __main__ - INFO - Models imported successfully
-2025-10-08 23:41:47,059 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:41:47,059 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:41:47,059 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:41:47,059 - __main__ - INFO - Flask version: 2.0.1
-2025-10-08 23:41:47,716 - __main__ - INFO - Flask app using database: sqlite:///app.db
-2025-10-08 23:41:47,717 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:41:47,819 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:41:47,819 - __main__ - INFO - Models imported successfully
-2025-10-08 23:41:47,820 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:41:47,820 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:41:47,820 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:41:47,820 - __main__ - INFO - Flask version: 2.0.1
-2025-10-08 23:43:52,532 - __main__ - INFO - Flask app using database: sqlite:///app.db
-2025-10-08 23:43:52,532 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:43:52,586 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:43:52,586 - __main__ - INFO - Models imported successfully
-2025-10-08 23:43:52,586 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:43:52,586 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:43:52,586 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:43:52,588 - __main__ - INFO - Flask version: 3.0.0
-2025-10-08 23:43:53,581 - __main__ - INFO - Flask app using database: sqlite:///app.db
-2025-10-08 23:43:53,581 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:43:53,634 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:43:53,634 - __main__ - INFO - Models imported successfully
-2025-10-08 23:43:53,634 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:43:53,634 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:43:53,635 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:43:53,636 - __main__ - INFO - Flask version: 3.0.0
-2025-10-08 23:50:54,336 - __main__ - INFO - Flask app using database: sqlite:///app.db
-2025-10-08 23:50:54,336 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:50:54,430 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:50:54,430 - __main__ - INFO - Models imported successfully
-2025-10-08 23:50:54,431 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:50:54,431 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:50:54,431 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:50:54,431 - __main__ - INFO - Flask version: 2.0.1
-2025-10-08 23:50:55,051 - __main__ - INFO - Flask app using database: sqlite:///app.db
-2025-10-08 23:50:55,051 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:50:55,148 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:50:55,148 - __main__ - INFO - Models imported successfully
-2025-10-08 23:50:55,148 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:50:55,148 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:50:55,148 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:50:55,148 - __main__ - INFO - Flask version: 2.0.1
-2025-10-08 23:52:16,704 - __main__ - INFO - Flask app using database: sqlite:///app.db
-2025-10-08 23:52:16,704 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
-2025-10-08 23:52:16,796 - __main__ - INFO - BYPASSING migrations and using safe table creation...
-2025-10-08 23:52:16,796 - __main__ - INFO - Models imported successfully
-2025-10-08 23:52:16,796 - __main__ - ERROR - Error during model import or table creation: name 'get_database_url' is not defined
-2025-10-08 23:52:16,796 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
-2025-10-08 23:52:16,796 - __main__ - INFO - Using threading mode for Socket.IO
-2025-10-08 23:52:16,797 - __main__ - INFO - Flask version: 2.0.1
-2025-10-08 23:52:17,530 - __main__ - INFO - Flask version: 2.0.1
+2025-11-06 23:13:08,715 - __main__ - INFO - Flask app using database: sqlite:///app.db
+2025-11-06 23:13:08,716 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
+2025-11-06 23:13:08,771 - __main__ - INFO - BYPASSING migrations and using safe table creation...
+2025-11-06 23:13:08,771 - __main__ - INFO - Models imported successfully
+2025-11-06 23:13:08,772 - __main__ - INFO - Database file path: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring\app.db
+2025-11-06 23:13:08,772 - __main__ - INFO - Database file exists: True
+2025-11-06 23:13:08,772 - __main__ - INFO - Database file size: 73728 bytes
+2025-11-06 23:13:08,774 - __main__ - INFO - Existing tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-11-06 23:13:08,776 - __main__ - INFO - Database exists with data, skipping table creation to preserve data
+2025-11-06 23:13:08,776 - __main__ - INFO - All required tables exist ✓
+2025-11-06 23:13:08,776 - __main__ - INFO - Final tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-11-06 23:13:08,776 - __main__ - INFO - Ensuring required columns exist in vehicles table...
+2025-11-06 23:13:08,777 - __main__ - INFO - Existing columns in vehicles table: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-11-06 23:13:08,777 - __main__ - INFO - Column accuracy already exists
+2025-11-06 23:13:08,777 - __main__ - INFO - Column route already exists
+2025-11-06 23:13:08,777 - __main__ - INFO - Column route_info already exists
+2025-11-06 23:13:08,778 - __main__ - INFO - Column check completed
+2025-11-06 23:13:08,778 - __main__ - INFO - VERIFICATION - Vehicle columns after setup: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-11-06 23:13:08,778 - __main__ - INFO - ALL REQUIRED COLUMNS VERIFIED ✓
+2025-11-06 23:13:08,778 - __main__ - INFO - Checking for name fields in users table...
+2025-11-06 23:13:08,778 - __main__ - INFO - ✓ All name fields already exist in users table
+2025-11-06 23:13:08,778 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
+2025-11-06 23:13:08,779 - __main__ - INFO - Using threading mode for Socket.IO
+2025-11-06 23:13:08,780 - __main__ - INFO - Flask version: 3.0.0
+2025-11-06 23:13:09,913 - __main__ - INFO - Flask app using database: sqlite:///app.db
+2025-11-06 23:13:09,913 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
+2025-11-06 23:13:09,975 - __main__ - INFO - BYPASSING migrations and using safe table creation...
+2025-11-06 23:13:09,976 - __main__ - INFO - Models imported successfully
+2025-11-06 23:13:09,976 - __main__ - INFO - Database file path: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring\app.db
+2025-11-06 23:13:09,976 - __main__ - INFO - Database file exists: True
+2025-11-06 23:13:09,976 - __main__ - INFO - Database file size: 73728 bytes
+2025-11-06 23:13:09,978 - __main__ - INFO - Existing tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-11-06 23:13:09,978 - __main__ - INFO - Database exists with data, skipping table creation to preserve data
+2025-11-06 23:13:09,979 - __main__ - INFO - All required tables exist ✓
+2025-11-06 23:13:09,979 - __main__ - INFO - Final tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-11-06 23:13:09,979 - __main__ - INFO - Ensuring required columns exist in vehicles table...
+2025-11-06 23:13:09,980 - __main__ - INFO - Existing columns in vehicles table: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-11-06 23:13:09,980 - __main__ - INFO - Column accuracy already exists
+2025-11-06 23:13:09,980 - __main__ - INFO - Column route already exists
+2025-11-06 23:13:09,981 - __main__ - INFO - Column route_info already exists
+2025-11-06 23:13:09,981 - __main__ - INFO - Column check completed
+2025-11-06 23:13:09,981 - __main__ - INFO - VERIFICATION - Vehicle columns after setup: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-11-06 23:13:09,981 - __main__ - INFO - ALL REQUIRED COLUMNS VERIFIED ✓
+2025-11-06 23:13:09,981 - __main__ - INFO - Checking for name fields in users table...
+2025-11-06 23:13:09,982 - __main__ - INFO - ✓ All name fields already exist in users table
+2025-11-06 23:13:09,982 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
+2025-11-06 23:13:09,982 - __main__ - INFO - Using threading mode for Socket.IO
+2025-11-06 23:13:09,984 - __main__ - INFO - Flask version: 3.0.0
+2025-11-06 23:15:35,062 - __main__ - INFO - Flask app using database: sqlite:///app.db
+2025-11-06 23:15:35,062 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
+2025-11-06 23:15:35,121 - __main__ - INFO - BYPASSING migrations and using safe table creation...
+2025-11-06 23:15:35,121 - __main__ - INFO - Models imported successfully
+2025-11-06 23:15:35,121 - __main__ - INFO - Database file path: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring\app.db
+2025-11-06 23:15:35,122 - __main__ - INFO - Database file exists: True
+2025-11-06 23:15:35,122 - __main__ - INFO - Database file size: 73728 bytes
+2025-11-06 23:15:35,124 - __main__ - INFO - Existing tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-11-06 23:15:35,124 - __main__ - INFO - Database exists with data, skipping table creation to preserve data
+2025-11-06 23:15:35,124 - __main__ - INFO - All required tables exist ✓
+2025-11-06 23:15:35,125 - __main__ - INFO - Final tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-11-06 23:15:35,125 - __main__ - INFO - Ensuring required columns exist in vehicles table...
+2025-11-06 23:15:35,125 - __main__ - INFO - Existing columns in vehicles table: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-11-06 23:15:35,126 - __main__ - INFO - Column accuracy already exists
+2025-11-06 23:15:35,126 - __main__ - INFO - Column route already exists
+2025-11-06 23:15:35,126 - __main__ - INFO - Column route_info already exists
+2025-11-06 23:15:35,126 - __main__ - INFO - Column check completed
+2025-11-06 23:15:35,126 - __main__ - INFO - VERIFICATION - Vehicle columns after setup: ['id', 'registration_number', 'vehicle_type', 'capacity', 'status', 'created_at', 'occupancy_status', 'last_speed_kmh', 'current_latitude', 'current_longitude', 'last_updated', 'accuracy', 'route', 'route_info', 'owner_id', 'assigned_driver_id']
+2025-11-06 23:15:35,126 - __main__ - INFO - ALL REQUIRED COLUMNS VERIFIED ✓
+2025-11-06 23:15:35,127 - __main__ - INFO - Checking for name fields in users table...
+2025-11-06 23:15:35,127 - __main__ - INFO - ✓ All name fields already exist in users table
+2025-11-06 23:15:35,127 - __main__ - INFO - Starting server on 0.0.0.0:5000 with debug=True
+2025-11-06 23:15:35,127 - __main__ - INFO - Using threading mode for Socket.IO
+2025-11-06 23:15:35,129 - __main__ - INFO - Flask version: 3.0.0
+2025-11-06 23:15:36,204 - __main__ - INFO - Flask app using database: sqlite:///app.db
+2025-11-06 23:15:36,204 - __main__ - INFO - Database directory exists: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring
+2025-11-06 23:15:36,263 - __main__ - INFO - BYPASSING migrations and using safe table creation...
+2025-11-06 23:15:36,264 - __main__ - INFO - Models imported successfully
+2025-11-06 23:15:36,264 - __main__ - INFO - Database file path: C:\Users\veesa\OneDrive\Documents\GitHub\drive-monitoring\drive-monitoring\app.db
+2025-11-06 23:15:36,264 - __main__ - INFO - Database file exists: True
+2025-11-06 23:15:36,264 - __main__ - INFO - Database file size: 73728 bytes
+2025-11-06 23:15:36,266 - __main__ - INFO - Existing tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-11-06 23:15:36,266 - __main__ - INFO - Database exists with data, skipping table creation to preserve data
+2025-11-06 23:15:36,266 - __main__ - INFO - All required tables exist ✓
+2025-11-06 23:15:36,266 - __main__ - INFO - Final tables: ['driver_action_logs', 'location_logs', 'notification_settings', 'notifications', 'operator_action_logs', 'passenger_events', 'trips', 'users', 'vehicles']
+2025-11-06 23:15:36,267 - __main__ - INFO - Ensuring required columns exist in vehicles table...
+2025-11-06 23:15:36,271 - __main__ - INFO - Column accuracy already exists
+2025-11-06 23:15:36,271 - __main__ - INFO - Column route already exists

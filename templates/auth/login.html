@@ -41,4 +41,32 @@
                     Admin and operator accounts only.
                 </p>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Intercept form submission to show toasts for validation
+    const loginForm = document.querySelector('form');
+    
+    loginForm.addEventListener('submit', function(e) {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        if (!username || !password) {
+            e.preventDefault();
+            showToast('Validation Error', 'Please enter both username and password.', 'error');
+            return false;
+        }
+    });
+    
+    // Check for flash messages and show them as toasts
+    const flashMessages = document.querySelectorAll('.alert-error');
+    flashMessages.forEach(function(alert) {
+        const message = alert.querySelector('span').textContent.trim();
+        showToast('Login Failed', message, 'error');
+        alert.style.display = 'none'; // Hide the original alert
+    });
+});
+</script>
 {% endblock %} 

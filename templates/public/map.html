@@ -313,6 +313,9 @@
                     <p class="mb-0 text-muted">Real-time vehicle tracking and route information</p>
                 </div>
                 <div class="d-flex align-items-center gap-3">
+                    <select class="form-select form-select-sm" id="routeFilter" onchange="filterByRoute()" style="width: auto; min-width: 200px;">
+                        <option value="">All Routes</option>
+                    </select>
                     <button class="btn btn-outline-primary btn-sm" onclick="toggleUserLocation()" id="locationBtn">
                         <i class="fas fa-crosshairs me-1"></i>My Location
                     </button>
@@ -430,6 +433,7 @@ async function loadMapResources() {
             console.error('All Leaflet CDNs failed:', fallbackError);
             // Show error message to user
             document.getElementById('map').innerHTML = '<div style="text-align: center; padding: 50px; color: #666;"><h3>Map temporarily unavailable</h3><p>Please refresh the page to try again.</p></div>';
+            showToast('Map Error', 'Unable to load map. Please refresh the page.', 'error');
             return false;
         }
     }
@@ -492,6 +496,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Map variables
     let map;
     let vehicleMarkers = {};
+    let allVehicles = []; // Store all vehicles for filtering
     let selectedVehicle = null;
     let etaMap;
     let etaMarker;
@@ -501,6 +506,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Route line tracking
     let currentRouteLine = null;
     let currentRouteVehicleId = null;
+    let routeLines = {}; // Store multiple route lines for filtering
     
     // User location tracking variables
     let userLocationMarker = null;
@@ -532,6 +538,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                 },
                 function(error) {
                     console.error('Error getting user location:', error);
+                    let errorMessage = 'Unable to get your location';
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'Location access denied. Please enable location in your browser.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'Location information unavailable';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'Location request timed out';
+                            break;
+                    }
+                    
+                    showToast('Location Error', errorMessage, 'warning');
                     // Default to a central location if geolocation fails
                     map.setView([14.5995, 120.9842], 13); // Manila, Philippines
                 }
@@ -617,16 +638,221 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             const url = forceRefresh ? '/public/vehicles/active?force_refresh=true' : '/public/vehicles/active';
             const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (data.success) {
-                updateVehicleMarkers(data.vehicles);
-                updateVehicleList(data.vehicles);
+                allVehicles = data.vehicles; // Store all vehicles
+                updateRouteFilter(data.vehicles); // Update route filter dropdown
+                applyCurrentFilter(); // Apply any active filter
             } else {
                 console.error('Error loading vehicles:', data.error);
+                showToast('Vehicle Data Error', data.error || 'Failed to load vehicle information', 'error');
             }
         } catch (error) {
             console.error('Error fetching vehicles:', error);
+            showToast('Connection Error', 'Unable to load vehicles. Please check your connection.', 'error');
+        }
+    }
+    
+    function updateRouteFilter(vehicles) {
+        // Extract unique routes
+        const routes = new Set();
+        vehicles.forEach(vehicle => {
+            if (vehicle.route) {
+                routes.add(vehicle.route);
+            }
+        });
+        
+        // Update dropdown
+        const filterSelect = document.getElementById('routeFilter');
+        const currentValue = filterSelect.value;
+        
+        // Clear existing options except "All Routes"
+        filterSelect.innerHTML = '<option value="">All Routes</option>';
+        
+        // Add route options
+        Array.from(routes).sort().forEach(route => {
+            const option = document.createElement('option');
+            option.value = route;
+            option.textContent = route;
+            filterSelect.appendChild(option);
+        });
+        
+        // Restore previous selection if it still exists
+        if (currentValue && Array.from(routes).includes(currentValue)) {
+            filterSelect.value = currentValue;
+        }
+    }
+    
+    function filterByRoute() {
+        applyCurrentFilter();
+    }
+    
+    function applyCurrentFilter() {
+        const filterSelect = document.getElementById('routeFilter');
+        const selectedRoute = filterSelect.value;
+        
+        let filteredVehicles;
+        if (selectedRoute === '') {
+            // Show all vehicles, clear route lines
+            filteredVehicles = allVehicles;
+            clearAllRouteLines();
+        } else {
+            // Filter by selected route and draw route lines
+            filteredVehicles = allVehicles.filter(vehicle => vehicle.route === selectedRoute);
+            drawRouteLinesForFilteredVehicles(filteredVehicles);
+        }
+        
+        updateVehicleMarkers(filteredVehicles);
+        updateVehicleList(filteredVehicles);
+    }
+    
+    function clearAllRouteLines() {
+        // Remove all route lines
+        Object.keys(routeLines).forEach(vehicleId => {
+            const routeLineData = routeLines[vehicleId];
+            if (routeLineData.line) {
+                map.removeLayer(routeLineData.line);
+            }
+            if (routeLineData.originMarker) {
+                map.removeLayer(routeLineData.originMarker);
+            }
+            if (routeLineData.destMarker) {
+                map.removeLayer(routeLineData.destMarker);
+            }
+        });
+        routeLines = {};
+    }
+    
+    function drawRouteLinesForFilteredVehicles(vehicles) {
+        // Clear existing route lines first
+        clearAllRouteLines();
+        
+        // Draw route lines for each vehicle with route info
+        vehicles.forEach(vehicle => {
+            if (vehicle.route_info && vehicle.trip_status === 'departed') {
+                drawRouteLineForVehicle(vehicle);
+            }
+        });
+    }
+    
+    function drawRouteLineForVehicle(vehicle) {
+        try {
+            const routeInfo = vehicle.route_info;
+            
+            if (!routeInfo) {
+                console.log(`Vehicle ${vehicle.id} has no route info`);
+                return;
+            }
+            
+            // Get coordinates directly (backend now sends parsed object)
+            const originCoords = routeInfo.origin_coords || routeInfo.origin_coordinates;
+            const destCoords = routeInfo.dest_coords || routeInfo.destination_coordinates;
+            
+            // Validate coordinates
+            if (!originCoords || !destCoords) {
+                console.error(`Missing coordinate data for vehicle ${vehicle.id}`, routeInfo);
+                showToast('Route Error', `No coordinates available for ${vehicle.name || 'Van #' + vehicle.id}`, 'error');
+                return;
+            }
+            
+            if (!originCoords.lat || !originCoords.lon || !destCoords.lat || !destCoords.lon) {
+                console.error(`Invalid coordinates for vehicle ${vehicle.id}`, {originCoords, destCoords});
+                showToast('Route Error', `Invalid route coordinates for ${vehicle.name || 'vehicle'}`, 'error');
+                return;
+            }
+            
+            // Create smaller markers
+            const originMarker = L.circleMarker([parseFloat(originCoords.lat), parseFloat(originCoords.lon)], {
+                radius: 6,
+                fillColor: '#4CAF50',
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+            
+            const destMarker = L.circleMarker([parseFloat(destCoords.lat), parseFloat(destCoords.lon)], {
+                radius: 6,
+                fillColor: '#F44336',
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+            
+            // Use OSRM API to get the actual route
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=full&geometries=geojson`;
+            
+            fetch(osrmUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                        const routeCoordinates = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                        
+                        const routeLine = L.polyline(routeCoordinates, {
+                            color: '#2196F3',
+                            weight: 4,
+                            opacity: 0.6
+                        }).addTo(map);
+                        
+                        // Store in routeLines object
+                        routeLines[vehicle.id] = {
+                            line: routeLine,
+                            originMarker: originMarker,
+                            destMarker: destMarker
+                        };
+                    } else {
+                        // Fallback to straight line
+                        const routePoints = [
+                            [parseFloat(originCoords.lat), parseFloat(originCoords.lon)],
+                            [parseFloat(destCoords.lat), parseFloat(destCoords.lon)]
+                        ];
+                        
+                        const routeLine = L.polyline(routePoints, {
+                            color: '#2196F3',
+                            weight: 4,
+                            opacity: 0.6
+                        }).addTo(map);
+                        
+                        routeLines[vehicle.id] = {
+                            line: routeLine,
+                            originMarker: originMarker,
+                            destMarker: destMarker
+                        };
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error drawing route for vehicle ${vehicle.id}:`, error);
+                    // Show user-friendly message
+                    showToast('Route Service', 'Using direct route - road map unavailable', 'warning');
+                    
+                    // Fallback to straight line on error
+                    const routePoints = [
+                        [parseFloat(originCoords.lat), parseFloat(originCoords.lon)],
+                        [parseFloat(destCoords.lat), parseFloat(destCoords.lon)]
+                    ];
+                    
+                    const routeLine = L.polyline(routePoints, {
+                        color: '#2196F3',
+                        weight: 4,
+                        opacity: 0.6
+                    }).addTo(map);
+                    
+                    routeLines[vehicle.id] = {
+                        line: routeLine,
+                        originMarker: originMarker,
+                        destMarker: destMarker
+                    };
+                });
+        } catch (error) {
+            console.error(`Error in drawRouteLineForVehicle for vehicle ${vehicle.id}:`, error);
+            showToast('Route Error', `Failed to display route for ${vehicle.name || 'vehicle'}`, 'error');
         }
     }
     
@@ -905,13 +1131,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         try {
-            let routeInfo = vehicle.route_info;
-            if (typeof routeInfo === 'string') {
-                routeInfo = JSON.parse(routeInfo);
-            }
+            // route_info is already a parsed object from backend
+            const routeInfo = vehicle.route_info;
             
-            const originCoords = routeInfo.origin_coords;
-            const destCoords = routeInfo.dest_coords;
+            const originCoords = routeInfo.origin_coords || routeInfo.origin_coordinates;
+            const destCoords = routeInfo.dest_coords || routeInfo.destination_coordinates;
             
             if (!originCoords || !destCoords || 
                 !originCoords.lat || !originCoords.lon ||

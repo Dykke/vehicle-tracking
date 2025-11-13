@@ -220,39 +220,4 @@ async function exportProfileData() {
 
 
 
-// Toast notification function
-function showToast(title, message, type = 'info') {
-    // Create toast container if it doesn't exist
-    let toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        document.body.appendChild(toastContainer);
-    }
-    
-    // Create toast element
-    const toastEl = document.createElement('div');
-    toastEl.className = `toast align-items-center text-white bg-${type === 'info' ? 'primary' : type === 'error' ? 'danger' : type}`;
-    toastEl.setAttribute('role', 'alert');
-    toastEl.setAttribute('aria-live', 'assertive');
-    toastEl.setAttribute('aria-atomic', 'true');
-    
-    toastEl.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                <strong>${title}</strong>: ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-    
-    // Add to container
-    toastContainer.appendChild(toastEl);
-    
-    // Initialize and show toast
-    const toast = new bootstrap.Toast(toastEl, {
-        autohide: true,
-        delay: 5000
-    });
-    toast.show();
-}
+// Toast notification function is globally available from base.html

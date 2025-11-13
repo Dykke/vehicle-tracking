@@ -5,7 +5,7 @@ from models.vehicle import Vehicle
 from models.location_log import LocationLog
 from models import db
 from datetime import datetime, timedelta
-from sqlalchemy import text, desc
+from sqlalchemy import text, desc, func
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import requests
@@ -417,6 +417,17 @@ def add_driver():
     
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already exists.'}), 400
+    
+    # Check for duplicate first name AND last name combination (case-insensitive)
+    if first_name and last_name:
+        existing_driver = User.query.filter(
+            User.user_type == 'driver',
+            func.lower(User.first_name) == first_name.lower(),
+            func.lower(User.last_name) == last_name.lower()
+        ).first()
+        
+        if existing_driver:
+            return jsonify({'error': f'A driver with the name {first_name} {last_name} already exists. Please verify the driver information.'}), 400
     
     # Debug: Check session state before creating driver
     print(f"🔍 Session state before driver creation:")

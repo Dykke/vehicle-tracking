@@ -1,46 +1,6 @@
 // Global functions for driver management
 
-// Show toast notification
-function showToast(title, message, type = 'success') {
-    // Create toast container if it doesn't exist
-    let toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container';
-        toastContainer.style.position = 'fixed';
-        toastContainer.style.bottom = '20px';
-        toastContainer.style.right = '20px';
-        toastContainer.style.zIndex = '9999';
-        document.body.appendChild(toastContainer);
-    }
-    
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.style.backgroundColor = type === 'success' ? '#34a853' : type === 'info' ? '#1a73e8' : '#ea4335';
-    toast.style.color = 'white';
-    toast.style.borderRadius = '4px';
-    toast.style.padding = '12px 20px';
-    toast.style.marginBottom = '10px';
-    toast.style.minWidth = '250px';
-    toast.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
-    
-    // Add content
-    toast.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 5px;">${title}</div>
-        <div>${message}</div>
-    `;
-    
-    // Add to container
-    toastContainer.appendChild(toast);
-    
-    // Remove after 5 seconds
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.5s ease';
-        setTimeout(() => toast.remove(), 500);
-    }, 5000);
-}
+// Toast notification function is globally available from base.html
 
 // Confirmation dialog
 function showConfirmation(title, message, confirmCallback) {
