@@ -16,8 +16,8 @@
     padding: 2rem !important;
     margin: 0 !important;
     
-    /* Force large text */
-    font-size: 1.5rem !important;
+    /* Don't set font-size on button - let child elements control their own */
+    font-size: inherit !important;
     font-weight: 700 !important;
     line-height: 1.2 !important;
     
@@ -76,6 +76,8 @@
     width: 100% !important;
     gap: 1rem !important;
     padding: 1rem !important;
+    min-width: 0 !important;
+    overflow: visible !important;
 }
 
 /* Icons */
@@ -90,6 +92,8 @@
     text-align: center !important;
     line-height: 1.3 !important;
     width: 100% !important;
+    min-width: 0 !important;
+    overflow: visible !important;
 }
 
 .controls-container .occupancy-main {
@@ -106,6 +110,17 @@
     opacity: 0.95 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.25px !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block !important;
+    width: fit-content !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+    /* Ensure this overrides any inherited font-size */
+    font-size: 1.4rem !important;
 }
 
 /* Mobile responsive */
@@ -113,19 +128,48 @@
     .controls-container .btn.occupancy-btn-large {
         min-height: 120px !important;
         height: 120px !important;
-        padding: 1.5rem !important;
+        padding: 0.75rem 0.4rem !important;
     }
     
     .controls-container .occupancy-icon {
-        font-size: 3rem !important;
+        font-size: 2rem !important;
+        margin-bottom: 0.2rem !important;
     }
     
     .controls-container .occupancy-main {
-        font-size: 1.6rem !important;
+        font-size: 1.4rem !important;
     }
     
     .controls-container .occupancy-sub {
-        font-size: 1.2rem !important;
+        font-size: 0.65rem !important;
+        line-height: 1.3 !important;
+        white-space: nowrap !important;
+        text-align: center !important;
+        padding: 0 0.5rem !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        letter-spacing: 0px !important;
+        margin: 0 auto !important;
+        display: block !important;
+        width: fit-content !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        /* Force override any inherited or inline styles */
+        font-size: 0.65rem !important;
+    }
+    
+    .controls-container .occupancy-btn-content {
+        gap: 0.3rem !important;
+        padding: 0.4rem 0.2rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    .controls-container .occupancy-text {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }
 }
 
@@ -134,27 +178,145 @@
     .controls-container .btn.occupancy-btn-large {
         min-height: 100px !important;
         height: 100px !important;
-        padding: 1rem !important;
+        padding: 0.6rem 0.3rem !important;
     }
     
     .controls-container .occupancy-icon {
-        font-size: 2.5rem !important;
+        font-size: 1.75rem !important;
+        margin-bottom: 0.2rem !important;
     }
     
     .controls-container .occupancy-main {
-        font-size: 1.4rem !important;
+        font-size: 1.2rem !important;
     }
     
     .controls-container .occupancy-sub {
-        font-size: 1.1rem !important;
+        font-size: 0.6rem !important;
+        line-height: 1.3 !important;
+        white-space: nowrap !important;
+        text-align: center !important;
+        padding: 0 0.4rem !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        letter-spacing: 0px !important;
+        margin: 0 auto !important;
+        display: block !important;
+        width: fit-content !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        /* Force override any inherited or inline styles */
+        font-size: 0.6rem !important;
+    }
+    
+    .controls-container .occupancy-btn-content {
+        gap: 0.2rem !important;
+        padding: 0.3rem 0.1rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    .controls-container .occupancy-text {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+}
+
+/* Very small devices (phones in portrait) */
+@media (max-width: 400px) {
+    .controls-container .btn.occupancy-btn-large {
+        min-height: 90px !important;
+        height: 90px !important;
+        padding: 0.5rem 0.25rem !important;
+    }
+    
+    .controls-container .occupancy-icon {
+        font-size: 1.5rem !important;
+        margin-bottom: 0.15rem !important;
+    }
+    
+    .controls-container .occupancy-sub {
+        font-size: 0.55rem !important;
+        line-height: 1.3 !important;
+        white-space: nowrap !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        letter-spacing: 0px !important;
+        padding: 0 0.3rem !important;
+        margin: 0 auto !important;
+        display: block !important;
+        width: fit-content !important;
+        max-width: 100% !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+        /* Force override any inherited or inline styles */
+        font-size: 0.55rem !important;
+    }
+    
+    /* Ensure text container allows content */
+    .controls-container .occupancy-text {
+        max-width: 100% !important;
+        overflow: visible !important;
+        min-width: 0 !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+    
+    .controls-container .occupancy-btn-content {
+        padding: 0.2rem 0.1rem !important;
+        gap: 0.15rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Ensure button can accommodate text */
+    .controls-container .btn.occupancy-btn-large {
+        min-width: 0 !important;
     }
 }
 
 /* Ensure proper spacing */
 .controls-container .row.g-4 .col-6 {
     padding: 0.5rem !important;
+    min-width: 0 !important;
 }
 
 .controls-container .occupancy-btn-large {
     margin: 0.5rem 0 !important;
+}
+
+/* Prevent text wrapping - keep on single line */
+.controls-container .occupancy-sub {
+    display: block !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Ensure buttons have enough width for text */
+@media (max-width: 575.98px) {
+    .controls-container .row.g-4 .col-6 {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+        min-width: 0 !important;
+        padding-left: 0.25rem !important;
+        padding-right: 0.25rem !important;
+    }
+}
+
+/* Additional mobile centering fixes */
+@media (max-width: 767.98px) {
+    .controls-container .occupancy-btn-content {
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    .controls-container .occupancy-text {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
 }

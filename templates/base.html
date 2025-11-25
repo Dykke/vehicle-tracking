@@ -419,19 +419,38 @@
             
             nav {
                 padding: 8px 12px;
+                height: auto;
+                min-height: 50px;
+            }
+            
+            .navbar-content {
+                flex-wrap: wrap;
+                gap: 0.5rem;
             }
             
             .nav-brand {
                 font-size: 1.1rem;
+                flex-shrink: 0;
             }
             
             .nav-links {
                 gap: 4px;
+                flex-wrap: wrap;
+                justify-content: flex-end;
             }
             
             .btn {
                 padding: 6px 8px;
                 font-size: 0.85rem;
+                min-width: 40px;
+                min-height: 40px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .btn i {
+                font-size: 1rem;
             }
             
             h1 {
@@ -450,6 +469,14 @@
             .btn-text {
                 display: none;
             }
+            
+            /* Ensure notification badge is visible */
+            .notification-badge {
+                font-size: 0.7rem;
+                min-width: 16px;
+                height: 16px;
+                padding: 2px 4px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -458,12 +485,66 @@
                 padding: 8px !important;
             }
             
+            nav {
+                padding: 6px 8px;
+                min-height: 45px;
+            }
+            
+            .navbar-content {
+                padding: 0 4px;
+            }
+            
+            .nav-brand {
+                font-size: 1rem;
+            }
+            
             .nav-brand span {
                 display: none;
             }
             
+            .nav-links {
+                gap: 2px;
+            }
+            
+            .btn {
+                padding: 6px 6px;
+                font-size: 0.8rem;
+                min-width: 36px;
+                min-height: 36px;
+            }
+            
+            .btn i {
+                font-size: 0.9rem;
+            }
+            
             h1 {
                 font-size: 1.3rem;
+            }
+            
+            /* Stack navigation on very small screens if needed */
+            .navbar-content {
+                flex-direction: row;
+            }
+        }
+        
+        /* Extra small devices (phones in portrait) */
+        @media (max-width: 360px) {
+            nav {
+                padding: 4px 6px;
+            }
+            
+            .nav-brand {
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                padding: 4px 4px;
+                min-width: 32px;
+                min-height: 32px;
+            }
+            
+            .btn i {
+                font-size: 0.85rem;
             }
         }
     </style>

@@ -11,6 +11,19 @@
         width: 100%;
     }
     
+    /* Mobile map container height adjustment */
+    @media (max-width: 768px) {
+        #map-container {
+            height: calc(100vh - 180px);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        #map-container {
+            height: calc(100vh - 200px);
+        }
+    }
+    
     #map {
         height: 100%;
         width: 100%;
@@ -260,9 +273,53 @@
         100% { opacity: 1; }
     }
     
+    /* Mobile responsive styles for page header */
     @media (max-width: 768px) {
         .map-overlay {
             max-width: 250px;
+        }
+        
+        /* Stack header content on mobile */
+        .d-flex.justify-content-between.align-items-center {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+        }
+        
+        /* Make controls full width on mobile */
+        .d-flex.align-items-center.gap-3 {
+            width: 100% !important;
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+        }
+        
+        /* Adjust route filter on mobile */
+        #routeFilter {
+            min-width: 100% !important;
+            width: 100% !important;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Make buttons stack on mobile */
+        .btn-outline-primary,
+        .btn-outline-secondary {
+            flex: 1 1 auto !important;
+            min-width: calc(50% - 0.25rem) !important;
+        }
+        
+        /* Reduce header padding on mobile */
+        .py-3.px-4 {
+            padding: 1rem 0.75rem !important;
+        }
+        
+        /* Smaller title on mobile */
+        h2 {
+            font-size: 1.25rem !important;
+        }
+        
+        /* Hide subtitle text on very small screens */
+        .text-muted {
+            font-size: 0.85rem !important;
         }
     }
     
@@ -297,6 +354,40 @@
             bottom: 10px !important;
             left: 10px !important;
             right: 10px !important;
+        }
+        
+        /* Further reduce header padding on small phones */
+        .py-3.px-4 {
+            padding: 0.75rem 0.5rem !important;
+        }
+        
+        /* Hide subtitle on very small screens */
+        .text-muted {
+            display: none !important;
+        }
+        
+        /* Make buttons full width on very small screens */
+        .btn-outline-primary,
+        .btn-outline-secondary {
+            width: 100% !important;
+            min-width: 100% !important;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Smaller title on very small screens */
+        h2 {
+            font-size: 1.1rem !important;
+        }
+        
+        /* Hide button text, show only icons on very small screens */
+        .btn-sm .me-1,
+        .btn-sm .me-2 {
+            margin-right: 0 !important;
+        }
+        
+        .btn-sm {
+            padding: 0.5rem !important;
+            min-width: 44px !important;
         }
     }
 </style>

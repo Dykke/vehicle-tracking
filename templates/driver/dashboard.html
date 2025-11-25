@@ -37,6 +37,35 @@
         transform: scale(1.05);
     }
     
+    /* Controls container mobile optimization */
+    @media (max-width: 767.98px) {
+        .controls-container {
+            padding: 1rem 0.75rem !important;
+        }
+        
+        .container-fluid {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+        
+        /* Ensure cards don't overflow */
+        .card {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        
+        /* Better spacing for route management */
+        .row {
+            margin-left: -0.5rem !important;
+            margin-right: -0.5rem !important;
+        }
+        
+        .row > [class*="col-"] {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+    }
+    
     /* Mobile optimizations for driver profile card */
     @media (max-width: 767.98px) {
         /* Stack everything vertically on mobile and center align */
@@ -241,6 +270,68 @@
         .mb-2 {
             margin-bottom: 0.75rem !important;
         }
+        
+        /* Route actions buttons mobile responsiveness */
+        .btn-lg[data-action="departure"],
+        .btn-lg[data-action="arrival"] {
+            min-height: 100px !important;
+            height: 100px !important;
+            padding: 1rem 0.75rem !important;
+            font-size: 1.1rem !important;
+        }
+        
+        .btn-lg[data-action="departure"] i,
+        .btn-lg[data-action="arrival"] i {
+            font-size: 2rem !important;
+        }
+        
+        .btn-lg[data-action="departure"] div,
+        .btn-lg[data-action="arrival"] div {
+            font-size: 1rem !important;
+        }
+        
+        /* Card body padding on mobile */
+        .card-body {
+            padding: 1rem !important;
+        }
+        
+        /* Route management section mobile */
+        .col-md-6 {
+            margin-bottom: 1rem !important;
+        }
+    }
+    
+    /* Extra small devices */
+    @media (max-width: 575.98px) {
+        /* Route actions buttons extra small */
+        .btn-lg[data-action="departure"],
+        .btn-lg[data-action="arrival"] {
+            min-height: 90px !important;
+            height: 90px !important;
+            padding: 0.75rem 0.5rem !important;
+            font-size: 1rem !important;
+        }
+        
+        .btn-lg[data-action="departure"] i,
+        .btn-lg[data-action="arrival"] i {
+            font-size: 1.75rem !important;
+        }
+        
+        .btn-lg[data-action="departure"] div,
+        .btn-lg[data-action="arrival"] div {
+            font-size: 0.9rem !important;
+        }
+        
+        /* Smaller card padding */
+        .card-body {
+            padding: 0.75rem !important;
+        }
+        
+        /* Smaller buttons */
+        .btn-sm {
+            padding: 0.4rem 0.6rem !important;
+            font-size: 0.85rem !important;
+        }
     }
     
     /* Tablet styles */
@@ -382,21 +473,21 @@
                                     <h6 class="mb-3">Occupancy Status Control</h6>
                                     <div class="row g-4 mb-3">
                                         <div class="col-6">
-                                            <button class="btn btn-success occupancy-btn occupancy-btn-large" data-status="vacant" id="vacantBtn" style="background-color: #28a745 !important; min-height: 150px !important; height: 150px !important; width: 100% !important; padding: 2rem !important; font-size: 1.5rem !important; border-radius: 1rem !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important; border: 3px solid #1e7e34 !important; color: white !important;">
+                                            <button class="btn btn-success occupancy-btn occupancy-btn-large" data-status="vacant" id="vacantBtn" style="background-color: #28a745 !important; min-height: 150px !important; height: 150px !important; width: 100% !important; padding: 2rem !important; border-radius: 1rem !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important; border: 3px solid #1e7e34 !important; color: white !important;">
                                                 <div class="occupancy-btn-content" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; height: 100% !important; width: 100% !important; gap: 0.5rem !important; padding: 0.5rem !important; box-sizing: border-box !important;">
                                                     <i class="fas fa-door-open occupancy-icon" style="font-size: 3rem !important; margin-bottom: 0.25rem !important; line-height: 1 !important;"></i>
-                                                    <div class="occupancy-text" style="text-align: center !important; width: 100% !important;">
-                                                        <div class="occupancy-sub" style="font-weight: 600 !important; font-size: 1.2rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Vacant (V)</div>
+                                                    <div class="occupancy-text" style="text-align: center !important; width: 100% !important; overflow: visible !important; display: flex !important; justify-content: center !important; align-items: center !important;">
+                                                        <div class="occupancy-sub" style="font-weight: 600 !important; text-transform: uppercase !important; line-height: 1.3 !important; white-space: nowrap !important; overflow: visible !important; margin: 0 auto !important; display: block !important; width: fit-content !important; letter-spacing: 0px !important;">Vacant (V)</div>
                                     </div>
                                     </div>
                                         </button>
                                 </div>
                                         <div class="col-6">
-                                            <button class="btn btn-danger occupancy-btn occupancy-btn-large" data-status="full" id="fullBtn" style="background-color: #dc3545 !important; min-height: 150px !important; height: 150px !important; width: 100% !important; padding: 2rem !important; font-size: 1.5rem !important; border-radius: 1rem !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important; border: 3px solid #c82333 !important; color: white !important;">
+                                            <button class="btn btn-danger occupancy-btn occupancy-btn-large" data-status="full" id="fullBtn" style="background-color: #dc3545 !important; min-height: 150px !important; height: 150px !important; width: 100% !important; padding: 2rem !important; border-radius: 1rem !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2) !important; border: 3px solid #c82333 !important; color: white !important;">
                                                 <div class="occupancy-btn-content" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; height: 100% !important; width: 100% !important; gap: 0.5rem !important; padding: 0.5rem !important; box-sizing: border-box !important;">
                                                     <i class="fas fa-door-closed occupancy-icon" style="font-size: 3rem !important; margin-bottom: 0.25rem !important; line-height: 1 !important;"></i>
-                                                    <div class="occupancy-text" style="text-align: center !important; width: 100% !important;">
-                                                        <div class="occupancy-sub" style="font-weight: 600 !important; font-size: 1.2rem !important; text-transform: uppercase !important; line-height: 1.1 !important;">Full (F)</div>
+                                                    <div class="occupancy-text" style="text-align: center !important; width: 100% !important; overflow: visible !important; display: flex !important; justify-content: center !important; align-items: center !important;">
+                                                        <div class="occupancy-sub" style="font-weight: 600 !important; text-transform: uppercase !important; line-height: 1.3 !important; white-space: nowrap !important; overflow: visible !important; margin: 0 auto !important; display: block !important; width: fit-content !important; letter-spacing: 0px !important;">Full (F)</div>
                                      </div>
                                         </div>
                                             </button>
