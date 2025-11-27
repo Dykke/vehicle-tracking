@@ -188,7 +188,7 @@ function openConfirmationDialog(message, onConfirm) {
                  currentVehicleId = vehiclesData[0].id;
                  console.log('🚗 Auto-selecting first vehicle:', currentVehicleId);
                  updateVehicleInfo(currentVehicleId);
-                updateRouteInfo(currentVehicleId);
+                 updateRouteInfo(currentVehicleId);
                 updatePassengerCapacityDisplay(vehiclesData[0]);
                 setPassengerControlsEnabled(false);
                 setOccupancyControlsEnabled(false);
@@ -331,19 +331,19 @@ function openConfirmationDialog(message, onConfirm) {
       }
   }
  
-// Update vehicle occupancy status
-async function updateOccupancy(status) {
-    if (!currentVehicleId) {
-        showToast('Error', 'No vehicle selected', 'error');
-        return;
-    }
+ // Update vehicle occupancy status
+ async function updateOccupancy(status) {
+     if (!currentVehicleId) {
+         showToast('Error', 'No vehicle selected', 'error');
+         return;
+     }
     
     if (!currentTripId) {
         showToast('Info', 'Start a trip to update occupancy status.', 'info');
         return;
     }
-    
-    try {
+     
+     try {
          console.log(`🔄 Updating occupancy to: ${status}`);
          
          const response = await fetch(`/driver/vehicle/${currentVehicleId}/occupancy`, {
@@ -749,7 +749,7 @@ function hideTripManagement() {
  
  
  
-// Passenger management functions
+ // Passenger management functions
 async function recordPassengerEvent(eventType, countOverride = null) {
      if (!currentVehicleId || !currentTripId) {
          showToast('Error', 'No active trip. Start a trip first.', 'error');

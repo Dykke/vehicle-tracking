@@ -4,7 +4,7 @@ from models.location_log import LocationLog
 from models.user import Trip, User, PassengerEvent
 from models import db
 from datetime import datetime, timedelta
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, case
 import math
 import requests
 import json
@@ -86,25 +86,73 @@ def get_active_vehicles():
             # Expire all cached objects to ensure fresh data
             db.session.expire_all()
             
-            # OPTIMIZATION: Use a single efficient query with eager loading of drivers
-            # This is a critical performance bottleneck on Render
-            from sqlalchemy.orm import joinedload
+            # OPTIMIZATION: Use a single efficient query with eager loading of drivers AND trips
+            # This is a critical performance bottleneck on Render - FIXED N+1 QUERY ISSUE
+            from sqlalchemy.orm import joinedload, subqueryload
+            from models.user import Trip
+            
+            # Get all active trips first (single query)
+            active_trip_ids = db.session.query(Trip.vehicle_id).filter(
+                Trip.status == 'active'
+            ).subquery()
+            
+            # Query vehicles with eager loading AND filter for those with active trips
             active_vehicles = Vehicle.query.options(
                 joinedload(Vehicle.assigned_driver)
             ).filter(
                 Vehicle.status.in_(['active', 'delayed']),
                 Vehicle.current_latitude.isnot(None),
-                Vehicle.current_longitude.isnot(None)
+                Vehicle.current_longitude.isnot(None),
+                Vehicle.id.in_(db.session.query(active_trip_ids.c.vehicle_id))
             ).all()
+            
+            # Get all active trips in one query (avoid N+1)
+            vehicle_ids = [v.id for v in active_vehicles]
+            active_trips_dict = {}
+            trip_ids_list = []
+            if vehicle_ids:
+                active_trips = Trip.query.filter(
+                    Trip.vehicle_id.in_(vehicle_ids),
+                    Trip.status == 'active'
+                ).all()
+                active_trips_dict = {trip.vehicle_id: trip for trip in active_trips}
+                trip_ids_list = [trip.id for trip in active_trips]
+            
+            # CRITICAL FIX: Get ALL passenger counts in ONE query instead of N queries
+            # This was causing 20+ second delays with multiple vehicles!
+            passenger_counts_dict = {}
+            if trip_ids_list:
+                # Get all passenger events for all trips in one query
+                passenger_events = db.session.query(
+                    PassengerEvent.trip_id,
+                    func.sum(
+                        case(
+                            (PassengerEvent.event_type == 'board', PassengerEvent.count),
+                            else_=0
+                        )
+                    ).label('boards'),
+                    func.sum(
+                        case(
+                            (PassengerEvent.event_type == 'alight', PassengerEvent.count),
+                            else_=0
+                        )
+                    ).label('alights')
+                ).filter(
+                    PassengerEvent.trip_id.in_(trip_ids_list)
+                ).group_by(PassengerEvent.trip_id).all()
+                
+                # Build dictionary: trip_id -> passenger_count
+                for event in passenger_events:
+                    trip_id = event.trip_id
+                    boards = event.boards or 0
+                    alights = event.alights or 0
+                    passenger_counts_dict[trip_id] = max(0, boards - alights)
             
             # Format vehicle data for public consumption (no PII) - SIMPLIFIED
             vehicles_data = []
             for vehicle in active_vehicles:
-                # Check if vehicle has an active trip
-                active_trip = Trip.query.filter_by(
-                    vehicle_id=vehicle.id,
-                    status='active'
-                ).first()
+                # Get active trip from dictionary (no query!)
+                active_trip = active_trips_dict.get(vehicle.id)
                 
                 # Only show vehicles with active trips (departed)
                 if not active_trip:
@@ -166,7 +214,8 @@ def get_active_vehicles():
                 active_trip_id = None
                 if active_trip:
                     active_trip_id = active_trip.id
-                    current_passengers = get_current_passenger_count(active_trip.id)
+                    # Get passenger count from dictionary (no query!) - CRITICAL PERFORMANCE FIX
+                    current_passengers = passenger_counts_dict.get(active_trip_id, 0)
                     print(f"📊 Vehicle {vehicle.id}: active_trip_id={active_trip_id}, current_passengers={current_passengers}")
 
                 capacity = vehicle.capacity or 15  # default capacity if not set

@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, send_file
 from flask_login import login_required, current_user
-from models.user import User, DriverActionLog
+from models.user import User, DriverActionLog, OperatorActionLog
 from models.vehicle import Vehicle
 from models import db
-from sqlalchemy import desc, and_, or_, func
+from sqlalchemy import desc, and_, or_, func, union_all
 from datetime import datetime, timedelta
 import json
 import csv
@@ -14,7 +14,7 @@ from werkzeug.security import generate_password_hash
 
 admin_bp = Blueprint('admin', __name__)
 
-@admin_bp.route('/admin/dashboard')
+@admin_bp.route('/dashboard')
 @login_required
 def dashboard():
     if current_user.user_type != 'admin':
@@ -39,7 +39,7 @@ def dashboard():
         recent_logs=recent_logs
     )
 
-@admin_bp.route('/admin/logs/actions')
+@admin_bp.route('/logs/actions')
 @login_required
 def action_logs():
     if current_user.user_type != 'admin' and current_user.user_type != 'operator':
@@ -64,7 +64,7 @@ def action_logs():
         operators=operators
     )
 
-@admin_bp.route('/admin/logs/actions/data')
+@admin_bp.route('/logs/actions/data')
 @login_required
 def action_logs_data():
     if current_user.user_type != 'admin' and current_user.user_type != 'operator':
@@ -80,8 +80,10 @@ def action_logs_data():
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 10))
     
-    # Start with base query
-    query = db.session.query(
+    logs = []
+    
+    # Query DriverActionLog (driver actions)
+    driver_query = db.session.query(
         DriverActionLog,
         User.username.label('driver_username'),
         User.profile_image_url.label('driver_profile_image_url'),
@@ -93,56 +95,48 @@ def action_logs_data():
         Vehicle, DriverActionLog.vehicle_id == Vehicle.id
     )
     
-    # Apply filters
+    # Apply filters for driver logs
     if driver_id:
-        query = query.filter(DriverActionLog.driver_id == driver_id)
+        driver_query = driver_query.filter(DriverActionLog.driver_id == driver_id)
     
     if vehicle_id:
-        query = query.filter(DriverActionLog.vehicle_id == vehicle_id)
+        driver_query = driver_query.filter(DriverActionLog.vehicle_id == vehicle_id)
     
     # For operators, only show logs for their drivers or vehicles they own
     if current_user.user_type == 'operator':
-        query = query.filter(
+        driver_query = driver_query.filter(
             or_(
                 User.created_by_id == current_user.id,
                 Vehicle.owner_id == current_user.id
             )
         )
     elif operator_id:  # Only apply operator filter for admins
-        query = query.filter(User.created_by_id == operator_id)
+        driver_query = driver_query.filter(User.created_by_id == operator_id)
     
     if start_date:
         start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
-        query = query.filter(DriverActionLog.created_at >= start_date_obj)
+        driver_query = driver_query.filter(DriverActionLog.created_at >= start_date_obj)
     
     if end_date:
-        end_date_obj = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)  # Include the entire end day
-        query = query.filter(DriverActionLog.created_at < end_date_obj)
+        end_date_obj = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+        driver_query = driver_query.filter(DriverActionLog.created_at < end_date_obj)
     
     if action_types and action_types != 'all':
         action_list = action_types.split(',')
-        query = query.filter(DriverActionLog.action.in_(action_list))
+        driver_query = driver_query.filter(DriverActionLog.action.in_(action_list))
     
-    # Get total count for pagination
-    total_count = query.count()
+    # Execute driver logs query
+    driver_results = driver_query.all()
     
-    # Apply pagination
-    query = query.order_by(desc(DriverActionLog.created_at))
-    query = query.offset((page - 1) * per_page).limit(per_page)
+    # Get operator usernames for driver logs
+    operator_ids = [result.operator_id for result in driver_results if result.operator_id]
     
-    # Execute query
-    results = query.all()
-    
-    # Get operator usernames for each log
-    operator_ids = [result.operator_id for result in results if result.operator_id]
-    operators = {op.id: op.username for op in User.query.filter(User.id.in_(operator_ids)).all()}
-    
-    # Format results
-    logs = []
-    for result in results:
+    # Format driver logs
+    for result in driver_results:
         log = result[0]
         log_dict = {
             'id': log.id,
+            'log_type': 'driver',
             'driver_id': log.driver_id,
             'driver_username': result.driver_username,
             'driver_profile_image_url': result.driver_profile_image_url,
@@ -151,10 +145,111 @@ def action_logs_data():
             'action': log.action,
             'meta_data': log.meta_data,
             'created_at': log.created_at.isoformat() + 'Z',
-            'operator_id': result.operator_id,
-            'operator_username': operators.get(result.operator_id) if result.operator_id else None
+            'operator_id': result.operator_id
         }
         logs.append(log_dict)
+    
+    # Query OperatorActionLog (operator actions: driver creation, vehicle creation, assignment, etc.)
+    operator_query = db.session.query(
+        OperatorActionLog,
+        User.username.label('operator_username'),
+        Vehicle.registration_number.label('vehicle_registration')
+    ).join(
+        User, OperatorActionLog.operator_id == User.id
+    ).outerjoin(
+        Vehicle, OperatorActionLog.target_id == Vehicle.id
+    )
+    
+    # Apply filters for operator logs
+    if vehicle_id:
+        operator_query = operator_query.filter(
+            and_(
+                OperatorActionLog.target_type == 'vehicle',
+                OperatorActionLog.target_id == vehicle_id
+            )
+        )
+    
+    if driver_id:
+        # Filter operator logs that relate to this driver
+        operator_query = operator_query.filter(
+            or_(
+                and_(
+                    OperatorActionLog.target_type == 'driver',
+                    OperatorActionLog.target_id == driver_id
+                ),
+                func.json_extract(OperatorActionLog.meta_data, '$.driver_id') == driver_id
+            )
+        )
+    
+    # For operators, only show their own action logs
+    # For admins, show ALL operator logs (unless filtered by operator_id)
+    if current_user.user_type == 'operator':
+        operator_query = operator_query.filter(OperatorActionLog.operator_id == current_user.id)
+    elif current_user.user_type == 'admin' and operator_id:  # Only filter if admin specifies operator_id
+        operator_query = operator_query.filter(OperatorActionLog.operator_id == operator_id)
+    # If admin and no operator_id filter, show ALL operator logs (no filter)
+    
+    if start_date:
+        start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+        operator_query = operator_query.filter(OperatorActionLog.created_at >= start_date_obj)
+    
+    if end_date:
+        end_date_obj = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+        operator_query = operator_query.filter(OperatorActionLog.created_at < end_date_obj)
+    
+    if action_types and action_types != 'all':
+        action_list = action_types.split(',')
+        operator_query = operator_query.filter(OperatorActionLog.action.in_(action_list))
+    
+    # Execute operator logs query
+    operator_results = operator_query.all()
+    
+    # Format operator logs
+    for result in operator_results:
+        log = result[0]
+        meta_data = log.meta_data if isinstance(log.meta_data, dict) else (json.loads(log.meta_data) if isinstance(log.meta_data, str) else {})
+        
+        # Get driver username from metadata if available
+        driver_username = None
+        driver_id_from_meta = None
+        if 'driver_username' in meta_data:
+            driver_username = meta_data['driver_username']
+        if 'driver_id' in meta_data:
+            driver_id_from_meta = meta_data['driver_id']
+        
+        log_dict = {
+            'id': log.id,
+            'log_type': 'operator',
+            'driver_id': driver_id_from_meta,
+            'driver_username': driver_username,
+            'driver_profile_image_url': None,
+            'vehicle_id': log.target_id if log.target_type == 'vehicle' else None,
+            'vehicle_registration': result.vehicle_registration or (meta_data.get('vehicle_registration') if meta_data else None),
+            'action': log.action,
+            'meta_data': log.meta_data,
+            'created_at': log.created_at.isoformat() + 'Z',
+            'operator_id': log.operator_id,
+            'operator_username': result.operator_username
+        }
+        logs.append(log_dict)
+    
+    # Sort all logs by created_at (newest first)
+    logs.sort(key=lambda x: x['created_at'], reverse=True)
+    
+    # Get all operator usernames
+    all_operator_ids = set([log.get('operator_id') for log in logs if log.get('operator_id')])
+    operators = {op.id: op.username for op in User.query.filter(User.id.in_(all_operator_ids)).all()}
+    
+    # Add operator usernames to logs
+    for log in logs:
+        if log.get('operator_id'):
+            log['operator_username'] = operators.get(log['operator_id'])
+    
+    # Apply pagination
+    total_count = len(logs)
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paginated_logs = logs[start_idx:end_idx]
     
     # Calculate pagination
     total_pages = (total_count + per_page - 1) // per_page
@@ -167,11 +262,11 @@ def action_logs_data():
     
     return jsonify({
         'success': True,
-        'logs': logs,
+        'logs': paginated_logs,
         'pagination': pagination
     })
 
-@admin_bp.route('/admin/logs/actions/export')
+@admin_bp.route('/logs/actions/export')
 @login_required
 def export_action_logs():
     if current_user.user_type != 'admin' and current_user.user_type != 'operator':
@@ -287,7 +382,7 @@ def export_action_logs():
         attachment_filename=filename
     )
 
-@admin_bp.route('/admin/driver/<int:driver_id>/activate', methods=['POST'])
+@admin_bp.route('/driver/<int:driver_id>/activate', methods=['POST'])
 @login_required
 def activate_driver(driver_id):
     if current_user.user_type != 'admin' and current_user.user_type != 'operator':
@@ -304,7 +399,7 @@ def activate_driver(driver_id):
     
     return jsonify({'message': f'Driver {driver.username} activated successfully'})
 
-@admin_bp.route('/admin/driver/<int:driver_id>/deactivate', methods=['POST'])
+@admin_bp.route('/driver/<int:driver_id>/deactivate', methods=['POST'])
 @login_required
 def deactivate_driver(driver_id):
     if current_user.user_type != 'admin' and current_user.user_type != 'operator':
@@ -409,7 +504,7 @@ def remove_profile_picture():
         'message': 'Profile picture removed successfully'
     })
 
-@admin_bp.route('/admin/drivers')
+@admin_bp.route('/drivers')
 @login_required
 def manage_drivers():
     if current_user.user_type != 'admin':
@@ -419,7 +514,7 @@ def manage_drivers():
     drivers = User.query.filter_by(user_type='driver').all()
     return render_template('operator/manage_drivers.html', drivers=drivers)
 
-@admin_bp.route('/admin/profile-pictures')
+@admin_bp.route('/profile-pictures')
 @login_required
 def manage_profile_pictures():
     if current_user.user_type != 'admin' and current_user.user_type != 'operator':

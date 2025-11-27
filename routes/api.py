@@ -125,7 +125,7 @@ def get_active_vehicles():
         current_app.logger.error(f'Error getting active vehicles: {str(e)}')
         return jsonify({'error': 'Internal server error'}), 500
 
-@api_bp.route('/api/vehicles/<int:vehicle_id>/route', methods=['POST'])
+@api_bp.route('/vehicles/<int:vehicle_id>/route', methods=['POST'])
 @login_required
 def update_vehicle_route(vehicle_id):
     """Update a vehicle's route."""
@@ -191,7 +191,7 @@ def update_vehicle_route(vehicle_id):
         current_app.logger.error(f'Error updating route: {str(e)}')
         return jsonify({'error': 'Internal server error'}), 500
 
-@api_bp.route('/api/vehicles/<int:vehicle_id>/route', methods=['DELETE'])
+@api_bp.route('/vehicles/<int:vehicle_id>/route', methods=['DELETE'])
 @login_required
 def delete_vehicle_route(vehicle_id):
     """Delete a vehicle's route (abort route)."""
@@ -212,19 +212,40 @@ def delete_vehicle_route(vehicle_id):
         vehicle.route = None
         vehicle.route_info = None
         
-        # Log the action if DriverActionLog is available
+        # Log the action for operators/admins
+        try:
+            from models.user import OperatorActionLog
+            if current_user.user_type in ['operator', 'admin']:
+                operator_log = OperatorActionLog(
+                    operator_id=current_user.id,
+                    action='route_cleared',
+                    target_type='vehicle',
+                    target_id=vehicle_id,
+                    meta_data={
+                        'old_route': old_route or 'No route set',
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'vehicle_registration': vehicle.registration_number
+                    }
+                )
+                db.session.add(operator_log)
+        except ImportError:
+            # OperatorActionLog not available, skip logging
+            pass
+        
+        # Log the action for drivers if DriverActionLog is available
         try:
             from models.user import DriverActionLog
-            action_log = DriverActionLog(
-                driver_id=current_user.id,
-                vehicle_id=vehicle_id,
-                action='route_abort',
-                meta_data={
-                    'old_route': old_route,
-                    'timestamp': datetime.utcnow().isoformat()
-                }
-            )
-            db.session.add(action_log)
+            if current_user.user_type == 'driver':
+                action_log = DriverActionLog(
+                    driver_id=current_user.id,
+                    vehicle_id=vehicle_id,
+                    action='route_abort',
+                    meta_data={
+                        'old_route': old_route,
+                        'timestamp': datetime.utcnow().isoformat()
+                    }
+                )
+                db.session.add(action_log)
         except ImportError:
             # DriverActionLog not available, skip logging
             pass

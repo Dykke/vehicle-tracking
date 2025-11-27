@@ -98,7 +98,7 @@
             <div id="logCount" class="badge bg-primary">0 logs</div>
         </div>
         <div class="card-body p-0">
-            <div id="logsContainer" class="p-3">
+            <div id="logsContainer" class="p-3" style="min-height: 400px;">
                 <!-- Logs will be loaded here -->
                 <div class="text-center p-4">
                     <div class="spinner-border text-primary" role="status">
@@ -108,13 +108,14 @@
                 </div>
             </div>
             
-            <div class="pagination-container p-3 border-top">
-                <nav aria-label="Logs pagination">
-                    <ul class="pagination mb-0 justify-content-center" id="pagination">
-                        <!-- Pagination will be generated here -->
-                    </ul>
-                </nav>
-            </div>
+        </div>
+    </div>
+    <!-- Pagination OUTSIDE card completely - at bottom of page -->
+    <div class="d-flex justify-content-center p-3 bg-light border-top mt-3" id="paginationContainer">
+        <div aria-label="Logs pagination" style="position: static !important; display: block !important;">
+            <ul class="pagination mb-0" id="pagination">
+                <!-- Pagination will be generated here -->
+            </ul>
         </div>
     </div>
 </div>
@@ -122,6 +123,20 @@
 
 {% block styles %}
 <style>
+    /* Override base.html nav styles for pagination */
+    #paginationContainer nav,
+    #paginationContainer > div[aria-label="Logs pagination"] {
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        display: block !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        z-index: auto !important;
+    }
+    
     .action-badge {
         cursor: pointer;
         transition: all 0.2s;
@@ -402,7 +417,20 @@
             return;
         }
         
-        let html = '';
+        // Start table format matching Recent Activity
+        let html = `
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Vehicle</th>
+                            <th>Time</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
         
         logs.forEach(log => {
             const date = new Date(log.created_at);
@@ -432,8 +460,21 @@
                 case 'passenger_alight':
                     actionBadge = '<span class="badge bg-secondary">Passenger Alight</span>';
                     break;
+                // Operator action logs
+                case 'driver_created':
+                    actionBadge = '<span class="badge bg-primary">Driver Created</span>';
+                    break;
+                case 'vehicle_created':
+                    actionBadge = '<span class="badge bg-info">Vehicle Created</span>';
+                    break;
+                case 'vehicle_assigned_to_driver':
+                    actionBadge = '<span class="badge bg-success">Vehicle Assigned</span>';
+                    break;
+                case 'vehicle_unassigned_from_driver':
+                    actionBadge = '<span class="badge bg-warning text-dark">Vehicle Unassigned</span>';
+                    break;
                 default:
-                    actionBadge = `<span class="badge bg-secondary">${log.action}</span>`;
+                    actionBadge = `<span class="badge bg-secondary">${log.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>`;
             }
             
             // Format metadata
@@ -471,11 +512,56 @@
                                 <strong>Count:</strong> ${metaData.count || '1'}
                             </div>
                         `;
+                    } else if (log.action === 'driver_created') {
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Username:</strong> ${metaData.driver_username || 'N/A'}
+                                ${metaData.driver_email ? `<strong>Email:</strong> ${metaData.driver_email}` : ''}
+                                ${metaData.driver_is_active !== undefined ? `<strong>Active:</strong> ${metaData.driver_is_active ? 'Yes' : 'No'}` : ''}
+                            </div>
+                        `;
+                    } else if (log.action === 'vehicle_created') {
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                <strong>Registration:</strong> ${metaData.vehicle_registration || 'N/A'}
+                                ${metaData.vehicle_type ? `<strong>Type:</strong> ${metaData.vehicle_type}` : ''}
+                                ${metaData.capacity ? `<strong>Capacity:</strong> ${metaData.capacity}` : ''}
+                                ${metaData.route ? `<strong>Route:</strong> ${metaData.route}` : ''}
+                            </div>
+                        `;
+                    } else if (log.action === 'vehicle_assigned_to_driver' || log.action === 'vehicle_unassigned_from_driver') {
+                        metaDataHtml = `
+                            <div class="log-meta">
+                                ${metaData.vehicle_registration ? `<strong>Vehicle:</strong> ${metaData.vehicle_registration}` : ''}
+                                ${metaData.driver_username ? `<strong>Driver:</strong> ${metaData.driver_username}` : ''}
+                                ${metaData.previous_driver_username ? `<strong>Previous Driver:</strong> ${metaData.previous_driver_username}` : ''}
+                            </div>
+                        `;
                     } else {
-                        // Generic metadata display
+                        // Generic metadata display - filter out internal fields
                         const metaItems = [];
+                        const excludeKeys = ['timestamp', 'profile_image_url', 'image_url', 'driver_profile_image_url', 'created_at', 'updated_at'];
+                        
                         for (const [key, value] of Object.entries(metaData)) {
-                            metaItems.push(`<strong>${key}:</strong> ${value}`);
+                            // Skip excluded keys
+                            if (excludeKeys.includes(key)) {
+                                continue;
+                            }
+                            
+                            // Skip any value that looks like an image URL or filename
+                            if (typeof value === 'string') {
+                                // Check if it contains image extensions or looks like a URL
+                                if (value.includes('.jpg') || value.includes('.png') || value.includes('.jpeg') || 
+                                    value.includes('.gif') || value.includes('.webp') ||
+                                    value.startsWith('http') || value.startsWith('/static/') ||
+                                    value.includes('?v=') || value.includes('&v=')) {
+                                    continue;
+                                }
+                            }
+                            
+                            // Format the key to be more readable
+                            const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            metaItems.push(`<strong>${formattedKey}:</strong> ${value}`);
                         }
                         
                         if (metaItems.length > 0) {
@@ -492,43 +578,77 @@
                 }
             }
             
-            // Driver profile image
-            let driverImageHtml = '';
-            if (log.driver_profile_image_url) {
-                driverImageHtml = `<img src="${log.driver_profile_image_url}" alt="${log.driver_username}" class="driver-img me-3">`;
-            } else {
-                driverImageHtml = `
-                    <div class="driver-placeholder me-3">
-                        <i class="fas fa-user"></i>
-                    </div>
-                `;
+            // Determine Vehicle column value
+            let vehicleColumn = 'N/A';
+            if (log.vehicle_registration) {
+                vehicleColumn = log.vehicle_registration;
+            } else if (log.target_type === 'vehicle' && log.vehicle_id) {
+                vehicleColumn = 'Vehicle ' + log.vehicle_id;
+            } else if (log.target_type === 'driver' || log.action === 'driver_created' || log.action === 'driver_updated' || log.action === 'driver_activated' || log.action === 'driver_deactivated') {
+                vehicleColumn = 'Driver Management';
+            } else if (log.target_type === 'system' || log.action === 'profile_updated' || log.action === 'password_changed' || log.action === 'settings_updated') {
+                vehicleColumn = 'System';
             }
             
+            // Format Details column - clean metadata display
+            let detailsHtml = '<small class="text-muted">';
+            if (log.meta_data) {
+                try {
+                    const metaData = typeof log.meta_data === 'string' ? JSON.parse(log.meta_data) : log.meta_data;
+                    const detailItems = [];
+                    
+                    // Format based on action type
+                    if (log.action === 'driver_created') {
+                        if (metaData.driver_username) detailItems.push(`Driver Username: ${metaData.driver_username}`);
+                        if (metaData.driver_email) detailItems.push(`Driver Email: ${metaData.driver_email}`);
+                        if (metaData.driver_is_active !== undefined) detailItems.push(`Driver Is Active: ${metaData.driver_is_active ? 'True' : 'False'}`);
+                    } else if (log.action === 'vehicle_created') {
+                        if (metaData.vehicle_registration) detailItems.push(`Registration: ${metaData.vehicle_registration}`);
+                        if (metaData.vehicle_type) detailItems.push(`Type: ${metaData.vehicle_type}`);
+                        if (metaData.capacity) detailItems.push(`Capacity: ${metaData.capacity}`);
+                    } else if (log.action === 'vehicle_assigned_to_driver' || log.action === 'vehicle_unassigned_from_driver') {
+                        if (metaData.vehicle_registration) detailItems.push(`Vehicle: ${metaData.vehicle_registration}`);
+                        if (metaData.driver_username) detailItems.push(`Driver: ${metaData.driver_username}`);
+                    } else {
+                        // Generic: show all metadata except excluded keys
+                        const excludeKeys = ['timestamp', 'profile_image_url', 'image_url', 'driver_profile_image_url', 'created_at', 'updated_at'];
+                        for (const [key, value] of Object.entries(metaData)) {
+                            if (excludeKeys.includes(key)) continue;
+                            if (typeof value === 'string' && (value.includes('.jpg') || value.includes('.png') || value.includes('?v='))) continue;
+                            const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            detailItems.push(`${formattedKey}: ${value}`);
+                        }
+                    }
+                    
+                    detailsHtml += detailItems.join('<br>');
+                } catch (e) {
+                    detailsHtml += 'N/A';
+                }
+            } else {
+                detailsHtml += 'N/A';
+            }
+            detailsHtml += '</small>';
+            
+            // Format time: YYYY-MM-DD HH:MM
+            const timeStr = date.toISOString().slice(0, 16).replace('T', ' ');
+            
+            // Build table row
             html += `
-                <div class="log-entry action-${log.action}">
-                    <div class="d-flex">
-                        ${driverImageHtml}
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <div>
-                                    <span class="fw-bold">${log.driver_username}</span>
-                                    ${actionBadge}
-                                </div>
-                                <span class="log-time">
-                                    <i class="far fa-clock me-1"></i>
-                                    ${formattedDate} ${formattedTime}
-                                </span>
-                            </div>
-                            <div class="small text-muted mb-2">
-                                ${log.vehicle_registration ? `<i class="fas fa-car me-1"></i> ${log.vehicle_registration}` : ''}
-                                ${log.operator_username ? `<span class="ms-3"><i class="fas fa-user-shield me-1"></i> ${log.operator_username}</span>` : ''}
-                            </div>
-                            ${metaDataHtml}
-                        </div>
-                    </div>
-                </div>
+                <tr>
+                    <td>${actionBadge}</td>
+                    <td>${vehicleColumn}</td>
+                    <td>${timeStr}</td>
+                    <td>${detailsHtml}</td>
+                </tr>
             `;
         });
+        
+        // Close table
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
         
         logsContainer.innerHTML = html;
         
@@ -556,16 +676,53 @@
             </li>
         `;
         
-        // Page numbers
-        const startPage = Math.max(1, currentPage - 2);
-        const endPage = Math.min(totalPages, startPage + 4);
-        
-        for (let i = startPage; i <= endPage; i++) {
-            html += `
-                <li class="page-item ${i === currentPage ? 'active' : ''}">
-                    <a class="page-link" href="#" data-page="${i}">${i}</a>
-                </li>
-            `;
+        // Only show page numbers if there are 10 or fewer pages
+        if (totalPages <= 10) {
+            // Show all page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                html += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" data-page="${i}">${i}</a>
+                    </li>
+                `;
+            }
+        } else {
+            // Show first page, ellipsis, current page range, ellipsis, last page
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            
+            // First page
+            if (startPage > 1) {
+                html += `
+                    <li class="page-item">
+                        <a class="page-link" href="#" data-page="1">1</a>
+                    </li>
+                `;
+                if (startPage > 2) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+            
+            // Page range around current page
+            for (let i = startPage; i <= endPage; i++) {
+                html += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" data-page="${i}">${i}</a>
+                    </li>
+                `;
+            }
+            
+            // Last page
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+                html += `
+                    <li class="page-item">
+                        <a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a>
+                    </li>
+                `;
+            }
         }
         
         // Next button

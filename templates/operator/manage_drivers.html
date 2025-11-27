@@ -1492,7 +1492,7 @@ window.refreshDriverList = async function() {
                         refreshDriverList();
                     }, 300);
                 } else {
-                    setTimeout(() => refreshDriverList(), 500);
+                setTimeout(() => refreshDriverList(), 500);
                 }
                 return;
             } else {
@@ -1664,9 +1664,44 @@ window.refreshDriverList = async function() {
     // Function to remove profile image
     window.removeDriverImage = async function(driverId) {
         try {
-            if (!confirm('Are you sure you want to remove the profile picture?')) {
+            // Use custom confirmation modal instead of confirm()
+            const confirmModal = document.getElementById('confirmationModal');
+            const confirmTitle = document.getElementById('confirmationTitle');
+            const confirmMessage = document.getElementById('confirmationMessage');
+            const confirmButton = document.getElementById('confirmButton');
+            
+            if (confirmModal && confirmTitle && confirmMessage && confirmButton) {
+                confirmTitle.textContent = 'Confirm Remove Profile Picture';
+                confirmMessage.textContent = 'Are you sure you want to remove the profile picture?';
+                
+                // Remove old listeners
+                const newConfirmBtn = confirmButton.cloneNode(true);
+                confirmButton.parentNode.replaceChild(newConfirmBtn, confirmButton);
+                
+                // Show modal
+                const modal = new bootstrap.Modal(confirmModal);
+                
+                // Set up confirmation handler
+                newConfirmBtn.addEventListener('click', async function() {
+                    modal.hide();
+                    await performRemoveDriverImage(driverId);
+                });
+                
+                modal.show();
+                return;
+            } else {
+                console.error('⚠️ Confirmation modal not found');
                 return;
             }
+        } catch (error) {
+            console.error('Error removing profile picture:', error);
+            showToast('Error', 'An error occurred while removing the profile picture.', 'error');
+        }
+    }
+    
+    // Helper function to perform the actual removal
+    async function performRemoveDriverImage(driverId) {
+        try {
             
             const response = await fetch('/operator/drivers/profile-picture/remove', {
                 method: 'POST',

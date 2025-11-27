@@ -2,6 +2,63 @@
 
 {% block title %}Operator Profile{% endblock %}
 
+{% block extra_js %}
+<script>
+    // CRITICAL: Define function in head/extra_js block so it loads BEFORE content
+    window.openEditProfileModal = function() {
+        console.log('🔵 openEditProfileModal called');
+        
+        // Get form inputs
+        const emailInput = document.getElementById('editEmail');
+        const companyNameInput = document.getElementById('editCompanyName');
+        const contactNumberInput = document.getElementById('editContactNumber');
+        
+        // Populate with current values
+        if (emailInput) {
+            emailInput.value = '{{ current_user.email }}';
+            console.log('✅ Email input populated');
+        } else {
+            console.error('❌ Email input not found');
+        }
+        if (companyNameInput) {
+            companyNameInput.value = '{{ current_user.company_name or "" }}';
+        }
+        if (contactNumberInput) {
+            contactNumberInput.value = '{{ current_user.contact_number or "" }}';
+        }
+        
+        // Get modal element
+        const modalElement = document.getElementById('editProfileModal');
+        if (!modalElement) {
+            console.error('❌ Modal element not found');
+            return;
+        }
+        
+        console.log('✅ Modal element found, attempting to open...');
+        
+        // Open modal using Bootstrap 5
+        try {
+            if (typeof bootstrap === 'undefined') {
+                console.error('❌ Bootstrap is not defined');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            console.log('✅ Modal opened successfully');
+        } catch (error) {
+            console.error('❌ Error opening modal:', error);
+            console.error('Error stack:', error.stack);
+        }
+    };
+    
+    // Also create alias
+    window.editProfile = window.openEditProfileModal;
+    
+    console.log('✅✅✅ openEditProfileModal function defined in extra_js block');
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <div class="row">
@@ -18,38 +75,30 @@
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-user-circle me-2"></i>Profile Information
+                        <i class="fas fa-user me-2"></i>Profile Information
                     </h5>
                 </div>
                 <div class="card-body text-center">
-                    <div class="mb-3">
-                        {% if current_user.profile_image_url %}
-                            <img src="{{ current_user.profile_image_url }}" alt="Profile Picture" 
-                                 class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover;">
-                        {% else %}
-                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto" 
-                                 style="width: 120px; height: 120px;">
-                                <i class="fas fa-user fa-3x text-white"></i>
-                            </div>
-                        {% endif %}
-                    </div>
+                    {% if current_user.profile_image_url %}
+                        <img src="{{ current_user.profile_image_url }}" alt="Profile Picture" 
+                             class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-3" 
+                             style="width: 150px; height: 150px;">
+                            <i class="fas fa-user fa-4x text-white"></i>
+                        </div>
+                    {% endif %}
                     <h4>{{ current_user.username }}</h4>
                     <p class="text-muted">{{ current_user.email }}</p>
-                    {% if current_user.company_name %}
-                        <p class="text-muted"><strong>Company:</strong> {{ current_user.company_name }}</p>
+                    {% if current_user.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-danger">Inactive</span>
                     {% endif %}
-                    {% if current_user.contact_number %}
-                        <p class="text-muted"><strong>Contact:</strong> {{ current_user.contact_number }}</p>
-                    {% endif %}
-                    <div class="mb-3">
-                        <span class="badge {% if current_user.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                            {% if current_user.is_active %}Active{% else %}Inactive{% endif %}
-                        </span>
-                    </div>
-                    <p class="text-muted">
+                    <p class="mt-3 mb-0">
                         <small>Member since {{ current_user.created_at.strftime('%B %Y') }}</small>
                     </p>
-                    <button class="btn btn-outline-primary btn-sm" onclick="editProfile()">
+                    <button class="btn btn-outline-primary btn-sm mt-3" id="editProfileBtn" type="button" onclick="try{if(typeof window.openEditProfileModal==='function'){window.openEditProfileModal();}else{console.error('Function not found');}}catch(e){console.error('Error:',e);} return false;">
                         <i class="fas fa-edit me-2"></i>Edit Profile
                     </button>
                 </div>
@@ -65,61 +114,41 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% if vehicles %}
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h6 class="mb-2">Total Vehicles</h6>
-                                    <h3 class="text-primary">{{ vehicles|length }}</h3>
-                                    <p class="text-muted mb-0">In your fleet</p>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h6 class="mb-2">Active Vehicles</h6>
-                                    <h3 class="text-success">
-                                        {% set active_vehicles = vehicles|selectattr('status', 'equalto', 'active')|list %}
-                                        {{ active_vehicles|length }}
-                                    </h3>
-                                    <p class="text-muted mb-0">Currently operational</p>
-                                </div>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h3 class="text-primary mb-1">{{ vehicles|length }}</h3>
+                                <p class="mb-0 text-muted">Total Vehicles</p>
+                                <small class="text-muted">In your fleet</small>
                             </div>
                         </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h6 class="mb-2">Buses</h6>
-                                    <h3 class="text-info">
-                                        {% set buses = vehicles|selectattr('vehicle_type', 'equalto', 'bus')|list %}
-                                        {{ buses|length }}
-                                    </h3>
-                                    <p class="text-muted mb-0">Large capacity vehicles</p>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h6 class="mb-2">Vans</h6>
-                                    <h3 class="text-warning">
-                                        {% set vans = vehicles|selectattr('vehicle_type', 'equalto', 'van')|list %}
-                                        {{ vans|length }}
-                                    </h3>
-                                    <p class="text-muted mb-0">Medium capacity vehicles</p>
-                                </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h3 class="text-success mb-1">{{ vehicles|selectattr('status', 'equalto', 'active')|list|length }}</h3>
+                                <p class="mb-0 text-muted">Active Vehicles</p>
+                                <small class="text-muted">Currently operational</small>
                             </div>
                         </div>
-                        
-                        <div class="mt-3">
-                            <a href="{{ url_for('operator.dashboard') }}" class="btn btn-primary">
-                                <i class="fas fa-tachometer-alt me-2"></i>Manage Fleet
-                            </a>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h3 class="text-primary mb-1">{{ vehicles|selectattr('vehicle_type', 'equalto', 'bus')|list|length }}</h3>
+                                <p class="mb-0 text-muted">Buses</p>
+                                <small class="text-muted">Large capacity vehicles</small>
+                            </div>
                         </div>
-                    {% else %}
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            No vehicles in your fleet yet. <a href="{{ url_for('operator.dashboard') }}">Add your first vehicle</a>.
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h3 class="text-warning mb-1">{{ vehicles|selectattr('vehicle_type', 'equalto', 'van')|list|length }}</h3>
+                                <p class="mb-0 text-muted">Vans</p>
+                                <small class="text-muted">Medium capacity vehicles</small>
+                            </div>
                         </div>
-                    {% endif %}
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('operator.manage_vehicles') }}" class="btn btn-primary">
+                            <i class="fas fa-bus me-2"></i>Manage Fleet
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -186,9 +215,15 @@
                             </table>
                         </div>
                         <div class="text-center mt-3">
-                            <a href="{{ url_for('operator.operator_action_logs') }}" class="btn btn-outline-success">
-                                <i class="fas fa-list me-2"></i>View All Activity
-                            </a>
+                            {% if current_user.user_type == 'admin' %}
+                                <a href="{{ url_for('admin.action_logs') }}" class="btn btn-outline-success">
+                                    <i class="fas fa-list me-2"></i>View All Activity
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('operator.operator_action_logs') }}" class="btn btn-outline-success">
+                                    <i class="fas fa-list me-2"></i>View All Activity
+                                </a>
+                            {% endif %}
                         </div>
                     {% else %}
                         <div class="alert alert-info">
@@ -213,73 +248,16 @@
                         <a href="{{ url_for('operator.dashboard') }}" class="btn btn-outline-primary">
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
-                        <a href="{{ url_for('operator.manage_drivers_page') }}" class="btn btn-outline-info">
+                        <a href="{{ url_for('operator.manage_drivers_page') }}" class="btn btn-outline-success">
                             <i class="fas fa-users me-2"></i>Manage Drivers
                         </a>
-                        <a href="{{ url_for('operator.settings') }}" class="btn btn-outline-warning">
+                        <a href="{{ url_for('operator.manage_vehicles') }}" class="btn btn-outline-info">
+                            <i class="fas fa-bus me-2"></i>Manage Vehicles
+                        </a>
+                        <a href="{{ url_for('operator.settings') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-cog me-2"></i>Settings
                         </a>
-                        <button class="btn btn-outline-success" onclick="showAddVehicleModal()">
-                            <i class="fas fa-plus me-2"></i>Add Vehicle
-                        </button>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <!-- Vehicle Status Summary -->
-        <div class="col-md-12 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-chart-pie me-2"></i>Vehicle Status Summary
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if vehicles %}
-                        <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <div class="text-center">
-                                    <div class="h2 text-success">
-                                        {% set active_vehicles = vehicles|selectattr('status', 'equalto', 'active')|list %}
-                                        {{ active_vehicles|length }}
-                                    </div>
-                                    <p class="text-muted">Active</p>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="text-center">
-                                    <div class="h2 text-warning">
-                                        {% set delayed_vehicles = vehicles|selectattr('status', 'equalto', 'delayed')|list %}
-                                        {{ delayed_vehicles|length }}
-                                    </div>
-                                    <p class="text-muted">Delayed</p>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="text-center">
-                                    <div class="h2 text-danger">
-                                        {% set inactive_vehicles = vehicles|selectattr('status', 'equalto', 'inactive')|list %}
-                                        {{ inactive_vehicles|length }}
-                                    </div>
-                                    <p class="text-muted">Inactive</p>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="text-center">
-                                    <div class="h2 text-info">
-                                        {% set vacant_vehicles = vehicles|selectattr('occupancy_status', 'equalto', 'vacant')|list %}
-                                        {{ vacant_vehicles|length }}
-                                    </div>
-                                    <p class="text-muted">Vacant</p>
-                                </div>
-                            </div>
-                        </div>
-                    {% else %}
-                        <p class="text-muted text-center">No vehicles to display status for.</p>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -317,7 +295,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveProfileChanges()">Save Changes</button>
+                <button type="button" class="btn btn-primary" id="saveProfileBtn">Save Changes</button>
             </div>
         </div>
     </div>
@@ -326,18 +304,61 @@
 
 {% block scripts %}
 <script>
-    function editProfile() {
-        document.getElementById('editEmail').value = '{{ current_user.email }}';
-        document.getElementById('editCompanyName').value = '{{ current_user.company_name or "" }}';
-        document.getElementById('editContactNumber').value = '{{ current_user.contact_number or "" }}';
-        const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
-        modal.show();
+    // Function is already defined in head section, just verify it exists
+    if (typeof window.openEditProfileModal === 'undefined') {
+        console.error('❌ openEditProfileModal function not found!');
+        // Re-define it here as fallback
+        window.openEditProfileModal = function() {
+            console.error('⚠️ Function not loaded');
+        };
+    } else {
+        console.log('✅ openEditProfileModal function verified in scripts block');
     }
-
+    
+    // Attach event listener as backup (onclick already handles it, but this is extra)
+    document.addEventListener('DOMContentLoaded', function() {
+        const editBtn = document.getElementById('editProfileBtn');
+        if (editBtn) {
+            editBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🟢 Edit Profile button clicked (event listener backup)');
+                if (window.openEditProfileModal) {
+                    window.openEditProfileModal();
+                }
+                return false;
+            });
+            console.log('✅ Event listener attached as backup');
+        }
+    });
+    
+    // Save profile changes function
     async function saveProfileChanges() {
-        const email = document.getElementById('editEmail').value;
-        const companyName = document.getElementById('editCompanyName').value;
-        const contactNumber = document.getElementById('editContactNumber').value;
+        const emailInput = document.getElementById('editEmail');
+        const companyNameInput = document.getElementById('editCompanyName');
+        const contactNumberInput = document.getElementById('editContactNumber');
+        
+        if (!emailInput || !companyNameInput || !contactNumberInput) {
+            console.error('Error: Form inputs not found.');
+            return;
+        }
+        
+        const email = emailInput.value.trim();
+        const companyName = companyNameInput.value.trim();
+        const contactNumber = contactNumberInput.value.trim();
+        
+        if (!email) {
+            showToast('Validation Error', 'Email is required.', 'error');
+            emailInput.focus();
+            return;
+        }
+        
+        // Disable save button
+        const saveBtn = document.getElementById('saveProfileBtn');
+        const originalText = saveBtn ? saveBtn.innerHTML : 'Save Changes';
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+        }
         
         try {
             const response = await fetch('/operator/profile/update', {
@@ -355,37 +376,53 @@
             const data = await response.json();
             
             if (response.ok) {
-                showToast('Success', data.message, 'success');
+                showToast('Success', 'Profile updated successfully!', 'success');
                 
-                // Update the displayed information
-                document.querySelector('.card-body h4').textContent = '{{ current_user.username }}';
-                document.querySelector('.card-body p.text-muted').textContent = email;
+                // Close modal
+                const modalElement = document.getElementById('editProfileModal');
+                if (modalElement) {
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    }
+                }
                 
-                // Close the modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
-                modal.hide();
-                
-                // Reload the page to show updated information
-                setTimeout(() => {
+                // Reload page to show updated info
+                setTimeout(function() {
                     location.reload();
                 }, 1000);
             } else {
                 showToast('Error', data.error || 'Failed to update profile.', 'error');
+                // Re-enable button
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalText;
+                }
             }
         } catch (error) {
             console.error('Error updating profile:', error);
-            showToast('Error', 'An error occurred while updating profile.', 'error');
+            showToast('Error', 'Error updating profile: ' + error.message, 'error');
+            // Re-enable button
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            }
         }
     }
-
-    function showAddVehicleModal() {
-        // This would typically open the add vehicle modal from the dashboard
-        // For now, redirect to dashboard
-        window.location.href = '{{ url_for("operator.dashboard") }}';
-    }
-
+    
+    // Attach save button handler
+    document.addEventListener('DOMContentLoaded', function() {
+        const saveBtn = document.getElementById('saveProfileBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                saveProfileChanges();
+            });
+        }
+    });
+    
+    // Toast notification function
     function showToast(title, message, type = 'info') {
-        // Create toast container if it doesn't exist
         let toastContainer = document.querySelector('.toast-container');
         if (!toastContainer) {
             toastContainer = document.createElement('div');
@@ -393,26 +430,19 @@
             document.body.appendChild(toastContainer);
         }
         
-        // Create toast element
         const toastEl = document.createElement('div');
         toastEl.className = `toast align-items-center text-white bg-${type === 'info' ? 'primary' : type === 'error' ? 'danger' : type}`;
         toastEl.setAttribute('role', 'alert');
-        toastEl.setAttribute('aria-live', 'assertive');
-        toastEl.setAttribute('aria-atomic', 'true');
-        
         toastEl.innerHTML = `
             <div class="d-flex">
                 <div class="toast-body">
                     <strong>${title}</strong>: ${message}
                 </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
             </div>
         `;
         
-        // Add to container
         toastContainer.appendChild(toastEl);
-        
-        // Initialize and show toast
         const toast = new bootstrap.Toast(toastEl, {
             autohide: true,
             delay: 5000
