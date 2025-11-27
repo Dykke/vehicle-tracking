@@ -119,27 +119,72 @@ async function loadDriverDetails(driverId) {
             const driver = data.driver;
             
             // Update driver details in the modal
-            document.getElementById('viewDriverName').textContent = driver.username;
+            const displayName = driver.full_name || driver.username;
+            document.getElementById('viewDriverName').textContent = displayName;
             document.getElementById('viewDriverEmail').textContent = driver.email;
             document.getElementById('viewDriverId').textContent = driver.id;
             document.getElementById('viewDriverCreated').textContent = new Date(driver.created_at).toLocaleString();
+            
+            // Update name fields (show only if they exist)
+            const firstNameRow = document.getElementById('viewDriverFirstNameRow');
+            if (firstNameRow) {
+                if (driver.first_name) {
+                    document.getElementById('viewDriverFirstName').textContent = driver.first_name;
+                    firstNameRow.style.display = 'flex';
+                } else {
+                    firstNameRow.style.display = 'none';
+                }
+            }
+            
+            const middleNameRow = document.getElementById('viewDriverMiddleNameRow');
+            if (middleNameRow) {
+                if (driver.middle_name) {
+                    document.getElementById('viewDriverMiddleName').textContent = driver.middle_name;
+                    middleNameRow.style.display = 'flex';
+                } else {
+                    middleNameRow.style.display = 'none';
+                }
+            }
+            
+            const lastNameRow = document.getElementById('viewDriverLastNameRow');
+            if (lastNameRow) {
+                if (driver.last_name) {
+                    document.getElementById('viewDriverLastName').textContent = driver.last_name;
+                    lastNameRow.style.display = 'flex';
+                } else {
+                    lastNameRow.style.display = 'none';
+                }
+            }
+            
+            const contactRow = document.getElementById('viewDriverContactRow');
+            if (contactRow) {
+                if (driver.contact_number) {
+                    document.getElementById('viewDriverContact').textContent = driver.contact_number;
+                    contactRow.style.display = 'flex';
+                } else {
+                    contactRow.style.display = 'none';
+                }
+            }
             
             // Update status badge
             const statusBadge = document.getElementById('viewDriverStatus');
             statusBadge.textContent = driver.is_active ? 'Active' : 'Inactive';
             statusBadge.className = driver.is_active ? 'badge bg-success mb-3' : 'badge bg-danger mb-3';
             
-            // Update profile image
+            // Update profile image - use only one img element
             const profileImage = document.getElementById('profileImage');
-            const profilePlaceholder = document.getElementById('profilePlaceholder');
+            const driverName = driver.full_name || driver.username || 'Driver';
+            const encodedName = encodeURIComponent(driverName);
             
-            if (driver.profile_image_url) {
-                profileImage.src = driver.profile_image_url;
+            if (profileImage) {
+                if (driver.profile_image_url) {
+                    profileImage.src = driver.profile_image_url;
+                } else {
+                    // Show placeholder image
+                    const placeholderUrl = `https://ui-avatars.com/api/?name=${encodedName}&size=200&background=667eea&color=fff&bold=true&font-size=0.5`;
+                    profileImage.src = placeholderUrl;
+                }
                 profileImage.style.display = 'block';
-                profilePlaceholder.style.display = 'none';
-            } else {
-                profileImage.style.display = 'none';
-                profilePlaceholder.style.display = 'flex';
             }
             
             // Format assigned vehicles data
@@ -194,8 +239,49 @@ async function loadDriverForEdit(driverId) {
         if (response.ok) {
             document.getElementById('edit_driver_id').value = data.driver.id;
             document.getElementById('edit_username').value = data.driver.username;
+            
+            // Populate name fields if elements exist
+            const firstNameInput = document.getElementById('edit_first_name');
+            if (firstNameInput) firstNameInput.value = data.driver.first_name || '';
+            
+            const middleNameInput = document.getElementById('edit_middle_name');
+            if (middleNameInput) middleNameInput.value = data.driver.middle_name || '';
+            
+            const lastNameInput = document.getElementById('edit_last_name');
+            if (lastNameInput) lastNameInput.value = data.driver.last_name || '';
+            
             document.getElementById('edit_email').value = data.driver.email;
+            
+            const contactInput = document.getElementById('edit_contact_number');
+            if (contactInput) contactInput.value = data.driver.contact_number || '';
+            
             document.getElementById('edit_is_active').checked = data.driver.is_active;
+            
+            // Display current profile image if exists, or show placeholder
+            const currentImageContainer = document.getElementById('edit_profile_image_current');
+            const removeImageBtn = document.getElementById('remove_profile_image_btn');
+            if (currentImageContainer) {
+                const driverName = data.driver.full_name || data.driver.username || 'Driver';
+                const encodedName = encodeURIComponent(driverName);
+                
+                if (data.driver.profile_image_url) {
+                    currentImageContainer.innerHTML = `
+                        <img src="${data.driver.profile_image_url}" alt="Current Profile Picture" 
+                             style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6;">
+                        <div class="form-text mt-2">Current profile picture</div>
+                    `;
+                    if (removeImageBtn) removeImageBtn.style.display = 'inline-block';
+                } else {
+                    // Show placeholder image
+                    const placeholderUrl = `https://ui-avatars.com/api/?name=${encodedName}&size=300&background=667eea&color=fff&bold=true&font-size=0.5`;
+                    currentImageContainer.innerHTML = `
+                        <img src="${placeholderUrl}" alt="Placeholder Profile Picture" 
+                             style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6;">
+                        <div class="form-text mt-2">No profile picture (placeholder shown)</div>
+                    `;
+                    if (removeImageBtn) removeImageBtn.style.display = 'none';
+                }
+            }
             
             // Fix z-index issues
             fixModalZIndex();

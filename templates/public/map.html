@@ -584,6 +584,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 <script src="{{ url_for('static', filename='js/socket_manager.js') }}"></script>
 
 <script>
+    const DEFAULT_VEHICLE_CAPACITY = 15;
+    
     // Map variables
     let map;
     let vehicleMarkers = {};
@@ -1076,6 +1078,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         const occupancyClass = vehicle.occupancy_status === 'full' ? 'occupancy-full' : 'occupancy-vacant';
         const etaText = (typeof vehicle.eta_minutes === 'number') ? `${vehicle.eta_minutes} min` : '<span class="loading-dots">Calculating</span>';
         const routeDistanceText = (typeof vehicle.route_distance_km === 'number') ? `${vehicle.route_distance_km} km` : '<span class="loading-dots">Calculating</span>';
+        const capacity = vehicle.capacity || DEFAULT_VEHICLE_CAPACITY;
+        const passengerCount = (typeof vehicle.current_passengers === 'number') ? vehicle.current_passengers : 0;
+        const passengerDisplay = `${passengerCount}/${capacity}`;
         
         // Handle vehicle status with proper capitalization and styling
         let statusDisplay = vehicle.status;
@@ -1119,6 +1124,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <div>
                             <strong>Driver:</strong><br>
                             <span>${vehicle.driver_name}</span>
+                            ${vehicle.driver_contact_number ? `<br><small style="color: #666;"><i class="fas fa-phone"></i> ${vehicle.driver_contact_number}</small>` : ''}
                         </div>
                     </div>
                 ` : ''}
@@ -1126,6 +1132,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <p><strong>Route:</strong> ${vehicle.route || 'No route set'}</p>
                     <p><strong>Status:</strong> <span class="vehicle-status ${tripStatusDisplay ? tripStatusClass : occupancyClass}">${tripStatusDisplay || occupancyStatus}</span></p>
                     ${tripStatusDisplay ? `<p><strong>Occupancy:</strong> <span class="vehicle-status ${occupancyClass}">${occupancyStatus}</span></p>` : ''}
+                    <p><strong>Passengers:</strong> ${passengerDisplay}</p>
                     <p><strong>ETA (route-based):</strong> ${etaText}</p>
                     <p><strong>Route distance:</strong> ${routeDistanceText}</p>
                     <p><strong>Last Updated:</strong> ${lastUpdated}</p>
@@ -1147,6 +1154,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         vehicles.forEach(vehicle => {
             const occupancyStatus = vehicle.occupancy_status === 'full' ? 'Full' : 'Vacant';
             const occupancyClass = vehicle.occupancy_status === 'full' ? 'occupancy-full' : 'occupancy-vacant';
+            const capacity = vehicle.capacity || DEFAULT_VEHICLE_CAPACITY;
+            const passengerCount = (typeof vehicle.current_passengers === 'number') ? vehicle.current_passengers : 0;
+            const passengerDisplay = `${passengerCount}/${capacity}`;
             
             // Handle vehicle status with proper capitalization and styling
             let statusDisplay = vehicle.status;
@@ -1183,6 +1193,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     </div>
                     <div style="font-size: 0.8rem; color: #666;">
                         ${vehicle.route || 'No route set'}
+                    </div>
+                    <div style="font-size: 0.8rem; color: #666;">
+                        <strong>Passengers:</strong> ${passengerDisplay}
                     </div>
                 </div>
             `;

@@ -460,9 +460,9 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="capacity" class="form-label">Capacity</label>
-                        <input type="number" class="form-control" id="capacity" min="1" required 
-                               placeholder="Enter passenger capacity">
+                        <label for="capacity" class="form-label">Capacity <small class="text-muted">(defaults to 15 if blank)</small></label>
+                        <input type="number" class="form-control" id="capacity" min="1" 
+                               placeholder="Enter passenger capacity (default: 15)">
                     </div>
                     
                 </form>
@@ -710,17 +710,17 @@
                 return;
             }
             
-            if (!capacityInput.value || capacityInput.value < 1) {
-                showToast('Error', 'Please enter a valid capacity (minimum 1)', 'error');
-                capacityInput.focus();
-                return;
+            // Capacity is optional, defaults to 15 if blank
+            let capacityValue = capacityInput.value;
+            if (!capacityValue || capacityValue < 1) {
+                capacityValue = 15; // Default to 15
             }
             
             // Prepare form data
             const formData = {
                 vehicle_number: vehicleNumberInput.value.trim(),
                 vehicle_type: vehicleTypeSelect.value,
-                capacity: capacityInput.value,
+                capacity: capacityValue,
                 route: '' // Route is optional, can be set later
             };
             

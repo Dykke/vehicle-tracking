@@ -204,6 +204,41 @@
 {% block extra_js %}
 <script>
 
+// Global function to reset the add driver form and button state - DEFINED FIRST
+window.resetAddDriverForm = function() {
+    console.log('🔄 Resetting add driver form...');
+    // Reset form fields
+    const form = document.getElementById('addDriverForm');
+    if (form) {
+        form.reset();
+    }
+    
+    // Reset button state - force reset with multiple attempts to ensure it works
+    const saveBtn = document.getElementById('saveDriverBtn');
+    if (saveBtn) {
+        // Force reset the button - remove any spinner or loading state
+        saveBtn.innerHTML = 'Save Driver';
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('disabled');
+        saveBtn.removeAttribute('aria-busy');
+        console.log('✅ Button reset to "Save Driver"');
+    } else {
+        console.warn('⚠️ Save button not found during reset');
+    }
+    
+    // Reset profile image preview
+    const profilePreview = document.getElementById('profile_image_preview');
+    if (profilePreview) {
+        profilePreview.style.display = 'none';
+    }
+    
+    // Clear file input
+    const profileImageInput = document.getElementById('profile_image');
+    if (profileImageInput) {
+        profileImageInput.value = '';
+    }
+};
+
 // Define the handler at the very beginning to ensure it's available
 function handleSaveDriver() {
     const firstName = document.getElementById('first_name').value;
@@ -225,15 +260,21 @@ function handleSaveDriver() {
         return;
     }
     
-    submitDriverForm(firstName, middleName, lastName, username, email, password, isActive);
+    const contactNumber = document.getElementById('contact_number').value;
+    submitDriverForm(firstName, middleName, lastName, username, email, password, isActive, contactNumber);
 }
 
     // Toast notification function is now globally available from base.html
 
-function submitDriverForm(firstName, middleName, lastName, username, email, password, isActive) {
+function submitDriverForm(firstName, middleName, lastName, username, email, password, isActive, contactNumber) {
     // Show loading indicator
     const saveBtn = document.getElementById('saveDriverBtn');
-    const originalText = saveBtn.innerHTML;
+    if (!saveBtn) {
+        console.error('Save button not found!');
+        return;
+    }
+    // Always use 'Save Driver' as the reset text, not the current button state
+    const originalText = 'Save Driver';
     saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
     saveBtn.disabled = true;
     
@@ -253,7 +294,8 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
             username,
             email,
             password,
-            is_active: isActive
+            is_active: isActive,
+            contact_number: contactNumber || null
         }),
         credentials: 'same-origin'
     })
@@ -263,7 +305,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
         // Check if response is redirect (authentication issue)
         if (response.redirected) {
             console.log('⚠️ Response was redirected - likely authentication issue');
-            saveBtn.innerHTML = originalText;
+            saveBtn.innerHTML = 'Save Driver';
             saveBtn.disabled = false;
             showToast('Session Expired', 'Please log in again.', 'error');
             setTimeout(() => window.location.href = '/login', 1500);
@@ -299,22 +341,24 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
                     addModal.hide();
                 }
                 
-                // Reset form
-                document.getElementById('addDriverForm').reset();
-                document.getElementById('profile_image_preview').style.display = 'none';
+                // Reset button and form
+                saveBtn.innerHTML = 'Save Driver';
+                saveBtn.disabled = false;
+                saveBtn.classList.remove('disabled');
                 
-                // Refresh driver list via AJAX
+                // Reset form using dedicated function
                 setTimeout(() => {
+                    resetAddDriverForm();
                     refreshDriverList();
-                }, 500);
+                }, 300);
             } else {
-                saveBtn.innerHTML = originalText;
+                saveBtn.innerHTML = 'Save Driver';
                 saveBtn.disabled = false;
                 showToast('Error', data.error || 'Failed to add driver', 'error');
             }
         } else {
             // Error (400+)
-            saveBtn.innerHTML = originalText;
+            saveBtn.innerHTML = 'Save Driver';
             saveBtn.disabled = false;
             showToast('Error', data.error || `Server error (${response.status})`, 'error');
         }
@@ -322,7 +366,7 @@ function submitDriverForm(firstName, middleName, lastName, username, email, pass
     .catch(error => {
         // Restore button state if not already restored
         if (saveBtn.disabled) {
-            saveBtn.innerHTML = originalText;
+            saveBtn.innerHTML = 'Save Driver';
             saveBtn.disabled = false;
         }
         
@@ -573,6 +617,10 @@ window.refreshDriverList = async function() {
                         <input type="email" class="form-control" id="email" name="email" required>
                     </div>
                     <div class="mb-3">
+                        <label for="contact_number" class="form-label">Contact Number <small class="text-muted">(Optional)</small></label>
+                        <input type="tel" class="form-control" id="contact_number" name="contact_number" placeholder="e.g., +63 912 345 6789">
+                    </div>
+                    <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
                         <input type="password" class="form-control" id="password" name="password" required>
                     </div>
@@ -628,8 +676,24 @@ window.refreshDriverList = async function() {
                         <div class="form-text">Username cannot be changed.</div>
                     </div>
                     <div class="mb-3">
+                        <label for="edit_first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="edit_first_name" name="first_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_middle_name" class="form-label">Middle Name</label>
+                        <input type="text" class="form-control" id="edit_middle_name" name="middle_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="edit_last_name" name="last_name">
+                    </div>
+                    <div class="mb-3">
                         <label for="edit_email" class="form-label">Email</label>
                         <input type="email" class="form-control" id="edit_email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_contact_number" class="form-label">Contact Number <small class="text-muted">(Optional)</small></label>
+                        <input type="tel" class="form-control" id="edit_contact_number" name="contact_number" placeholder="e.g., +63 912 345 6789">
                     </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="edit_is_active" name="is_active">
@@ -682,7 +746,11 @@ window.refreshDriverList = async function() {
                 e.stopImmediatePropagation();
                 
                 const driverId = document.getElementById('edit_driver_id').value;
+                const firstName = document.getElementById('edit_first_name').value.trim();
+                const middleName = document.getElementById('edit_middle_name').value.trim();
+                const lastName = document.getElementById('edit_last_name').value.trim();
                 const email = document.getElementById('edit_email').value;
+                const contactNumber = document.getElementById('edit_contact_number').value.trim();
                 const isActive = document.getElementById('edit_is_active').checked;
                 const fileInput = document.getElementById('edit_profile_image');
                 const profileImageFile = (fileInput && fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
@@ -725,7 +793,14 @@ window.refreshDriverList = async function() {
                     const updateResponse = await fetch(`/operator/drivers/${driverId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, is_active: isActive }),
+                        body: JSON.stringify({ 
+                            email, 
+                            is_active: isActive,
+                            first_name: firstName || null,
+                            middle_name: middleName || null,
+                            last_name: lastName || null,
+                            contact_number: contactNumber || null
+                        }),
                         credentials: 'same-origin'
                     });
                     
@@ -805,10 +880,7 @@ window.refreshDriverList = async function() {
             <div class="modal-body">
                 <div class="text-center mb-4">
                     <div id="profileImageContainer" class="mb-3 text-center">
-                        <img id="profileImage" src="" alt="Profile" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #667eea; margin: 0 auto;">
-                        <div id="profilePlaceholder" class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 100px; height: 100px; margin: 0 auto; display: none;">
-                            <i class="fas fa-user text-white" style="font-size: 40px;"></i>
-                        </div>
+                        <img id="profileImage" src="" alt="Profile" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #667eea; margin: 0 auto; display: block;">
                     </div>
                     <h4 id="viewDriverName"></h4>
                     <p id="viewDriverEmail" class="text-muted"></p>
@@ -819,6 +891,22 @@ window.refreshDriverList = async function() {
                     <div class="row mb-2">
                         <div class="col-4 fw-bold">ID:</div>
                         <div class="col-8" id="viewDriverId"></div>
+                    </div>
+                    <div class="row mb-2" id="viewDriverFirstNameRow" style="display: none;">
+                        <div class="col-4 fw-bold">First Name:</div>
+                        <div class="col-8" id="viewDriverFirstName"></div>
+                    </div>
+                    <div class="row mb-2" id="viewDriverMiddleNameRow" style="display: none;">
+                        <div class="col-4 fw-bold">Middle Name:</div>
+                        <div class="col-8" id="viewDriverMiddleName"></div>
+                    </div>
+                    <div class="row mb-2" id="viewDriverLastNameRow" style="display: none;">
+                        <div class="col-4 fw-bold">Last Name:</div>
+                        <div class="col-8" id="viewDriverLastName"></div>
+                    </div>
+                    <div class="row mb-2" id="viewDriverContactRow" style="display: none;">
+                        <div class="col-4 fw-bold">Contact Number:</div>
+                        <div class="col-8" id="viewDriverContact"></div>
                     </div>
                     <div class="row mb-2">
                         <div class="col-4 fw-bold">Created:</div>
@@ -881,11 +969,12 @@ window.refreshDriverList = async function() {
             const lastName = document.getElementById('last_name').value;
             const username = document.getElementById('username').value;
             const email = document.getElementById('email').value;
+            const contactNumber = document.getElementById('contact_number').value;
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
             const isActive = document.getElementById('is_active').checked;
         
-        console.log('Form values:', { firstName, middleName, lastName, username, email, isActive });
+        console.log('Form values:', { firstName, middleName, lastName, username, email, contactNumber, isActive });
             
             if (!username || !email || !password || !confirmPassword) {
                 showToast('Validation Error', 'Please fill in all required fields.', 'error');
@@ -900,7 +989,7 @@ window.refreshDriverList = async function() {
             }
             
         console.log('Form validation passed, calling addDriver()');
-            addDriver(firstName, middleName, lastName, username, email, password, isActive);
+            addDriver(firstName, middleName, lastName, username, email, password, isActive, contactNumber);
     }
     
     // Function to fix modal backdrop issue
@@ -1094,8 +1183,24 @@ window.refreshDriverList = async function() {
         initializeActionButtons();
         
         // Add event listener for any modal being shown
-        document.body.addEventListener('shown.bs.modal', function() {
+        document.body.addEventListener('shown.bs.modal', function(e) {
             fixModalBackdrop();
+            
+            // Reset add driver form when modal is opened
+            if (e.target && e.target.id === 'addDriverModal') {
+                console.log('📋 Add driver modal shown, resetting form...');
+                // Reset immediately and also after a short delay to ensure DOM is ready
+                resetAddDriverForm();
+                setTimeout(resetAddDriverForm, 100);
+            }
+        });
+        
+        // Also reset when modal is hidden (in case it wasn't reset on show)
+        document.body.addEventListener('hidden.bs.modal', function(e) {
+            if (e.target && e.target.id === 'addDriverModal') {
+                console.log('📋 Add driver modal hidden, resetting form...');
+                resetAddDriverForm();
+            }
         });
         
         // Add click event to Add Driver button to manually fix backdrop and ensure it works
@@ -1108,7 +1213,13 @@ window.refreshDriverList = async function() {
             // Add event listeners
             newBtn.addEventListener('click', function(e) {
                 console.log('Add Driver button clicked');
-                setTimeout(fixModalBackdrop, 10);
+                // Reset form immediately when button is clicked, before modal opens
+                resetAddDriverForm();
+                // Also reset after a short delay to catch any timing issues
+                setTimeout(() => {
+                    resetAddDriverForm();
+                    fixModalBackdrop();
+                }, 50);
             });
             
             // Ensure button is clickable
@@ -1162,7 +1273,8 @@ window.refreshDriverList = async function() {
             }
             
             console.log('Form validation passed, calling addDriver()');
-            addDriver(firstName, middleName, lastName, username, email, password, isActive);
+            const contactNumber = document.getElementById('contact_number') ? document.getElementById('contact_number').value : '';
+            addDriver(firstName, middleName, lastName, username, email, password, isActive, contactNumber);
         });
         
         // Initialize action buttons function
@@ -1318,11 +1430,16 @@ window.refreshDriverList = async function() {
     });
     
     // Making addDriver a global function to be accessible from anywhere
-    window.addDriver = async function(firstName, middleName, lastName, username, email, password, isActive) {
+    window.addDriver = async function(firstName, middleName, lastName, username, email, password, isActive, contactNumber) {
         try {
             // Show loading state on the Save Driver button
             const saveBtn = document.getElementById('saveDriverBtn');
-            const originalText = saveBtn.innerHTML;
+            if (!saveBtn) {
+                console.error('Save button not found!');
+                return;
+            }
+            // Always capture the original text as 'Save Driver' to ensure proper reset
+            const originalText = 'Save Driver';
             saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
             saveBtn.disabled = true;
             
@@ -1333,7 +1450,8 @@ window.refreshDriverList = async function() {
                     username,
                     email,
                     password,
-                    is_active: isActive
+                    is_active: isActive,
+                    contact_number: contactNumber || null
             };
             
             // Get CSRF token if it exists (for Flask)
@@ -1360,13 +1478,22 @@ window.refreshDriverList = async function() {
             // Handle response
             if (response.ok) {
                 showToast('Success', 'Driver added successfully!', 'success');
-                // Reset button state
-                saveBtn.innerHTML = originalText;
+                // Reset button state immediately
+                saveBtn.innerHTML = 'Save Driver';
                 saveBtn.disabled = false;
+                saveBtn.classList.remove('disabled');
                 // Close modal and refresh
                 const addModal = bootstrap.Modal.getInstance(document.getElementById('addDriverModal'));
-                if (addModal) addModal.hide();
-                setTimeout(() => refreshDriverList(), 500);
+                if (addModal) {
+                    addModal.hide();
+                    // Reset form after modal is fully hidden
+                    setTimeout(() => {
+                        resetAddDriverForm();
+                        refreshDriverList();
+                    }, 300);
+                } else {
+                    setTimeout(() => refreshDriverList(), 500);
+                }
                 return;
             } else {
                 const errorMsg = data.error || 'Failed to add driver.';
@@ -1395,7 +1522,11 @@ window.refreshDriverList = async function() {
             if (response.ok) {
                 document.getElementById('edit_driver_id').value = data.driver.id;
                 document.getElementById('edit_username').value = data.driver.username;
+                document.getElementById('edit_first_name').value = data.driver.first_name || '';
+                document.getElementById('edit_middle_name').value = data.driver.middle_name || '';
+                document.getElementById('edit_last_name').value = data.driver.last_name || '';
                 document.getElementById('edit_email').value = data.driver.email;
+                document.getElementById('edit_contact_number').value = data.driver.contact_number || '';
                 document.getElementById('edit_is_active').checked = data.driver.is_active;
                 
                 // Display current profile image if exists, or show placeholder
@@ -1719,33 +1850,59 @@ window.refreshDriverList = async function() {
                 const driver = data.driver;
                 
                 // Update driver details in the modal
-                document.getElementById('viewDriverName').textContent = driver.username;
+                const displayName = driver.full_name || driver.username;
+                document.getElementById('viewDriverName').textContent = displayName;
                 document.getElementById('viewDriverEmail').textContent = driver.email;
                 document.getElementById('viewDriverId').textContent = driver.id;
                 document.getElementById('viewDriverCreated').textContent = new Date(driver.created_at).toLocaleString();
+                
+                // Update name fields (show only if they exist)
+                if (driver.first_name) {
+                    document.getElementById('viewDriverFirstName').textContent = driver.first_name;
+                    document.getElementById('viewDriverFirstNameRow').style.display = 'flex';
+                } else {
+                    document.getElementById('viewDriverFirstNameRow').style.display = 'none';
+                }
+                
+                if (driver.middle_name) {
+                    document.getElementById('viewDriverMiddleName').textContent = driver.middle_name;
+                    document.getElementById('viewDriverMiddleNameRow').style.display = 'flex';
+                } else {
+                    document.getElementById('viewDriverMiddleNameRow').style.display = 'none';
+                }
+                
+                if (driver.last_name) {
+                    document.getElementById('viewDriverLastName').textContent = driver.last_name;
+                    document.getElementById('viewDriverLastNameRow').style.display = 'flex';
+                } else {
+                    document.getElementById('viewDriverLastNameRow').style.display = 'none';
+                }
+                
+                if (driver.contact_number) {
+                    document.getElementById('viewDriverContact').textContent = driver.contact_number;
+                    document.getElementById('viewDriverContactRow').style.display = 'flex';
+                } else {
+                    document.getElementById('viewDriverContactRow').style.display = 'none';
+                }
                 
                 // Update status badge
                 const statusBadge = document.getElementById('viewDriverStatus');
                 statusBadge.textContent = driver.is_active ? 'Active' : 'Inactive';
                 statusBadge.className = driver.is_active ? 'badge bg-success mb-3' : 'badge bg-danger mb-3';
                 
-                // Update profile image
+                // Update profile image - use only one img element
                 const profileImage = document.getElementById('profileImage');
-                const profilePlaceholder = document.getElementById('profilePlaceholder');
                 const driverName = driver.full_name || driver.username || 'Driver';
                 const encodedName = encodeURIComponent(driverName);
                 
                 if (driver.profile_image_url) {
                     profileImage.src = driver.profile_image_url;
-                    profileImage.style.display = 'block';
-                    profilePlaceholder.style.display = 'none';
                 } else {
-                    // Show placeholder image instead of icon
+                    // Show placeholder image
                     const placeholderUrl = `https://ui-avatars.com/api/?name=${encodedName}&size=200&background=667eea&color=fff&bold=true&font-size=0.5`;
                     profileImage.src = placeholderUrl;
-                    profileImage.style.display = 'block';
-                    profilePlaceholder.style.display = 'none';
                 }
+                profileImage.style.display = 'block';
                 
                 // Format assigned vehicles data
                 let vehiclesHtml = 'No vehicles assigned';

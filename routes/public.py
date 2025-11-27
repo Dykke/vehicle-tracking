@@ -1,10 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify
 from models.vehicle import Vehicle
 from models.location_log import LocationLog
-from models.user import Trip, User
+from models.user import Trip, User, PassengerEvent
 from models import db
 from datetime import datetime, timedelta
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 import math
 import requests
 import json
@@ -21,6 +21,31 @@ def clear_vehicle_cache():
     _vehicle_cache = {}
     _cache_timestamp = 0
     print("🔄 Vehicle cache cleared")
+
+
+def get_current_passenger_count(trip_id):
+    """Return the current passenger count for a trip based on passenger events."""
+    if not trip_id:
+        print(f"⚠️ get_current_passenger_count: No trip_id provided")
+        return 0
+
+    boards = (
+        db.session.query(func.coalesce(func.sum(PassengerEvent.count), 0))
+        .filter_by(trip_id=trip_id, event_type='board')
+        .scalar()
+        or 0
+    )
+
+    alights = (
+        db.session.query(func.coalesce(func.sum(PassengerEvent.count), 0))
+        .filter_by(trip_id=trip_id, event_type='alight')
+        .scalar()
+        or 0
+    )
+
+    result = max(0, boards - alights)
+    print(f"📊 get_current_passenger_count(trip_id={trip_id}): boards={boards}, alights={alights}, result={result}")
+    return result
 
 public_bp = Blueprint('public', __name__)
 
@@ -58,6 +83,9 @@ def get_active_vehicles():
         
         # Try to get vehicles from database with error handling
         try:
+            # Expire all cached objects to ensure fresh data
+            db.session.expire_all()
+            
             # OPTIMIZATION: Use a single efficient query with eager loading of drivers
             # This is a critical performance bottleneck on Render
             from sqlalchemy.orm import joinedload
@@ -116,9 +144,11 @@ def get_active_vehicles():
                 # Get driver information (already loaded via joinedload, no extra query!)
                 driver_name = None
                 driver_image_url = None
+                driver_contact_number = None
                 if vehicle.assigned_driver:
                     driver_name = vehicle.assigned_driver.get_full_name()
                     driver_image_url = vehicle.assigned_driver.profile_image_url
+                    driver_contact_number = vehicle.assigned_driver.contact_number
                     print(f"✓ Vehicle {vehicle.id}: Driver = {driver_name}")
                 else:
                     print(f"✗ Vehicle {vehicle.id}: No assigned driver")
@@ -132,6 +162,15 @@ def get_active_vehicles():
                         print(f"⚠ Vehicle {vehicle.id}: Failed to parse route_info")
                         parsed_route_info = None
                 
+                current_passengers = 0
+                active_trip_id = None
+                if active_trip:
+                    active_trip_id = active_trip.id
+                    current_passengers = get_current_passenger_count(active_trip.id)
+                    print(f"📊 Vehicle {vehicle.id}: active_trip_id={active_trip_id}, current_passengers={current_passengers}")
+
+                capacity = vehicle.capacity or 15  # default capacity if not set
+
                 vehicles_data.append({
                     'id': vehicle.id,
                     'type': vehicle.vehicle_type,
@@ -147,7 +186,12 @@ def get_active_vehicles():
                     'route_distance_km': route_distance_km,
                     'eta_minutes': eta_minutes,
                     'driver_name': driver_name,
-                    'driver_image_url': driver_image_url
+                    'driver_image_url': driver_image_url,
+                    'driver_contact_number': driver_contact_number,
+                    'capacity': capacity,
+                    'current_passengers': current_passengers,
+                    'available_seats': max(capacity - current_passengers, 0),
+                    'active_trip_id': active_trip_id
                 })
             
             # Cache the result

@@ -141,18 +141,16 @@ def add_vehicle():
     
     print(f"Extracted data - registration_number: {registration_number}, vehicle_type: {vehicle_type}, route: {route}, capacity: {capacity}")
     
-    # Set default capacity if not provided
-    if not capacity:
-        default_capacities = {
-            'bus': 50,
-            'van': 15
-        }
-        capacity = default_capacities.get(vehicle_type.lower(), 10)
+    # Set default capacity to 15 if not provided or invalid
+    if not capacity or capacity == '':
+        capacity = 15
     else:
         try:
             capacity = int(capacity)
-        except ValueError:
-            capacity = 10
+            if capacity < 1:
+                capacity = 15  # Default to 15 if invalid
+        except (ValueError, TypeError):
+            capacity = 15  # Default to 15 if conversion fails
     
     if not all([registration_number, vehicle_type]):
         return jsonify({'error': 'Missing required fields'}), 400
@@ -425,6 +423,12 @@ def add_driver():
     first_name = data.get('first_name', '')
     middle_name = data.get('middle_name', '')
     last_name = data.get('last_name', '')
+    # Handle contact_number: could be None, empty string, or a value
+    contact_number_raw = data.get('contact_number')
+    if contact_number_raw is None:
+        contact_number = None
+    else:
+        contact_number = contact_number_raw.strip() if contact_number_raw.strip() else None
     is_active = data.get('is_active', True)
     
     if not all([username, email, password]):
@@ -464,6 +468,7 @@ def add_driver():
         first_name=first_name if first_name else None,
         middle_name=middle_name if middle_name else None,
         last_name=last_name if last_name else None,
+        contact_number=contact_number,
         is_active=is_active,
         created_by_id=current_user.id
     )
@@ -578,6 +583,7 @@ def get_driver(driver_id):
             'first_name': driver.first_name,
             'middle_name': driver.middle_name,
             'last_name': driver.last_name,
+            'contact_number': driver.contact_number,
             'full_name': driver.get_full_name(),
             'is_active': driver.is_active,
             'created_at': driver.created_at.isoformat(),
@@ -602,6 +608,10 @@ def update_driver(driver_id):
     
     email = data.get('email')
     is_active = data.get('is_active')
+    first_name = data.get('first_name')
+    middle_name = data.get('middle_name')
+    last_name = data.get('last_name')
+    contact_number = data.get('contact_number')
     
     if email:
         # Check if email already exists for another user
@@ -614,6 +624,16 @@ def update_driver(driver_id):
     if is_active is not None:
         driver.is_active = is_active
     
+    # Update name fields
+    if first_name is not None:
+        driver.first_name = first_name if first_name else None
+    if middle_name is not None:
+        driver.middle_name = middle_name if middle_name else None
+    if last_name is not None:
+        driver.last_name = last_name if last_name else None
+    if contact_number is not None:
+        driver.contact_number = contact_number.strip() if contact_number and contact_number.strip() else None
+    
     db.session.commit()
     
     return jsonify({
@@ -623,6 +643,10 @@ def update_driver(driver_id):
             'id': driver.id,
             'username': driver.username,
             'email': driver.email,
+            'first_name': driver.first_name,
+            'middle_name': driver.middle_name,
+            'last_name': driver.last_name,
+            'contact_number': driver.contact_number,
             'is_active': driver.is_active
         }
     })
@@ -727,6 +751,11 @@ def get_driver_details(driver_id):
             'id': driver.id,
             'username': driver.username,
             'email': driver.email,
+            'first_name': driver.first_name or '',
+            'middle_name': driver.middle_name or '',
+            'last_name': driver.last_name or '',
+            'contact_number': driver.contact_number or '',
+            'full_name': driver.get_full_name() or driver.username,
             'is_active': driver.is_active,
             'created_at': driver.created_at.isoformat(),
             'profile_image_url': driver.profile_image_url

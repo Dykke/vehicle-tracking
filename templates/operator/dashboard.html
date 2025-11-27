@@ -840,7 +840,11 @@ body:has(.modal[style*="display: flex"]) *:not(.modal):not(.modal-backdrop):not(
             {% endif %}
             
             <div class="d-flex gap-2 mb-2">
-                <button class="btn btn-warning btn-sm" onclick="showRouteOverrideModal({{ vehicle.id }}, '{{ vehicle.registration_number }}', {{ (vehicle.route if vehicle.route else "No route set")|tojson }})">
+                <button class="btn btn-warning btn-sm"
+                        data-vehicle-id="{{ vehicle.id }}"
+                        data-registration="{{ vehicle.registration_number|e }}"
+                        data-route="{{ (vehicle.route or 'No route set')|e }}"
+                        onclick="showRouteOverrideModalFromButton(this)">
                     <i class="fas fa-route"></i> Route
                 </button>
             </div>
@@ -988,11 +992,6 @@ body:has(.modal[style*="display: flex"]) *:not(.modal):not(.modal-backdrop):not(
                     </div>
                     <div id="vehicleListLiveMap"></div>
                 </div>
-                
-                <div class="card">
-                    <h3><i class="fas fa-user"></i> Nearby Commuters</h3>
-                    <div id="commuterList" style="word-break: break-word;"></div>
-                </div>
             </div>
         </div>
     </div>
@@ -1054,7 +1053,7 @@ let vehicleLocations = {};
 // Live map variables
 let liveMap;
 let vehicleMarkers = {};
-let commuterMarkers = {};
+// Commuter markers removed
 let refreshInterval;
 
 // Route selection variables
@@ -1073,6 +1072,16 @@ const MIN_TIME_INTERVAL = 5000; // 5 seconds
 
 // Store route polylines by vehicle id
 const routePolylines = {};
+
+function showRouteOverrideModalFromButton(button) {
+    if (!button) {
+        return;
+    }
+    const vehicleId = button.dataset.vehicleId;
+    const registration = button.dataset.registration || 'Vehicle';
+    const routeName = button.dataset.route || 'No route set';
+    showRouteOverrideModal(vehicleId, registration, routeName);
+}
 
 function showRouteOverrideModal(vehicleId, vehicleName, currentRoute) {
     // Set modal content
@@ -2095,11 +2104,7 @@ async function loadLiveMapData() {
         
         updateVehiclesOnLiveMap(vehicleData.vehicles);
         
-        // Load commuters
-        const commuterResponse = await fetch('/api/commuters/nearby');
-        const commuterData = await commuterResponse.json();
-        
-        updateCommutersOnLiveMap(commuterData.commuters);
+        // Commuters section removed
     } catch (error) {
         console.error('Error loading live map data:', error);
     }
@@ -2122,6 +2127,11 @@ function updateVehiclesOnLiveMap(vehicles) {
         
         // Get a displayed name for the vehicle
         const vehicleName = vehicle.registration_number || vehicle.vehicle_number || `Vehicle #${vehicle.id}`;
+        const capacity = vehicle.capacity || 15;
+        const passengerSummary = vehicle.passenger_summary || {};
+        const passengerDisplay = typeof passengerSummary.current_passengers === 'number'
+            ? `${passengerSummary.current_passengers}/${capacity}`
+            : 'Not available';
         
         // Update or create marker
         const position = [vehicle.latitude, vehicle.longitude];
@@ -2165,6 +2175,9 @@ function updateVehiclesOnLiveMap(vehicles) {
                     <div style="font-size: 0.875rem; color: var(--secondary-color);">
                         <i class="fas fa-route"></i> ${vehicle.route || 'No route set'}
                     </div>
+                    <div style="font-size: 0.875rem; color: var(--secondary-color);">
+                        <i class="fas fa-users"></i> Passengers: ${passengerDisplay}
+                    </div>
                 </div>
                 <span class="vehicle-status status-${vehicle.status}">
                     ${vehicle.status}
@@ -2200,6 +2213,11 @@ function updateVehiclesOnLiveMap(vehicles) {
 function createVehiclePopupContent(vehicle) {
     // Get a displayed name for the vehicle
     const vehicleName = vehicle.registration_number || vehicle.vehicle_number || `Vehicle #${vehicle.id}`;
+    const capacity = vehicle.capacity || 15;
+    const passengerSummary = vehicle.passenger_summary || {};
+    const passengerDisplay = typeof passengerSummary.current_passengers === 'number'
+        ? `${passengerSummary.current_passengers}/${capacity}`
+        : 'Not available';
     
     return `
         <div style="min-width: 200px;">
@@ -2207,6 +2225,7 @@ function createVehiclePopupContent(vehicle) {
             <div style="margin-top: 8px;">
                 <strong>Route:</strong> ${vehicle.route || 'Not set'}<br>
                 <strong>Status:</strong> ${vehicle.status}<br>
+                <strong>Passengers:</strong> ${passengerDisplay}<br>
                 <strong>Last updated:</strong> ${formatTimestamp(vehicle.last_updated)}
             </div>
             <button class="btn btn-primary view-route-btn" 
@@ -2276,73 +2295,7 @@ function formatTimestamp(timestamp) {
     return date.toLocaleString();
 }
 
-function updateCommutersOnLiveMap(commuters) {
-    const commuterList = document.getElementById('commuterList');
-    commuterList.innerHTML = '';
-    
-    if (commuters.length === 0) {
-        commuterList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--secondary-color);">No commuters nearby</div>';
-        return;
-    }
-    
-    commuters.forEach(commuter => {
-        // Skip commuters with invalid coordinates
-        if (!commuter.latitude || !commuter.longitude) {
-            return;
-        }
-        
-        // Update or create marker
-        const position = [commuter.latitude, commuter.longitude];
-        if (commuterMarkers[commuter.id]) {
-            commuterMarkers[commuter.id].setLatLng(position);
-        } else {
-            const icon = L.divIcon({
-                html: `<i class="fas fa-user" style="color: var(--primary-color); font-size: 20px;"></i>`,
-                className: 'commuter-marker',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
-            });
-            
-            commuterMarkers[commuter.id] = L.marker(position, {icon: icon})
-                .addTo(liveMap)
-                .bindPopup(`
-                    <strong>Commuter</strong><br>
-                    Last updated: ${new Date(commuter.last_updated).toLocaleString()}
-                `);
-        }
-        
-        // Add to list
-        const item = document.createElement('div');
-        item.className = 'commuter-item';
-        item.style.padding = '12px';
-        item.style.borderBottom = '1px solid var(--border-color)';
-        item.style.cursor = 'pointer';
-        
-        item.innerHTML = `
-            <div>
-                <strong>Commuter #${commuter.id}</strong>
-                <div style="font-size: 0.875rem; color: var(--secondary-color);">
-                    <i class="fas fa-clock"></i> ${new Date(commuter.last_updated).toLocaleString()}
-                </div>
-            </div>
-        `;
-        
-        item.addEventListener('click', () => {
-            liveMap.setView(position, 15);
-            commuterMarkers[commuter.id].openPopup();
-        });
-        
-        commuterList.appendChild(item);
-    });
-    
-    // Remove markers for commuters no longer nearby
-    Object.keys(commuterMarkers).forEach(id => {
-        if (!commuters.find(c => c.id === parseInt(id) && c.latitude && c.longitude)) {
-            liveMap.removeLayer(commuterMarkers[id]);
-            delete commuterMarkers[id];
-        }
-    });
-}
+// updateCommutersOnLiveMap function removed - Nearby Commuters section removed
 
 // Continuous location tracking for drivers
 function startContinuousLocationTracking() {

@@ -2,11 +2,59 @@ from flask import Blueprint, jsonify, request, current_app
 from flask_login import login_required, current_user
 from models.vehicle import Vehicle
 from models.location_log import LocationLog
+from models.user import Trip, PassengerEvent
 from models import db
 from datetime import datetime
+from sqlalchemy import func
 import json
 
 api_bp = Blueprint('api', __name__)
+
+def _build_vehicle_response(vehicle):
+    """Helper to include passenger summary information with a vehicle."""
+    data = vehicle.to_dict()
+    summary = _get_vehicle_passenger_summary(vehicle.id)
+    data['passenger_summary'] = summary
+    data['capacity'] = vehicle.capacity or 15  # Default to 15 if not set
+    return data
+
+
+def _get_vehicle_passenger_summary(vehicle_id):
+    """Return passenger summary for the vehicle's active trip."""
+    active_trip = Trip.query.filter_by(
+        vehicle_id=vehicle_id,
+        status='active'
+    ).first()
+    
+    if not active_trip:
+        return {
+            'trip_id': None,
+            'current_passengers': 0,
+            'boards': 0,
+            'alights': 0
+        }
+    
+    boards = (
+        db.session.query(func.coalesce(func.sum(PassengerEvent.count), 0))
+        .filter_by(trip_id=active_trip.id, event_type='board')
+        .scalar() or 0
+    )
+    
+    alights = (
+        db.session.query(func.coalesce(func.sum(PassengerEvent.count), 0))
+        .filter_by(trip_id=active_trip.id, event_type='alight')
+        .scalar() or 0
+    )
+    
+    current = max(0, boards - alights)
+    
+    return {
+        'trip_id': active_trip.id,
+        'current_passengers': current,
+        'boards': boards,
+        'alights': alights
+    }
+
 
 @api_bp.route('/api/vehicles/<int:vehicle_id>', methods=['GET'])
 @login_required
@@ -24,7 +72,7 @@ def get_vehicle(vehicle_id):
         
         return jsonify({
             'success': True,
-            'vehicle': vehicle.to_dict()
+            'vehicle': _build_vehicle_response(vehicle)
         })
         
     except Exception as e:
@@ -42,10 +90,12 @@ def get_operator_vehicles():
         # Get all vehicles owned by the current operator
         vehicles = Vehicle.query.filter_by(owner_id=current_user.id).all()
         
+        vehicle_payload = [_build_vehicle_response(v) for v in vehicles]
+        
         return jsonify({
             'success': True,
-            'vehicles': [v.to_dict() for v in vehicles],
-            'count': len(vehicles)
+            'vehicles': vehicle_payload,
+            'count': len(vehicle_payload)
         })
         
     except Exception as e:
@@ -63,10 +113,12 @@ def get_active_vehicles():
             Vehicle.current_longitude.isnot(None)
         ).all()
         
+        vehicle_payload = [_build_vehicle_response(v) for v in active_vehicles]
+        
         return jsonify({
             'success': True,
-            'vehicles': [v.to_dict() for v in active_vehicles],
-            'count': len(active_vehicles)
+            'vehicles': vehicle_payload,
+            'count': len(vehicle_payload)
         })
         
     except Exception as e:

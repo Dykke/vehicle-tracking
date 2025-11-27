@@ -9,6 +9,8 @@ let vehiclesData = [];
 let socket = null;
 let geolocationWatchId = null;
 let isBroadcastingLocation = false;
+let passengerCurrentCount = 0;
+let passengerCapacityValue = 15;
 
 // Helper function to check if we're on a local network
 function isLocalNetwork() {
@@ -19,6 +21,78 @@ function isLocalNetwork() {
         window.location.hostname.startsWith('10.') ||
         window.location.hostname.endsWith('.local')
     );
+}
+
+function updatePassengerDisplay(currentValue) {
+    const currentEl = document.getElementById('passengerCurrentDisplay');
+    if (currentEl) {
+        currentEl.textContent = currentValue;
+    }
+}
+
+function updatePassengerCapacityDisplay(vehicle) {
+    const capacityEl = document.getElementById('passengerCapacityDisplay');
+    const capacity = vehicle && vehicle.capacity ? vehicle.capacity : 15;
+    passengerCapacityValue = capacity;
+    if (capacityEl) {
+        capacityEl.textContent = capacity;
+    }
+}
+
+function setPassengerControlsEnabled(enabled) {
+    const decreaseBtn = document.getElementById('passengerDecreaseBtn');
+    const increaseBtn = document.getElementById('passengerIncreaseBtn');
+    const hintEl = document.getElementById('passengerControlsHint');
+    
+    [decreaseBtn, increaseBtn].forEach(btn => {
+        if (btn) {
+            btn.disabled = !enabled;
+            btn.classList.toggle('disabled', !enabled);
+        }
+    });
+    
+    if (hintEl) {
+        hintEl.textContent = enabled
+            ? 'Tap +1 or -1 to keep passenger count in sync.'
+            : 'Start a trip to enable passenger updates.';
+    }
+}
+
+function setOccupancyControlsEnabled(enabled) {
+    const vacantBtn = document.getElementById('vacantBtn');
+    const fullBtn = document.getElementById('fullBtn');
+    
+    [vacantBtn, fullBtn].forEach(btn => {
+        if (btn) {
+            btn.disabled = !enabled;
+            btn.classList.toggle('disabled', !enabled);
+        }
+    });
+}
+
+function handlePassengerAdjustment(delta) {
+    if (!currentVehicleId) {
+        showToast('Error', 'Please select a vehicle first', 'error');
+        return;
+    }
+    
+    if (!currentTripId) {
+        showToast('Info', 'Start a trip to track passengers.', 'info');
+        return;
+    }
+    
+    if (delta < 0 && passengerCurrentCount <= 0) {
+        showToast('Info', 'No passengers to remove.', 'info');
+        return;
+    }
+    
+    if (delta > 0 && passengerCapacityValue && passengerCurrentCount >= passengerCapacityValue) {
+        showToast('Warning', 'Vehicle is at full capacity.', 'warning');
+        return;
+    }
+    
+    const eventType = delta > 0 ? 'board' : 'alight';
+    recordPassengerEvent(eventType, Math.abs(delta));
 }
 
 // Update trip counters
@@ -114,7 +188,11 @@ function openConfirmationDialog(message, onConfirm) {
                  currentVehicleId = vehiclesData[0].id;
                  console.log('🚗 Auto-selecting first vehicle:', currentVehicleId);
                  updateVehicleInfo(currentVehicleId);
-                 updateRouteInfo(currentVehicleId);
+                updateRouteInfo(currentVehicleId);
+                updatePassengerCapacityDisplay(vehiclesData[0]);
+                setPassengerControlsEnabled(false);
+                setOccupancyControlsEnabled(false);
+                updateTripSummary();
                  enableVehicleControls(); // Enable buttons when vehicle is selected
              } else {
                  console.log('⚠️ No vehicles assigned to driver');
@@ -171,11 +249,13 @@ function openConfirmationDialog(message, onConfirm) {
              const vehicleIndex = vehiclesData.findIndex(v => v.id == currentVehicleId);
              if (vehicleIndex !== -1) {
                  vehiclesData[vehicleIndex] = { ...vehiclesData[vehicleIndex], ...data.vehicle };
+                updatePassengerCapacityDisplay(vehiclesData[vehicleIndex]);
              }
              
              // Update UI with fresh data
              updateRouteInfo(currentVehicleId);
              updateOccupancyButtons(data.vehicle.occupancy_status || 'Unknown');
+            updateTripSummary();
              
              console.log('✅ Vehicle data refreshed successfully');
              showToast('Success', 'Vehicle data updated', 'success');
@@ -211,6 +291,7 @@ function openConfirmationDialog(message, onConfirm) {
   function updateRouteInfo(vehicleId) {
       const vehicle = vehiclesData.find(v => v.id == vehicleId);
       if (vehicle) {
+        updatePassengerCapacityDisplay(vehicle);
           document.getElementById('routeVehicleName').textContent = vehicle.registration_number;
           
           if (vehicle.route && vehicle.route !== 'None' && vehicle.route !== 'null') {
@@ -246,17 +327,23 @@ function openConfirmationDialog(message, onConfirm) {
               const routePhase = document.getElementById('routePhase');
               if (routePhase) routePhase.textContent = '';
           }
+        updateTripSummary();
       }
   }
  
- // Update vehicle occupancy status
- async function updateOccupancy(status) {
-     if (!currentVehicleId) {
-         showToast('Error', 'No vehicle selected', 'error');
-         return;
-     }
-     
-     try {
+// Update vehicle occupancy status
+async function updateOccupancy(status) {
+    if (!currentVehicleId) {
+        showToast('Error', 'No vehicle selected', 'error');
+        return;
+    }
+    
+    if (!currentTripId) {
+        showToast('Info', 'Start a trip to update occupancy status.', 'info');
+        return;
+    }
+    
+    try {
          console.log(`🔄 Updating occupancy to: ${status}`);
          
          const response = await fetch(`/driver/vehicle/${currentVehicleId}/occupancy`, {
@@ -466,6 +553,7 @@ function stopLocationBroadcasting() {
             
             // Update trip counter
             updateTripCounters();
+            updateTripSummary();
          } else {
              showToast('Error', data.error || 'Failed to start trip', 'error');
          }
@@ -507,6 +595,7 @@ function stopLocationBroadcasting() {
             
             // Update trip counter
             updateTripCounters();
+            updateTripSummary();
          } else {
              showToast('Error', data.error || 'Failed to end trip', 'error');
          }
@@ -660,14 +749,25 @@ function hideTripManagement() {
  
  
  
- // Passenger management functions
- async function recordPassengerEvent(eventType) {
+// Passenger management functions
+async function recordPassengerEvent(eventType, countOverride = null) {
      if (!currentVehicleId || !currentTripId) {
          showToast('Error', 'No active trip. Start a trip first.', 'error');
          return;
      }
      
-     const count = parseInt(document.getElementById('passengerCount').value) || 1;
+    let count = 1;
+    if (typeof countOverride === 'number') {
+        count = countOverride;
+    } else {
+        const countInput = document.getElementById('passengerCount');
+        if (countInput) {
+            const parsed = parseInt(countInput.value, 10);
+            if (!isNaN(parsed) && parsed > 0) {
+                count = parsed;
+            }
+        }
+    }
      
      try {
          const response = await fetch('/driver/passenger', {
@@ -708,10 +808,18 @@ function hideTripManagement() {
          if (response.ok) {
              const data = await response.json();
              if (data.success && data.trip) {
-                 const summary = data.trip.passenger_summary;
-                 document.getElementById('tripBoarded').textContent = summary.boards;
-                 document.getElementById('tripAlighted').textContent = summary.alights;
-                 document.getElementById('tripCurrent').textContent = summary.current_passengers;
+                currentTripId = data.trip.id;
+                const summary = data.trip.passenger_summary || {};
+                passengerCurrentCount = summary.current_passengers || 0;
+                updatePassengerDisplay(passengerCurrentCount);
+                setPassengerControlsEnabled(true);
+                setOccupancyControlsEnabled(true);
+            } else {
+                currentTripId = null;
+                passengerCurrentCount = 0;
+                updatePassengerDisplay(0);
+                setPassengerControlsEnabled(false);
+                setOccupancyControlsEnabled(false);
              }
          }
      } catch (error) {
@@ -744,6 +852,8 @@ function hideTripManagement() {
          
          if (action) {
              console.log('🔘 Button clicked:', action);
+             e.preventDefault();
+             e.stopPropagation();
              
                            try {
                   switch(action) {
@@ -761,6 +871,12 @@ function hideTripManagement() {
                           break;
                       case 'arrival':
                           arrival();
+                          break;
+                      case 'passengerIncrease':
+                          handlePassengerAdjustment(1);
+                          break;
+                      case 'passengerDecrease':
+                          handlePassengerAdjustment(-1);
                           break;
                       default:
                           console.log('⚠️ Unknown action:', action);
@@ -843,58 +959,21 @@ function hideTripManagement() {
      
      // Add keyboard shortcuts for V and F keys
      document.addEventListener('keydown', function(e) {
-         if (e.key.toLowerCase() === 'v' && currentVehicleId) {
+         if (e.key.toLowerCase() === 'v' && currentVehicleId && currentTripId) {
              e.preventDefault();
              console.log('⌨️ V key pressed - setting vacant');
              updateOccupancy('vacant');
-         } else if (e.key.toLowerCase() === 'f' && currentVehicleId) {
+         } else if (e.key.toLowerCase() === 'f' && currentVehicleId && currentTripId) {
              e.preventDefault();
              console.log('⌨️ F key pressed - setting full');
              updateOccupancy('full');
          }
      });
      
-     // Initialize passenger management buttons
-     const increaseBtn = document.getElementById('increaseBtn');
-     const decreaseBtn = document.getElementById('decreaseBtn');
-     const boardBtn = document.getElementById('boardBtn');
-     const alightBtn = document.getElementById('alightBtn');
-     const endTripBtn = document.getElementById('endTripBtn');
-     
-     if (increaseBtn) {
-         increaseBtn.addEventListener('click', function() {
-             const countInput = document.getElementById('passengerCount');
-             countInput.value = parseInt(countInput.value) + 1;
-         });
-     }
-     
-     if (decreaseBtn) {
-         decreaseBtn.addEventListener('click', function() {
-             const countInput = document.getElementById('passengerCount');
-             const currentValue = parseInt(countInput.value);
-             if (currentValue > 1) {
-                 countInput.value = currentValue - 1;
-             }
-         });
-     }
-     
-     if (boardBtn) {
-         boardBtn.addEventListener('click', function() {
-             recordPassengerEvent('board');
-         });
-     }
-     
-     if (alightBtn) {
-         alightBtn.addEventListener('click', function() {
-             recordPassengerEvent('alight');
-         });
-     }
-     
-     if (endTripBtn) {
-         endTripBtn.addEventListener('click', function() {
-             endTrip();
-         });
-     }
+    // Passenger controls - handled via event delegation (data-action attributes)
+    // No need for direct listeners here as they're handled in setupEventDelegation()
+    setPassengerControlsEnabled(false);
+    setOccupancyControlsEnabled(false);
      
                      // Load driver vehicle assignment data
      loadDriverVehicleAssignment();

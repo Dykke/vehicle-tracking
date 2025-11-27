@@ -129,6 +129,18 @@ def get_vehicle_details(vehicle_id):
         return jsonify({'error': 'Access denied. You are not assigned to this vehicle.'}), 403
     
     # Return vehicle details
+    try:
+        # Safely handle route_info - it might be a JSON string or dict
+        route_info = vehicle.route_info
+        if isinstance(route_info, str):
+            try:
+                import json
+                route_info = json.loads(route_info)
+            except (json.JSONDecodeError, ValueError):
+                route_info = None
+    except Exception:
+        route_info = None
+    
     return jsonify({
         'success': True,
         'vehicle': {
@@ -138,7 +150,7 @@ def get_vehicle_details(vehicle_id):
             'status': vehicle.status,
             'occupancy_status': vehicle.occupancy_status,
             'route': vehicle.route,
-            'route_info': vehicle.route_info,
+            'route_info': route_info,
             'assigned_driver_id': vehicle.assigned_driver_id,
             'last_location_update': vehicle.last_location_update.isoformat() if vehicle.last_location_update else None
         }
@@ -368,6 +380,16 @@ def record_passenger_event():
     db.session.add(event)
     db.session.add(log)
     db.session.commit()
+    
+    print(f"✅ Passenger event saved: trip_id={active_trip.id}, vehicle_id={vehicle_id}, type={event_type}, count={count}")
+    
+    # Clear vehicle cache so map updates with new passenger count
+    try:
+        from routes.public import clear_vehicle_cache
+        clear_vehicle_cache()
+        print("✅ Vehicle cache cleared successfully")
+    except ImportError as e:
+        print(f"❌ Failed to clear vehicle cache: {e}")
     
     return jsonify({
         'success': True,
