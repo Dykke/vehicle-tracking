@@ -222,6 +222,7 @@ def get_active_vehicles():
 
                 vehicles_data.append({
                     'id': vehicle.id,
+                    'registration_number': vehicle.registration_number,
                     'type': vehicle.vehicle_type,
                     'status': vehicle.status,
                     'trip_status': 'departed',  # Vehicle is on an active trip

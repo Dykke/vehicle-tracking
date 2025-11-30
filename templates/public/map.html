@@ -850,13 +850,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Validate coordinates
             if (!originCoords || !destCoords) {
                 console.error(`Missing coordinate data for vehicle ${vehicle.id}`, routeInfo);
-                showToast('Route Error', `No coordinates available for ${vehicle.name || 'Van #' + vehicle.id}`, 'error');
+                const vehicleName = vehicle.registration_number || `${vehicle.type === 'bus' ? 'Bus' : 'Van'} #${vehicle.id}`;
+                showToast('Route Error', `No coordinates available for ${vehicleName}`, 'error');
                 return;
             }
             
             if (!originCoords.lat || !originCoords.lon || !destCoords.lat || !destCoords.lon) {
                 console.error(`Invalid coordinates for vehicle ${vehicle.id}`, {originCoords, destCoords});
-                showToast('Route Error', `Invalid route coordinates for ${vehicle.name || 'vehicle'}`, 'error');
+                const vehicleName = vehicle.registration_number || `${vehicle.type === 'bus' ? 'Bus' : 'Van'} #${vehicle.id}`;
+                showToast('Route Error', `Invalid route coordinates for ${vehicleName}`, 'error');
                 return;
             }
             
@@ -1102,10 +1104,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             tripStatusClass = 'status-arrived';
         }
         
+        // Get vehicle name - use registration number if available, otherwise fallback to type + id
+        const vehicleName = vehicle.registration_number || `${vehicle.type === 'bus' ? 'Bus' : 'Van'} #${vehicle.id}`;
+        
         return `
             <div class="vehicle-popup">
                 <div class="vehicle-popup-header">
-                    <h5 style="margin: 0;">${vehicle.type === 'bus' ? 'Bus' : 'Van'} #${vehicle.id}</h5>
+                    <h5 style="margin: 0;">${vehicleName}</h5>
                     <span class="vehicle-status ${statusClass}">${statusDisplay}</span>
                 </div>
                 ${vehicle.driver_name ? `
@@ -1182,10 +1187,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             const hasRoute = vehicle.trip_status === 'departed';
             const selectedClass = isSelected ? 'selected-vehicle' : '';
             
+            // Get vehicle name - use registration number if available, otherwise fallback to type + id
+            const vehicleName = vehicle.registration_number || `${vehicle.type === 'bus' ? 'Bus' : 'Van'} #${vehicle.id}`;
+            
             html += `
                 <div class="vehicle-info ${selectedClass}" onclick="focusVehicle(${vehicle.id})" style="cursor: pointer; ${isSelected ? 'background-color: #e3f2fd; border-left: 4px solid #2196f3;' : ''}">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span><i class="fas fa-${vehicle.type === 'bus' ? 'bus' : 'van-shuttle'}"></i> ${vehicle.type === 'bus' ? 'Bus' : 'Van'} #${vehicle.id} ${hasRoute ? '<i class="fas fa-route text-primary" title="Route visible"></i>' : ''}</span>
+                        <span><i class="fas fa-${vehicle.type === 'bus' ? 'bus' : 'van-shuttle'}"></i> ${vehicleName} ${hasRoute ? '<i class="fas fa-route text-primary" title="Route visible"></i>' : ''}</span>
                         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
                             <span class="vehicle-status ${statusClass}">${statusDisplay}</span>
                             ${tripStatusDisplay ? `<span class="vehicle-status ${tripStatusClass}" style="font-size: 0.7rem;">${tripStatusDisplay}</span>` : ''}
