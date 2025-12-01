@@ -2120,12 +2120,16 @@ function updateVehiclesOnLiveMap(vehicles) {
     }
     
     vehicles.forEach(vehicle => {
+        // Use current_latitude/current_longitude (from to_dict) or latitude/longitude (from API)
+        const lat = vehicle.current_latitude || vehicle.latitude;
+        const lng = vehicle.current_longitude || vehicle.longitude;
+        
         // Skip vehicles with invalid coordinates
-        if (!vehicle.latitude || !vehicle.longitude) {
+        if (!lat || !lng) {
             return;
         }
         
-        // Get a displayed name for the vehicle
+        // Get a displayed name for the vehicle - use registration_number
         const vehicleName = vehicle.registration_number || vehicle.vehicle_number || `Vehicle #${vehicle.id}`;
         const capacity = vehicle.capacity || 15;
         const passengerSummary = vehicle.passenger_summary || {};
@@ -2134,7 +2138,7 @@ function updateVehiclesOnLiveMap(vehicles) {
             : 'Not available';
         
         // Update or create marker
-        const position = [vehicle.latitude, vehicle.longitude];
+        const position = [lat, lng];
         if (vehicleMarkers[vehicle.id]) {
             vehicleMarkers[vehicle.id].setLatLng(position);
             // Update popup content if it exists
@@ -2196,7 +2200,21 @@ function updateVehiclesOnLiveMap(vehicles) {
     
     // Remove markers for vehicles no longer active
     Object.keys(vehicleMarkers).forEach(id => {
-        if (!vehicles.find(v => v.id === parseInt(id) && v.latitude && v.longitude)) {
+        const vehicle = vehicles.find(v => v.id === parseInt(id));
+        if (!vehicle) {
+            liveMap.removeLayer(vehicleMarkers[id]);
+            delete vehicleMarkers[id];
+            
+            // Remove route as well
+            if (routePolylines[id]) {
+                liveMap.removeLayer(routePolylines[id]);
+                delete routePolylines[id];
+            }
+            return;
+        }
+        const lat = vehicle.current_latitude || vehicle.latitude;
+        const lng = vehicle.current_longitude || vehicle.longitude;
+        if (!lat || !lng) {
             liveMap.removeLayer(vehicleMarkers[id]);
             delete vehicleMarkers[id];
             
