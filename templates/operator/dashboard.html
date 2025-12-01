@@ -227,6 +227,14 @@
         overflow: hidden;
     }
     
+    .route-map:hover .route-map-overlay {
+        opacity: 1;
+    }
+    
+    .route-map-overlay {
+        transition: opacity 0.2s;
+    }
+    
     .route-map .leaflet-container {
         height: 100%;
         width: 100%;
@@ -828,13 +836,20 @@ body:has(.modal[style*="display: flex"]) *:not(.modal):not(.modal-backdrop):not(
             
             <!-- Route Map Container -->
             <div class="route-map-container mb-2">
-                <div id="routeMap-{{ vehicle.id }}" class="route-map" 
+                <div id="routeMap-{{ vehicle.id }}" class="route-map route-map-clickable" 
                      data-route="{{ vehicle.route }}"
                      data-vehicle-id="{{ vehicle.id }}"
-                     data-route-info="{{ vehicle.route_info if vehicle.route_info else '' }}">
+                     data-route-info="{{ vehicle.route_info if vehicle.route_info else '' }}"
+                     data-vehicle-name="{{ vehicle.registration_number }}"
+                     style="cursor: pointer; position: relative;">
+                    <div class="route-map-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.02); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; pointer-events: none;">
+                        <span style="background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">
+                            <i class="fas fa-expand"></i> Click to view larger
+                        </span>
+                    </div>
                 </div>
                 <small class="text-muted d-block mt-1">
-                    <i class="fas fa-map-marker-alt"></i> Route visualization
+                    <i class="fas fa-map-marker-alt"></i> Route visualization (click to expand)
                 </small>
             </div>
             {% endif %}
@@ -908,7 +923,7 @@ body:has(.modal[style*="display: flex"]) *:not(.modal):not(.modal-backdrop):not(
                         <div id="point-b-results" class="search-results"></div>
                     </div>
                     
-                    <div id="route-map" style="height: 300px; width: 100%; margin-top: 16px; border-radius: 8px; border: 1px solid var(--border-color);"></div>
+                    <div id="route-map" style="height: 600px; width: 100%; margin-top: 16px; border-radius: 8px; border: 1px solid var(--border-color);"></div>
                     
                     <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
                         <button type="button" class="btn btn-secondary" onclick="clearRoute()">
@@ -930,6 +945,26 @@ body:has(.modal[style*="display: flex"]) *:not(.modal):not(.modal-backdrop):not(
                 <i class="fas fa-save"></i> Update Route
             </button>
         </form>
+    </div>
+</div>
+
+<!-- Route Visualization Modal -->
+<div id="routeVisualizationModal" class="modal" style="display: none;">
+    <div class="modal-content card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2><i class="fas fa-route"></i> Route Visualization</h2>
+            <button class="btn" onclick="hideRouteVisualizationModal()" style="padding: 4px 8px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="mb-3">
+            <h5 id="routeVizVehicleTitle">Vehicle: <span id="routeVizVehicleName"></span></h5>
+            <p class="text-muted">Route: <span id="routeVizRouteDisplay"></span></p>
+            <p class="text-muted" id="routeVizDistance" style="font-weight: 500; color: #2196F3;"></p>
+        </div>
+        
+        <div id="route-visualization-map" style="height: 700px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color);"></div>
     </div>
 </div>
 
@@ -1062,7 +1097,12 @@ let routeMarkerA;
 let routeMarkerB;
 let routeLine;
 let pointA;
+let vehicleLocationMarker = null;
+let vehicleLocationUpdateInterval = null;
 let pointB;
+let routeVizMap = null;
+let routeVizVehicleMarker = null;
+let routeVizUpdateInterval = null;
 
 // Continuous location tracking for drivers
 let watchPositionId = null;
@@ -1093,11 +1133,42 @@ function showRouteOverrideModal(vehicleId, vehicleName, currentRoute) {
     document.getElementById('routeOverrideModal').style.display = 'flex';
     
     // Initialize the route map after the modal is visible
-    setTimeout(initRouteMap, 100);
+    setTimeout(() => {
+        initRouteMap();
+        // Load and display vehicle location
+        loadVehicleLocation(vehicleId);
+        // Start periodic updates
+        startVehicleLocationUpdates(vehicleId);
+    }, 100);
 }
 
 function hideRouteOverrideModal() {
     document.getElementById('routeOverrideModal').style.display = 'none';
+    
+    // Stop vehicle location updates
+    stopVehicleLocationUpdates();
+    
+    // Remove vehicle location marker
+    if (vehicleLocationMarker && routeMap) {
+        routeMap.removeLayer(vehicleLocationMarker);
+        vehicleLocationMarker = null;
+    }
+    
+    // Clear route map markers and line when closing
+    if (routeMap) {
+        if (routeMarkerA) {
+            routeMap.removeLayer(routeMarkerA);
+            routeMarkerA = null;
+        }
+        if (routeMarkerB) {
+            routeMap.removeLayer(routeMarkerB);
+            routeMarkerB = null;
+        }
+        if (routeLine) {
+            routeMap.removeLayer(routeLine);
+            routeLine = null;
+        }
+    }
 }
 
 function initRouteMap() {
@@ -1113,12 +1184,15 @@ function initRouteMap() {
         attribution: '© OpenStreetMap contributors'
     }).addTo(routeMap);
     
-    // Try to center on user's current location
-    if (navigator.geolocation) {
+    // Try to center on user's current location (fallback if no vehicle location)
+    if (navigator.geolocation && !vehicleLocationMarker) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const latLng = [position.coords.latitude, position.coords.longitude];
-                routeMap.setView(latLng, 13);
+                // Only set if we don't have vehicle location yet
+                if (!vehicleLocationMarker) {
+                    const latLng = [position.coords.latitude, position.coords.longitude];
+                    routeMap.setView(latLng, 13);
+                }
             },
             (error) => {
                 console.error('Error getting location:', error);
@@ -1989,8 +2063,10 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('click', (event) => {
             if (event.target.id === 'routeOverrideModal') {
             hideRouteOverrideModal();
+        } else if (event.target.id === 'routeVisualizationModal') {
+            hideRouteVisualizationModal();
         } else if (event.target.id === 'locationModal') {
-        hideLocationModal();
+            hideLocationModal();
     } else if (event.target.id === 'liveMapModal') {
         hideLiveMapModal();
     }
@@ -3048,6 +3124,17 @@ function initializeRouteMaps() {
             createRouteMap(mapContainer, vehicleId, route, routeInfo);
         }
     });
+    
+    // Add click handlers for route visualization
+    document.querySelectorAll('.route-map-clickable').forEach(mapContainer => {
+        mapContainer.addEventListener('click', function() {
+            const vehicleId = this.dataset.vehicleId;
+            const vehicleName = this.dataset.vehicleName;
+            const route = this.dataset.route;
+            const routeInfo = this.dataset.routeInfo;
+            showRouteVisualizationModal(vehicleId, vehicleName, route, routeInfo);
+        });
+    });
 }
 
 function createRouteMap(container, vehicleId, route, routeInfo) {
@@ -3056,12 +3143,18 @@ function createRouteMap(container, vehicleId, route, routeInfo) {
     
     try {
         // Parse route info if available
+        let routeData = null;
+        let originCoords = null;
+        let destCoords = null;
         let origin = '';
         let destination = '';
         
         if (routeInfo) {
             try {
-                const routeData = JSON.parse(routeInfo);
+                routeData = typeof routeInfo === 'string' ? JSON.parse(routeInfo) : routeInfo;
+                // Try to get coordinates directly (like public map does)
+                originCoords = routeData.origin_coords || routeData.origin_coordinates;
+                destCoords = routeData.dest_coords || routeData.destination_coordinates;
                 origin = routeData.origin || '';
                 destination = routeData.destination || '';
             } catch (e) {
@@ -3078,8 +3171,11 @@ function createRouteMap(container, vehicleId, route, routeInfo) {
             destination = parts[1].trim();
         }
         
-        if (origin && destination) {
-            // Create map with route visualization
+        // If we have coordinates directly, use them (no geocoding needed!)
+        if (originCoords && destCoords && originCoords.lat && originCoords.lon && destCoords.lat && destCoords.lon) {
+            createMapWithCoordinates(container, originCoords, destCoords, origin, destination, vehicleId);
+        } else if (origin && destination) {
+            // Fallback to geocoding only if coordinates are not available
             createMapWithRoute(container, origin, destination, vehicleId);
         } else {
             // Create simple map with route text
@@ -3091,6 +3187,76 @@ function createRouteMap(container, vehicleId, route, routeInfo) {
         createSimpleMap(container, route, vehicleId);
         container.classList.remove('loading');
     }
+}
+
+function createMapWithCoordinates(container, originCoords, destCoords, origin, destination, vehicleId) {
+    // Initialize map
+    const map = L.map(container, {
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false
+    });
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: ''
+    }).addTo(map);
+    
+    // Use coordinates directly (no geocoding needed!)
+    const originLat = parseFloat(originCoords.lat);
+    const originLon = parseFloat(originCoords.lon);
+    const destLat = parseFloat(destCoords.lat);
+    const destLon = parseFloat(destCoords.lon);
+    
+    const originPos = [originLat, originLon];
+    const destPos = [destLat, destLon];
+    
+    // Add markers
+    const originMarker = L.marker(originPos).addTo(map);
+    const destMarker = L.marker(destPos).addTo(map);
+    
+    // Try to fetch a road-following route via OSRM
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${originLon},${originLat};${destLon},${destLat}?overview=full&geometries=geojson`;
+    fetch(osrmUrl)
+        .then(r => r.json())
+        .then(routeData => {
+            if (routeData && routeData.routes && routeData.routes.length > 0) {
+                const route = routeData.routes[0];
+                const coords = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+                L.polyline(coords, { color: '#007bff', weight: 3, opacity: 0.9 }).addTo(map);
+                const bounds = L.latLngBounds(coords);
+                map.fitBounds(bounds, { padding: [10, 10] });
+
+                // Distance badge
+                const km = (route.distance / 1000).toFixed(1);
+                const badge = document.createElement('div');
+                badge.className = 'route-distance-badge';
+                badge.textContent = `${km} km`;
+                container.appendChild(badge);
+            } else {
+                // Fallback straight line
+                const line = L.polyline([originPos, destPos], { color: '#007bff', weight: 3, opacity: 0.8 }).addTo(map);
+                const bounds = L.latLngBounds([originPos, destPos]);
+                map.fitBounds(bounds, { padding: [10, 10] });
+            }
+        })
+        .catch(() => {
+            // Fallback straight line on error
+            const line = L.polyline([originPos, destPos], { color: '#007bff', weight: 3, opacity: 0.8 }).addTo(map);
+            const bounds = L.latLngBounds([originPos, destPos]);
+            map.fitBounds(bounds, { padding: [10, 10] });
+        });
+
+    // Popups
+    originMarker.bindPopup(`<b>Origin:</b> ${origin || 'Starting Point'}`);
+    destMarker.bindPopup(`<b>Destination:</b> ${destination || 'End Point'}`);
+
+    container.classList.remove('loading');
 }
 
 function createMapWithRoute(container, origin, destination, vehicleId) {
@@ -3111,7 +3277,7 @@ function createMapWithRoute(container, origin, destination, vehicleId) {
         attribution: ''
     }).addTo(map);
     
-    // Geocode origin and destination
+    // Geocode origin and destination (fallback when coordinates not available)
     Promise.all([
         geocodeAddress(origin),
         geocodeAddress(destination)
@@ -3200,9 +3366,366 @@ function geocodeAddress(address) {
         });
 }
 
+// Vehicle location functions for route modal
+async function loadVehicleLocation(vehicleId) {
+    if (!vehicleId || !routeMap) {
+        return;
+    }
+    
+    try {
+        // Fetch vehicle data from operator vehicles endpoint
+        const response = await fetch('/operator/vehicles');
+        if (!response.ok) {
+            console.error('Failed to fetch vehicle location');
+            return;
+        }
+        
+        const data = await response.json();
+        if (!data.success || !data.vehicles) {
+            console.error('Invalid vehicle data response');
+            return;
+        }
+        
+        const vehicle = data.vehicles.find(v => v.id === parseInt(vehicleId));
+        if (!vehicle) {
+            console.log('Vehicle not found:', vehicleId);
+            return;
+        }
+        
+        // Get coordinates (support both field names)
+        const lat = vehicle.current_latitude || vehicle.latitude;
+        const lng = vehicle.current_longitude || vehicle.longitude;
+        
+        if (!lat || !lng) {
+            console.log('Vehicle has no location data');
+            return;
+        }
+        
+        // Update or create vehicle location marker
+        const position = [lat, lng];
+        const vehicleName = vehicle.registration_number || `Vehicle #${vehicle.id}`;
+        const vehicleType = vehicle.vehicle_type || 'van';
+        
+        if (vehicleLocationMarker) {
+            vehicleLocationMarker.setLatLng(position);
+        } else {
+            // Create vehicle marker icon
+            const icon = L.divIcon({
+                html: `<i class="fas fa-${vehicleType === 'bus' ? 'bus' : 'van-shuttle'}" 
+                      style="color: #2196F3; font-size: 24px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);"></i>`,
+                className: 'vehicle-location-marker',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            
+            vehicleLocationMarker = L.marker(position, {icon: icon})
+                .addTo(routeMap)
+                .bindPopup(`<b>Vehicle Location:</b><br>${vehicleName}<br>Status: ${vehicle.status || 'Unknown'}`);
+            
+            // Center map on vehicle location
+            routeMap.setView(position, 13);
+        }
+        
+        console.log('Vehicle location updated:', vehicleName, position);
+    } catch (error) {
+        console.error('Error loading vehicle location:', error);
+    }
+}
+
+function startVehicleLocationUpdates(vehicleId) {
+    // Clear any existing interval
+    stopVehicleLocationUpdates();
+    
+    // Update every 5 seconds
+    vehicleLocationUpdateInterval = setInterval(() => {
+        loadVehicleLocation(vehicleId);
+    }, 5000);
+}
+
+function stopVehicleLocationUpdates() {
+    if (vehicleLocationUpdateInterval) {
+        clearInterval(vehicleLocationUpdateInterval);
+        vehicleLocationUpdateInterval = null;
+    }
+}
+
 // Function to refresh route maps (useful when new vehicles are added)
 function refreshRouteMaps() {
     initializeRouteMaps();
+}
+
+// Route Visualization Modal Functions
+function showRouteVisualizationModal(vehicleId, vehicleName, route, routeInfo) {
+    // Set modal content
+    document.getElementById('routeVizVehicleName').textContent = vehicleName;
+    document.getElementById('routeVizRouteDisplay').textContent = route || 'No route set';
+    
+    // Show modal
+    document.getElementById('routeVisualizationModal').style.display = 'flex';
+    
+    // Initialize the visualization map after the modal is visible
+    setTimeout(() => {
+        initRouteVisualizationMap(vehicleId, route, routeInfo);
+        // Vehicle location will be loaded after route is drawn (in initRouteVisualizationMap callbacks)
+        // Start periodic updates
+        setTimeout(() => {
+            startRouteVizLocationUpdates(vehicleId);
+        }, 500);
+    }, 100);
+}
+
+function hideRouteVisualizationModal() {
+    document.getElementById('routeVisualizationModal').style.display = 'none';
+    
+    // Stop location updates
+    stopRouteVizLocationUpdates();
+    
+    // Remove vehicle marker
+    if (routeVizVehicleMarker && routeVizMap) {
+        routeVizMap.removeLayer(routeVizVehicleMarker);
+        routeVizVehicleMarker = null;
+    }
+    
+    // Clean up map
+    if (routeVizMap) {
+        routeVizMap.remove();
+        routeVizMap = null;
+    }
+}
+
+function initRouteVisualizationMap(vehicleId, route, routeInfo) {
+    // Store vehicle ID for later use
+    window.currentRouteVizVehicleId = vehicleId;
+    
+    // Clean up existing map
+    if (routeVizMap) {
+        routeVizMap.remove();
+        routeVizMap = null;
+    }
+    
+    // Remove existing vehicle marker
+    if (routeVizVehicleMarker) {
+        routeVizVehicleMarker = null;
+    }
+    
+    // Initialize the map
+    routeVizMap = L.map('route-visualization-map').setView([12.8797, 121.7740], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(routeVizMap);
+    
+    // Clear distance display
+    document.getElementById('routeVizDistance').textContent = '';
+    
+    // Draw route if available
+    if (route && routeInfo && route !== 'No route set') {
+        try {
+            const routeData = typeof routeInfo === 'string' ? JSON.parse(routeInfo) : routeInfo;
+            const originCoords = routeData.origin_coords || routeData.origin_coordinates;
+            const destCoords = routeData.dest_coords || routeData.destination_coordinates;
+            
+            if (originCoords && destCoords && originCoords.lat && originCoords.lon && destCoords.lat && destCoords.lon) {
+                const originLat = parseFloat(originCoords.lat);
+                const originLon = parseFloat(originCoords.lon);
+                const destLat = parseFloat(destCoords.lat);
+                const destLon = parseFloat(destCoords.lon);
+                
+                // Add origin marker
+                const originMarker = L.marker([originLat, originLon], {
+                    icon: L.divIcon({
+                        html: '<i class="fas fa-map-pin" style="color: #4CAF50; font-size: 24px;"></i>',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 24],
+                        className: 'route-marker'
+                    })
+                }).addTo(routeVizMap).bindPopup('Origin: ' + (routeData.origin || 'Starting Point'));
+                
+                // Add destination marker
+                const destMarker = L.marker([destLat, destLon], {
+                    icon: L.divIcon({
+                        html: '<i class="fas fa-flag-checkered" style="color: #F44336; font-size: 24px;"></i>',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 24],
+                        className: 'route-marker'
+                    })
+                }).addTo(routeVizMap).bindPopup('Destination: ' + (routeData.destination || 'End Point'));
+                
+                // Use OSRM API to get road-following route
+                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${originLon},${originLat};${destLon},${destLat}?overview=full&geometries=geojson`;
+                
+                fetch(osrmUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                            const routeInfo = data.routes[0];
+                            
+                            // Get route coordinates (OSRM returns [lon, lat], Leaflet needs [lat, lon])
+                            const routeCoordinates = routeInfo.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                            
+                            // Draw road-following route line
+                            const routeLine = L.polyline(routeCoordinates, {
+                                color: '#2196F3',
+                                weight: 5,
+                                opacity: 0.8
+                            }).addTo(routeVizMap);
+                            
+                            // Calculate and display distance
+                            const distanceKm = (routeInfo.distance / 1000).toFixed(2);
+                            document.getElementById('routeVizDistance').textContent = `Distance: ${distanceKm} km`;
+                            
+                            // Fit map to show the entire route
+                            routeVizMap.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+                            
+                            // Load vehicle location after route is drawn
+                            if (window.currentRouteVizVehicleId) {
+                                setTimeout(() => {
+                                    loadRouteVizVehicleLocation(window.currentRouteVizVehicleId);
+                                }, 100);
+                            }
+                        } else {
+                            // Fallback to straight line if OSRM fails
+                            drawStraightRouteViz(originLat, originLon, destLat, destLon);
+                            // Load vehicle location after route is drawn
+                            if (window.currentRouteVizVehicleId) {
+                                setTimeout(() => {
+                                    loadRouteVizVehicleLocation(window.currentRouteVizVehicleId);
+                                }, 100);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('OSRM API error:', error);
+                        // Fallback to straight line on error
+                        drawStraightRouteViz(originLat, originLon, destLat, destLon);
+                        // Load vehicle location after route is drawn
+                        if (window.currentRouteVizVehicleId) {
+                            setTimeout(() => {
+                                loadRouteVizVehicleLocation(window.currentRouteVizVehicleId);
+                            }, 100);
+                        }
+                    });
+            }
+        } catch (e) {
+            console.error('Error parsing route info:', e);
+        }
+    }
+}
+
+function drawStraightRouteViz(originLat, originLon, destLat, destLon) {
+    // Draw straight line as fallback
+    const routeLine = L.polyline(
+        [[originLat, originLon], [destLat, destLon]],
+        { color: '#2196F3', weight: 4, opacity: 0.7 }
+    ).addTo(routeVizMap);
+    
+    // Calculate straight-line distance
+    const distance = calculateHaversineDistance(originLat, originLon, destLat, destLon);
+    const distanceKm = (distance / 1000).toFixed(2);
+    document.getElementById('routeVizDistance').textContent = `Distance: ${distanceKm} km (straight line)`;
+    
+    // Fit map to show both points
+    const bounds = L.latLngBounds([originLat, originLon], [destLat, destLon]);
+    routeVizMap.fitBounds(bounds, { padding: [50, 50] });
+    
+    // Load vehicle location after route is drawn
+    if (window.currentRouteVizVehicleId) {
+        setTimeout(() => {
+            loadRouteVizVehicleLocation(window.currentRouteVizVehicleId);
+        }, 100);
+    }
+}
+
+function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // Earth's radius in meters
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in meters
+}
+
+async function loadRouteVizVehicleLocation(vehicleId) {
+    if (!vehicleId || !routeVizMap) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/operator/vehicles');
+        if (!response.ok) {
+            console.error('Failed to fetch vehicle location');
+            return;
+        }
+        
+        const data = await response.json();
+        if (!data.success || !data.vehicles) {
+            return;
+        }
+        
+        const vehicle = data.vehicles.find(v => v.id === parseInt(vehicleId));
+        if (!vehicle) {
+            return;
+        }
+        
+        const lat = vehicle.current_latitude || vehicle.latitude;
+        const lng = vehicle.current_longitude || vehicle.longitude;
+        
+        if (!lat || !lng) {
+            console.log('Vehicle has no location data:', vehicle);
+            return;
+        }
+        
+        const position = [parseFloat(lat), parseFloat(lng)];
+        const vehicleName = vehicle.registration_number || `Vehicle #${vehicle.id}`;
+        const vehicleType = vehicle.vehicle_type || 'van';
+        
+        console.log('Adding vehicle marker:', { vehicleName, position, vehicleType });
+        
+        if (routeVizVehicleMarker) {
+            routeVizVehicleMarker.setLatLng(position);
+            // Update popup
+            routeVizVehicleMarker.setPopupContent(`<b>Vehicle Location:</b><br>${vehicleName}<br>Status: ${vehicle.status || 'Unknown'}`);
+        } else {
+            const icon = L.divIcon({
+                html: `<i class="fas fa-${vehicleType === 'bus' ? 'bus' : 'van-shuttle'}" 
+                      style="color: #2196F3; font-size: 28px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);"></i>`,
+                className: 'vehicle-location-marker',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            
+            routeVizVehicleMarker = L.marker(position, {icon: icon})
+                .addTo(routeVizMap)
+                .bindPopup(`<b>Vehicle Location:</b><br>${vehicleName}<br>Status: ${vehicle.status || 'Unknown'}`);
+            
+            console.log('Vehicle marker added to map');
+            
+            // If no route bounds, center on vehicle
+            if (!routeVizMap.getBounds().isValid() || routeVizMap.getBounds().getNorth() === routeVizMap.getBounds().getSouth()) {
+                routeVizMap.setView(position, 13);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading vehicle location:', error);
+    }
+}
+
+function startRouteVizLocationUpdates(vehicleId) {
+    stopRouteVizLocationUpdates();
+    routeVizUpdateInterval = setInterval(() => {
+        loadRouteVizVehicleLocation(vehicleId);
+    }, 5000);
+}
+
+function stopRouteVizLocationUpdates() {
+    if (routeVizUpdateInterval) {
+        clearInterval(routeVizUpdateInterval);
+        routeVizUpdateInterval = null;
+    }
 }
 </script>
 
@@ -3222,11 +3745,15 @@ function refreshRouteMaps() {
 
 .modal-content {
     width: 90%;
-    max-width: 1200px;
+    max-width: 1400px;
     height: auto;
-    max-height: 90vh;
+    max-height: 95vh;
     padding: 24px;
     overflow-y: auto;
+}
+
+#routeOverrideModal .modal-content {
+    max-width: 1600px;
 }
 
 .location-map {
@@ -3293,6 +3820,12 @@ function refreshRouteMaps() {
         height: 300px;
         margin: 12px 0;
     }
+}
+
+/* Vehicle location marker styling */
+.vehicle-location-marker {
+    background: transparent;
+    border: none;
 }
 </style>
 {% endblock %} 
