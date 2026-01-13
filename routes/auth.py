@@ -230,5 +230,11 @@ def register():
 @auth_bp.route('/logout')
 @login_required
 def logout():
-    logout_user()
+    """Logout route - optimized for fast response."""
+    try:
+        logout_user()
+    except Exception as e:
+        # Log error but don't fail logout
+        print(f"Logout error (non-critical): {str(e)}")
+    # Always redirect regardless of errors
     return redirect(url_for('index'))

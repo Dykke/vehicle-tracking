@@ -1396,9 +1396,9 @@
                         <p class="mb-1"><strong>Assigned Driver:</strong></p>
                         <p class="mb-1">${getDriverName(vehicle.assigned_driver_id)}</p>
                     </div>
-                    <div class="col-md-2">
+                                         <div class="col-md-2">
                         ${buttonsHtml}
-                    </div>
+                     </div>
                 </div>
             </div>
         `;
@@ -1482,7 +1482,7 @@
             console.error('⚠️ Error modal not found:', title, message);
         }
     }
-    
+
     function showToast(title, message, type = 'info') {
         // Create toast container if it doesn't exist
         let toastContainer = document.querySelector('.toast-container');
@@ -1538,18 +1538,18 @@
         // This prevents buttons from disappearing if modal is closed without saving
         // Only refresh if we don't have a route value
         if (!currentRoute || currentRoute === 'No route set') {
-            try {
+        try {
                 console.log('🔄 No route provided, refreshing vehicle data to get latest route...');
-                await loadCurrentAssignments();
-                
-                // Get the updated route from the refreshed data
-                const updatedRoute = getUpdatedRouteForVehicle(vehicleId);
+            await loadCurrentAssignments();
+            
+            // Get the updated route from the refreshed data
+            const updatedRoute = getUpdatedRouteForVehicle(vehicleId);
                 if (updatedRoute && updatedRoute !== 'No route set') {
-                    console.log('✅ Route updated from:', currentRoute, 'to:', updatedRoute);
-                    currentRoute = updatedRoute;
-                }
-            } catch (error) {
-                console.error('❌ Error refreshing vehicle data:', error);
+                console.log('✅ Route updated from:', currentRoute, 'to:', updatedRoute);
+                currentRoute = updatedRoute;
+            }
+        } catch (error) {
+            console.error('❌ Error refreshing vehicle data:', error);
             }
         } else {
             console.log('✅ Using provided route, skipping refresh to preserve button state');
@@ -1639,8 +1639,8 @@
         closeButtons.forEach(button => {
             button.addEventListener('click', function(e) {
                 if (hasRouteChanges()) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                        e.preventDefault();
+                        e.stopPropagation();
                     
                     // Show custom modal instead of confirm()
                     const unsavedModal = document.getElementById('unsavedChangesModal');
@@ -2576,9 +2576,9 @@
                  if (currentRouteDisplay) {
                      currentRouteDisplay.textContent = routeData.name;
                  }
-                 
-                 // Calculate and display route
-                 calculateRoute();
+         
+         // Calculate and display route
+         calculateRoute();
              }, 100);
          }, 100);
          

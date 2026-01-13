@@ -277,44 +277,72 @@ def handle_join_vehicle_room(data):
 def emit_vehicle_update(vehicle_id, update_type, data):
     """Emit vehicle update to all clients in the vehicle's room."""
     try:
-        emit(update_type, {
-            'vehicle_id': vehicle_id,
-            'timestamp': time.time(),
-            **data
-        }, room=f"vehicle_{vehicle_id}")
+        # Import socketio from app to use in HTTP request context
+        # Import inside function to avoid circular import issues
+        from app import socketio
         
-        current_app.logger.debug(f"Emitted {update_type} for vehicle {vehicle_id}")
+        if socketio:
+            # Use socketio.emit() instead of emit() when called from HTTP routes
+            socketio.emit(update_type, {
+                'vehicle_id': vehicle_id,
+                'timestamp': time.time(),
+                **data
+            }, room=f"vehicle_{vehicle_id}")
+            
+            current_app.logger.debug(f"Emitted {update_type} for vehicle {vehicle_id}")
+        else:
+            current_app.logger.warning(f"SocketIO not available, skipping emit for vehicle {vehicle_id}")
         
+    except ImportError:
+        current_app.logger.warning(f"SocketIO not available, skipping emit for vehicle {vehicle_id}")
     except Exception as e:
         current_app.logger.error(f"Error emitting vehicle update: {str(e)}")
 
 def emit_trip_update(vehicle_id, update_type, data):
     """Emit trip update to all clients in the vehicle's room."""
     try:
-        emit('trip_updated', {
-            'vehicle_id': vehicle_id,
-            'update_type': update_type,
-            'timestamp': time.time(),
-            **data
-        }, room=f"vehicle_{vehicle_id}")
+        # Import socketio from app to use in HTTP request context
+        from app import socketio
         
-        current_app.logger.debug(f"Emitted trip update {update_type} for vehicle {vehicle_id}")
+        if socketio:
+            # Use socketio.emit() instead of emit() when called from HTTP routes
+            socketio.emit('trip_updated', {
+                'vehicle_id': vehicle_id,
+                'update_type': update_type,
+                'timestamp': time.time(),
+                **data
+            }, room=f"vehicle_{vehicle_id}")
+            
+            current_app.logger.debug(f"Emitted trip update {update_type} for vehicle {vehicle_id}")
+        else:
+            current_app.logger.warning(f"SocketIO not available, skipping trip update for vehicle {vehicle_id}")
         
+    except ImportError:
+        current_app.logger.warning(f"SocketIO not available, skipping trip update for vehicle {vehicle_id}")
     except Exception as e:
         current_app.logger.error(f"Error emitting trip update: {str(e)}")
 
 def emit_passenger_event(vehicle_id, event_type, data):
     """Emit passenger event to all clients in the vehicle's room."""
     try:
-        emit('passenger_event', {
-            'vehicle_id': vehicle_id,
-            'event_type': event_type,
-            'timestamp': time.time(),
-            **data
-        }, room=f"vehicle_{vehicle_id}")
+        # Import socketio from app to use in HTTP request context
+        from app import socketio
         
-        current_app.logger.debug(f"Emitted passenger event {event_type} for vehicle {vehicle_id}")
+        if socketio:
+            # Use socketio.emit() instead of emit() when called from HTTP routes
+            socketio.emit('passenger_event', {
+                'vehicle_id': vehicle_id,
+                'event_type': event_type,
+                'timestamp': time.time(),
+                **data
+            }, room=f"vehicle_{vehicle_id}")
+            
+            current_app.logger.debug(f"Emitted passenger event {event_type} for vehicle {vehicle_id}")
+        else:
+            current_app.logger.warning(f"SocketIO not available, skipping passenger event for vehicle {vehicle_id}")
         
+    except ImportError:
+        current_app.logger.warning(f"SocketIO not available, skipping passenger event for vehicle {vehicle_id}")
     except Exception as e:
         current_app.logger.error(f"Error emitting passenger event: {str(e)}")
 
@@ -377,24 +405,32 @@ def handle_driver_vehicle_update(data):
 def emit_vehicle_assignment_change(vehicle_id, driver_id, action):
     """Emit vehicle assignment change to relevant users."""
     try:
-        # Notify the driver if assigned
-        if driver_id:
-            emit('vehicle_assigned', {
+        # Import socketio from app to use in HTTP request context
+        from app import socketio
+        
+        if socketio:
+            # Notify the driver if assigned
+            if driver_id:
+                socketio.emit('vehicle_assigned', {
+                    'vehicle_id': vehicle_id,
+                    'action': action,
+                    'timestamp': time.time()
+                }, room=f"user_{driver_id}")
+            
+            # Notify all clients about assignment change
+            socketio.emit('vehicle_assignment_updated', {
                 'vehicle_id': vehicle_id,
+                'driver_id': driver_id,
                 'action': action,
                 'timestamp': time.time()
-            }, room=f"user_{driver_id}")
+            }, room='all_clients')
+            
+            current_app.logger.debug(f"Emitted vehicle assignment change: {action} for vehicle {vehicle_id}")
+        else:
+            current_app.logger.warning(f"SocketIO not available, skipping assignment change for vehicle {vehicle_id}")
         
-        # Notify all clients about assignment change
-        emit('vehicle_assignment_updated', {
-            'vehicle_id': vehicle_id,
-            'driver_id': driver_id,
-            'action': action,
-            'timestamp': time.time()
-        }, room='all_clients')
-        
-        current_app.logger.debug(f"Emitted vehicle assignment change: {action} for vehicle {vehicle_id}")
-        
+    except ImportError:
+        current_app.logger.warning(f"SocketIO not available, skipping assignment change for vehicle {vehicle_id}")
     except Exception as e:
         current_app.logger.error(f"Error emitting assignment change: {str(e)}")
 

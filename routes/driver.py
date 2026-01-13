@@ -14,44 +14,30 @@ driver_bp = Blueprint('driver', __name__)
 @login_required
 def dashboard(cache_buster=None):
     """Driver dashboard page."""
-    print("🚨 ROUTE CALLED: /driver/dashboard - Starting function execution")
-    
     if current_user.user_type != 'driver':
-        print("❌ ROUTE ERROR: User is not a driver")
         flash('Access denied. Driver account required.', 'error')
         return redirect(url_for('index'))
     
-    print(f"✅ ROUTE SUCCESS: User {current_user.id} is a driver")
-    
-    # Reload user object from database to get latest profile_image_url
-    # Flask-Login might cache the user object, so we need to refresh it
+    # Optimize: Use current_user directly instead of re-querying
+    # Flask-Login already loads the user from database on each request
     user_id = current_user.id
-    db.session.expire(current_user)  # Expire the current session object
-    fresh_user = User.query.get(user_id)  # Query fresh from database
-    print(f"🔍 DEBUG: Driver profile_image_url: {fresh_user.profile_image_url}")
     
-    # Get vehicles assigned to this driver
-    vehicles = Vehicle.query.filter_by(assigned_driver_id=user_id).all()
+    # Get vehicles assigned to this driver (optimized query)
+    # Use filter() with explicit condition for better query planning
+    vehicles = Vehicle.query.filter(
+        Vehicle.assigned_driver_id == user_id
+    ).all()
     
-    # Debug logging
-    print(f"🔍 DEBUG: Driver dashboard request for user {current_user.id}")
-    print(f"🔍 DEBUG: Found {len(vehicles)} vehicles")
-    for vehicle in vehicles:
-        print(f"🔍 DEBUG: Vehicle {vehicle.id} - Route: {vehicle.route}, Route Info: {vehicle.route_info}")
-    
-    print("🚨 ROUTE: About to render template with version 1.0.2")
-    # Pass fresh_user to template as driver_user to ensure we use latest profile_image_url
-    # The template can use driver_user.profile_image_url if available, otherwise fall back to current_user
+    # Render template with current_user (no need for fresh_user)
     response = make_response(render_template('driver/dashboard.html', 
                                              vehicles=vehicles, 
-                                             driver_user=fresh_user,
+                                             driver_user=current_user,
                                              template_version='1.0.2'))
     
-    # Add aggressive cache-busting headers
+    # Add cache-busting headers
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
-    response.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
     
     return response
 

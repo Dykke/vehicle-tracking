@@ -219,7 +219,7 @@ def get_active_vehicles():
                     print(f"📊 Vehicle {vehicle.id}: active_trip_id={active_trip_id}, current_passengers={current_passengers}")
 
                 capacity = vehicle.capacity or 15  # default capacity if not set
-
+                
                 vehicles_data.append({
                     'id': vehicle.id,
                     'registration_number': vehicle.registration_number,

@@ -844,62 +844,121 @@
         }
         
         // Set up WebSocket connection for real-time notifications
+        // Deferred until after page load to avoid blocking
         function setupNotificationSocket() {
-            // Check if Socket.IO is loaded
-            if (typeof io === 'undefined') {
-                // Load Socket.IO dynamically if not already loaded
-                const script = document.createElement('script');
-                script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
-                script.onload = connectSocket;
-                document.head.appendChild(script);
+            // Skip Socket.IO on login/register pages
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/login') || currentPath.includes('/register')) {
+                console.log('Skipping Socket.IO initialization on login/register page');
+                return;
+            }
+            
+            // Defer Socket.IO initialization until after page is fully loaded
+            if (window.requestIdleCallback) {
+                requestIdleCallback(() => {
+                    setTimeout(() => {
+                        if (typeof io === 'undefined') {
+                            // Load Socket.IO dynamically if not already loaded
+                            const script = document.createElement('script');
+                            script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
+                            script.async = true;
+                            script.onload = connectSocket;
+                            script.onerror = () => {
+                                console.warn('Socket.IO failed to load - continuing without real-time updates');
+                            };
+                            document.head.appendChild(script);
+                        } else {
+                            connectSocket();
+                        }
+                    }, 1000); // Wait 1 second after page load
+                }, { timeout: 5000 });
             } else {
-                connectSocket();
+                // Fallback: wait for page to be fully loaded
+                window.addEventListener('load', () => {
+                    setTimeout(() => {
+                        if (typeof io === 'undefined') {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
+                            script.async = true;
+                            script.onload = connectSocket;
+                            script.onerror = () => {
+                                console.warn('Socket.IO failed to load - continuing without real-time updates');
+                            };
+                            document.head.appendChild(script);
+                        } else {
+                            connectSocket();
+                        }
+                    }, 1000);
+                });
             }
         }
         
         function connectSocket() {
-            // Initialize Socket.IO connection
-            window.socket = io({
-                transports: ['polling', 'websocket'],
-                upgrade: true,
-                rememberUpgrade: true,
-                secure: true,
-                rejectUnauthorized: false,
-                path: '/socket.io'
-            });
-            
-            // Debug socket connection
-            window.socket.on('connect', function() {
-                // Connection established silently
-                console.log('Socket connected with ID:', window.socket.id);
+            try {
+                // Initialize Socket.IO connection with shorter timeout
+                window.socket = io({
+                    timeout: 5000,  // 5 second timeout
+                    transports: ['polling'],  // Start with polling only
+                    upgrade: false,  // Don't upgrade automatically
+                    reconnection: true,
+                    reconnectionDelay: 2000,
+                    reconnectionDelayMax: 10000,
+                    reconnectionAttempts: 2,  // Reduced attempts
+                    path: '/socket.io'
+                });
                 
-                // Join user-specific room for notifications
-                if (window.socket.connected) {
-                    // Get user ID from meta tag
-                    const userId = document.querySelector('meta[name="user-id"]')?.content;
-                    if (userId) {
-                        window.socket.emit('join', { room: `user_${userId}` });
-                        console.log('Joined room:', `user_${userId}`);
+                // Set connection timeout handler
+                const connectionTimeout = setTimeout(() => {
+                    if (window.socket && !window.socket.connected) {
+                        console.warn('Socket.IO connection timeout - continuing without real-time updates');
+                        try {
+                            window.socket.disconnect();
+                        } catch (e) {
+                            // Ignore disconnect errors
+                        }
+                        window.socket = null;
                     }
-                }
-            });
-            
-            window.socket.on('connect_error', function(error) {
-                // Handle connection error silently
-                console.log('Socket connection error:', error.message);
-                setTimeout(function() {
-                    window.socket.connect();
                 }, 5000);
-            });
-            
-            window.socket.on('disconnect', function(reason) {
-                // Handle disconnection silently
-                console.log('Socket disconnected:', reason);
-                // Try to reconnect after a short delay
-                setTimeout(function() {
-                    window.socket.connect();
-                }, 5000);
-            });
+                
+                // Debug socket connection
+                window.socket.on('connect', function() {
+                    clearTimeout(connectionTimeout);
+                    console.log('Socket connected with ID:', window.socket.id);
+                    
+                    // Join user-specific room for notifications
+                    if (window.socket.connected) {
+                        // Get user ID from meta tag
+                        const userId = document.querySelector('meta[name="user-id"]')?.content;
+                        if (userId) {
+                            window.socket.emit('join', { room: `user_${userId}` });
+                            console.log('Joined room:', `user_${userId}`);
+                        }
+                    }
+                });
+                
+                window.socket.on('connect_error', function(error) {
+                    console.warn('Socket connection error:', error.message);
+                    clearTimeout(connectionTimeout);
+                    // Don't retry immediately - let reconnection handle it
+                });
+                
+                window.socket.on('disconnect', function(reason) {
+                    console.log('Socket disconnected:', reason);
+                });
+                
+                window.socket.on('reconnect_failed', function() {
+                    console.warn('Socket.IO reconnection failed - continuing without real-time updates');
+                    try {
+                        window.socket.disconnect();
+                    } catch (e) {
+                        // Ignore disconnect errors
+                    }
+                    window.socket = null;
+                });
+            } catch (error) {
+                console.error('Socket.IO initialization failed:', error);
+                window.socket = null;
+            }
             
             // Listen for new notifications
             window.socket.on('notification', function(notification) {

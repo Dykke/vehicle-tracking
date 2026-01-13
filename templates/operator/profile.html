@@ -79,15 +79,15 @@
                     </h5>
                 </div>
                 <div class="card-body text-center">
-                    {% if current_user.profile_image_url %}
-                        <img src="{{ current_user.profile_image_url }}" alt="Profile Picture" 
+                        {% if current_user.profile_image_url %}
+                            <img src="{{ current_user.profile_image_url }}" alt="Profile Picture" 
                              class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
-                    {% else %}
+                        {% else %}
                         <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-3" 
                              style="width: 150px; height: 150px;">
                             <i class="fas fa-user fa-4x text-white"></i>
-                        </div>
-                    {% endif %}
+                            </div>
+                        {% endif %}
                     <h4>{{ current_user.username }}</h4>
                     <p class="text-muted">{{ current_user.email }}</p>
                     {% if current_user.is_active %}
@@ -114,41 +114,41 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                        <div class="row">
                         <div class="col-md-3 mb-3">
                             <div class="text-center p-3 bg-light rounded">
                                 <h3 class="text-primary mb-1">{{ vehicles|length }}</h3>
                                 <p class="mb-0 text-muted">Total Vehicles</p>
                                 <small class="text-muted">In your fleet</small>
+                                </div>
                             </div>
-                        </div>
                         <div class="col-md-3 mb-3">
                             <div class="text-center p-3 bg-light rounded">
                                 <h3 class="text-success mb-1">{{ vehicles|selectattr('status', 'equalto', 'active')|list|length }}</h3>
                                 <p class="mb-0 text-muted">Active Vehicles</p>
                                 <small class="text-muted">Currently operational</small>
+                                </div>
                             </div>
-                        </div>
                         <div class="col-md-3 mb-3">
                             <div class="text-center p-3 bg-light rounded">
                                 <h3 class="text-primary mb-1">{{ vehicles|selectattr('vehicle_type', 'equalto', 'bus')|list|length }}</h3>
                                 <p class="mb-0 text-muted">Buses</p>
                                 <small class="text-muted">Large capacity vehicles</small>
+                                </div>
                             </div>
-                        </div>
                         <div class="col-md-3 mb-3">
                             <div class="text-center p-3 bg-light rounded">
                                 <h3 class="text-warning mb-1">{{ vehicles|selectattr('vehicle_type', 'equalto', 'van')|list|length }}</h3>
                                 <p class="mb-0 text-muted">Vans</p>
                                 <small class="text-muted">Medium capacity vehicles</small>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     <div class="text-center mt-3">
                         <a href="{{ url_for('operator.manage_vehicles') }}" class="btn btn-primary">
                             <i class="fas fa-bus me-2"></i>Manage Fleet
-                        </a>
-                    </div>
+                            </a>
+                        </div>
                 </div>
             </div>
         </div>
@@ -220,9 +220,9 @@
                                     <i class="fas fa-list me-2"></i>View All Activity
                                 </a>
                             {% else %}
-                                <a href="{{ url_for('operator.operator_action_logs') }}" class="btn btn-outline-success">
-                                    <i class="fas fa-list me-2"></i>View All Activity
-                                </a>
+                            <a href="{{ url_for('operator.operator_action_logs') }}" class="btn btn-outline-success">
+                                <i class="fas fa-list me-2"></i>View All Activity
+                            </a>
                             {% endif %}
                         </div>
                     {% else %}
@@ -328,7 +328,7 @@
                 return false;
             });
             console.log('✅ Event listener attached as backup');
-        }
+    }
     });
     
     // Save profile changes function
@@ -383,7 +383,7 @@
                 if (modalElement) {
                     const modal = bootstrap.Modal.getInstance(modalElement);
                     if (modal) {
-                        modal.hide();
+                modal.hide();
                     }
                 }
                 
@@ -418,7 +418,7 @@
                 e.preventDefault();
                 saveProfileChanges();
             });
-        }
+    }
     });
     
     // Toast notification function

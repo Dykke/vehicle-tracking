@@ -1190,8 +1190,8 @@ function initRouteMap() {
             (position) => {
                 // Only set if we don't have vehicle location yet
                 if (!vehicleLocationMarker) {
-                    const latLng = [position.coords.latitude, position.coords.longitude];
-                    routeMap.setView(latLng, 13);
+                const latLng = [position.coords.latitude, position.coords.longitude];
+                routeMap.setView(latLng, 13);
                 }
             },
             (error) => {
@@ -2066,7 +2066,7 @@ document.addEventListener('click', (event) => {
         } else if (event.target.id === 'routeVisualizationModal') {
             hideRouteVisualizationModal();
         } else if (event.target.id === 'locationModal') {
-            hideLocationModal();
+        hideLocationModal();
     } else if (event.target.id === 'liveMapModal') {
         hideLiveMapModal();
     }

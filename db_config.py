@@ -134,43 +134,53 @@ def get_sqlalchemy_config():
             connect_args['ssl_context'] = ssl_context
             logger.info("PostgreSQL detected - enabling SSL context for pg8000 driver")
         
-        # RENDER OPTIMIZATION: Use SQLite connection pooling settings
-        # that are optimized for Render's free tier constraints
+        # RENDER OPTIMIZATION: Connection pooling settings
+        # For Standard plan ($25/month): Use larger pool for better performance
+        # For Free tier: Use pool_size=1 to avoid connection exhaustion
+        is_production = 'render.com' in database_url or os.getenv('RENDER')
+        pool_size = 5 if is_production else 1  # Standard plan can handle more connections
+        max_overflow = 5 if is_production else 0  # Allow overflow on Standard plan
+        
         config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            # Use a single persistent connection
-            'pool_size': 1,
-            # Recycle connection every 5 minutes
+            # Connection pool size (increased for Standard plan)
+            'pool_size': pool_size,
+            # Recycle connection every 5 minutes to prevent stale connections
             'pool_recycle': 300,
-            # No pre-ping to avoid overhead
-            'pool_pre_ping': False,
-            # Short timeout to fail fast
-            'pool_timeout': 3,
-            # No overflow connections
-            'max_overflow': 0,
+            # Enable pre-ping for Standard plan to detect dead connections
+            'pool_pre_ping': True if is_production else False,
+            # Connection timeout (increased for Standard plan)
+            'pool_timeout': 10 if is_production else 3,
+            # Allow overflow connections on Standard plan
+            'max_overflow': max_overflow,
             # Reset connections on return
             'pool_reset_on_return': 'commit',
-            # Reduce statement cache size
-            'pool_use_lifo': True,  # Last in, first out for better cache locality
+            # Last in, first out for better cache locality
+            'pool_use_lifo': True,
             'connect_args': connect_args
         }
     elif database_url.startswith('mysql'):
-        # RENDER OPTIMIZATION: Use MySQL connection pooling settings
-        # that are optimized for Render's free tier constraints
+        # RENDER OPTIMIZATION: Connection pooling settings
+        # For Standard plan ($25/month): Use larger pool for better performance
+        # For Free tier: Use pool_size=1 to avoid connection exhaustion
+        is_production = 'render.com' in database_url or os.getenv('RENDER')
+        pool_size = 5 if is_production else 1  # Standard plan can handle more connections
+        max_overflow = 5 if is_production else 0  # Allow overflow on Standard plan
+        
         config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            # Use a single persistent connection
-            'pool_size': 1,
-            # Recycle connection every 5 minutes
+            # Connection pool size (increased for Standard plan)
+            'pool_size': pool_size,
+            # Recycle connection every 5 minutes to prevent stale connections
             'pool_recycle': 300,
-            # No pre-ping to avoid overhead
-            'pool_pre_ping': False,
-            # Short timeout to fail fast
-            'pool_timeout': 3,
-            # No overflow connections
-            'max_overflow': 0,
+            # Enable pre-ping for Standard plan to detect dead connections
+            'pool_pre_ping': True if is_production else False,
+            # Connection timeout (increased for Standard plan)
+            'pool_timeout': 10 if is_production else 3,
+            # Allow overflow connections on Standard plan
+            'max_overflow': max_overflow,
             # Reset connections on return
             'pool_reset_on_return': 'commit',
-            # Reduce statement cache size
-            'pool_use_lifo': True,  # Last in, first out for better cache locality
+            # Last in, first out for better cache locality
+            'pool_use_lifo': True,
             'connect_args': {
                 'charset': 'utf8mb4'
             }

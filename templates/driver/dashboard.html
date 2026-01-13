@@ -21,6 +21,34 @@
 
 
 <style>
+    /* Loading state for buttons - shows spinner overlay */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 24px;
+        height: 24px;
+        margin-top: -12px;
+        margin-left: -12px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .btn-loading .occupancy-btn-content,
+    .btn-loading i,
+    .btn-loading .occupancy-text {
+        visibility: hidden;
+    }
+    
     /* Driver Info Card - Modern Horizontal Layout */
     .card:hover {
         transform: translateY(-2px);
@@ -774,9 +802,8 @@
 <!-- Template Version: {{ template_version }} -->
 <!-- HTTPS redirect and geolocation security fix -->
 <script src="{{ url_for('static', filename='js/https_redirect.js') }}"></script>
-<!-- Socket.IO for real-time updates -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
-<script src="{{ url_for('static', filename='js/driver-dashboard.js') }}"></script>
-<script src="{{ url_for('static', filename='js/driver-settings.js') }}"></script>
+<!-- Socket.IO REMOVED - driver dashboard works via HTTP, Socket.IO was causing blocking issues -->
+<script src="{{ url_for('static', filename='js/driver-dashboard.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/driver-settings.js') }}" defer></script>
 {% endblock %}
 

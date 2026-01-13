@@ -19,7 +19,7 @@ services:
       echo "Setting vehicles with coordinates to active status..." &&
       python set_vehicles_active.py &&
       echo "Starting web server..." &&
-      gunicorn --worker-class gunicorn.workers.sync.SyncWorker -w 1 --preload --timeout 120 --keep-alive 65 --log-level info wsgi:app
+      gunicorn --worker-class gunicorn.workers.gthread.ThreadWorker -w 1 --threads 4 --preload --timeout 60 --keep-alive 30 --max-requests 500 --max-requests-jitter 50 --worker-connections 1000 --log-level warning wsgi:app
     envVars:
       - key: SECRET_KEY
         generateValue: true

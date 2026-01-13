@@ -70,7 +70,7 @@ function setOccupancyControlsEnabled(enabled) {
     });
 }
 
-function handlePassengerAdjustment(delta) {
+async function handlePassengerAdjustment(delta) {
     if (!currentVehicleId) {
         showToast('Error', 'Please select a vehicle first', 'error');
         return;
@@ -91,8 +91,28 @@ function handlePassengerAdjustment(delta) {
         return;
     }
     
+    // Get button elements for loading state
+    const increaseBtn = document.getElementById('passengerIncreaseBtn');
+    const decreaseBtn = document.getElementById('passengerDecreaseBtn');
+    const targetBtn = delta > 0 ? increaseBtn : decreaseBtn;
+    
+    // Set loading state using CSS class (more reliable)
+    if (targetBtn) {
+        targetBtn.disabled = true;
+        targetBtn.classList.add('btn-loading');
+    }
+    
     const eventType = delta > 0 ? 'board' : 'alight';
-    recordPassengerEvent(eventType, Math.abs(delta));
+    
+    try {
+        await recordPassengerEvent(eventType, Math.abs(delta));
+    } finally {
+        // Remove loading state
+        if (targetBtn) {
+            targetBtn.classList.remove('btn-loading');
+            targetBtn.disabled = false;
+        }
+    }
 }
 
 // Update trip counters
@@ -152,19 +172,15 @@ function openConfirmationDialog(message, onConfirm) {
     modal.show();
 }
  
- // Initialize WebSocket connection
+ // Initialize WebSocket connection - DISABLED for driver dashboard
+ // Driver dashboard works via HTTP fetch - Socket.IO is not needed
+ // and causes browser connection blocking issues
  function initSocket() {
-     try {
-         socket = io();
-         socket.on('connect', function() {
-             console.log('✅ Connected to server');
-         });
-         socket.on('disconnect', function() {
-             console.log('❌ Disconnected from server');
-         });
-     } catch (error) {
-         console.error('❌ Socket connection failed:', error);
-     }
+     // DISABLED: Socket.IO causes browser connection queue issues
+     // Driver dashboard functionality works perfectly via HTTP
+     console.log('ℹ️ Socket.IO disabled for driver dashboard - using HTTP for all actions');
+     socket = null;
+     return;
  }
  
  // Load driver vehicle assignment from API
@@ -342,6 +358,21 @@ function openConfirmationDialog(message, onConfirm) {
         showToast('Info', 'Start a trip to update occupancy status.', 'info');
         return;
     }
+    
+    // Get button elements for loading state
+    const vacantBtn = document.getElementById('vacantBtn');
+    const fullBtn = document.getElementById('fullBtn');
+    const targetBtn = status === 'vacant' ? vacantBtn : fullBtn;
+    
+    // Set loading state using CSS class (more reliable than replacing innerHTML)
+    if (targetBtn) {
+        targetBtn.classList.add('btn-loading');
+        targetBtn.style.pointerEvents = 'none';
+    }
+    
+    // Disable both buttons during update
+    if (vacantBtn) vacantBtn.disabled = true;
+    if (fullBtn) fullBtn.disabled = true;
      
      try {
          console.log(`🔄 Updating occupancy to: ${status}`);
@@ -378,24 +409,44 @@ function openConfirmationDialog(message, onConfirm) {
      } catch (error) {
          console.error('❌ Error updating occupancy:', error);
          showToast('Error', 'Network error updating occupancy', 'error');
+     } finally {
+         // Remove loading state and re-enable buttons
+         if (targetBtn) {
+             targetBtn.classList.remove('btn-loading');
+             targetBtn.style.pointerEvents = '';
+         }
+         if (vacantBtn) vacantBtn.disabled = false;
+         if (fullBtn) fullBtn.disabled = false;
      }
  }
  
- // Update occupancy button states
+ // Update occupancy button states (using CSS classes for active state)
 function updateOccupancyButtons(status) {
     const vacantBtn = document.getElementById('vacantBtn');
     const fullBtn = document.getElementById('fullBtn');
     
+    // Remove loading state from both buttons
+    if (vacantBtn) vacantBtn.classList.remove('btn-loading');
+    if (fullBtn) fullBtn.classList.remove('btn-loading');
+    
     if (status === 'vacant') {
-        vacantBtn.classList.remove('btn-outline-success');
-        vacantBtn.classList.add('btn-success');
-        fullBtn.classList.remove('btn-danger');
-        fullBtn.classList.add('btn-outline-danger');
+        if (vacantBtn) {
+            vacantBtn.classList.remove('btn-outline-success');
+            vacantBtn.classList.add('btn-success');
+        }
+        if (fullBtn) {
+            fullBtn.classList.remove('btn-danger');
+            fullBtn.classList.add('btn-outline-danger');
+        }
     } else {
-        vacantBtn.classList.remove('btn-success');
-        vacantBtn.classList.add('btn-outline-success');
-        fullBtn.classList.remove('btn-outline-danger');
-        fullBtn.classList.add('btn-danger');
+        if (vacantBtn) {
+            vacantBtn.classList.remove('btn-success');
+            vacantBtn.classList.add('btn-outline-success');
+        }
+        if (fullBtn) {
+            fullBtn.classList.remove('btn-outline-danger');
+            fullBtn.classList.add('btn-danger');
+        }
     }
 }
 
@@ -789,7 +840,15 @@ async function recordPassengerEvent(eventType, countOverride = null) {
          const data = await response.json();
          
          if (data.success) {
-             showToast('Success', `${eventType} event recorded`, 'success');
+             // Update passenger count immediately for better UX
+             if (eventType === 'board') {
+                 passengerCurrentCount += count;
+             } else if (eventType === 'alight') {
+                 passengerCurrentCount = Math.max(0, passengerCurrentCount - count);
+             }
+             updatePassengerDisplay(passengerCurrentCount);
+             
+             // Silently update trip summary (no toast spam)
              updateTripSummary();
          } else {
              showToast('Error', data.error || 'Failed to record event', 'error');
@@ -873,10 +932,14 @@ async function recordPassengerEvent(eventType, countOverride = null) {
                           arrival();
                           break;
                       case 'passengerIncrease':
-                          handlePassengerAdjustment(1);
+                          handlePassengerAdjustment(1).catch(err => {
+                              console.error('Error handling passenger increase:', err);
+                          });
                           break;
                       case 'passengerDecrease':
-                          handlePassengerAdjustment(-1);
+                          handlePassengerAdjustment(-1).catch(err => {
+                              console.error('Error handling passenger decrease:', err);
+                          });
                           break;
                       default:
                           console.log('⚠️ Unknown action:', action);
@@ -899,11 +962,21 @@ async function recordPassengerEvent(eventType, countOverride = null) {
      console.log('📱 DOM load timestamp:', new Date().toISOString());
      console.log('Driver dashboard script loaded');
      
-     // Initialize WebSocket connection
-     initSocket();
-     
-     // Setup event delegation for buttons
+     // Setup event delegation for buttons FIRST (don't wait for Socket.IO)
      setupEventDelegation();
+     
+     // Defer Socket.IO initialization until after page is fully loaded
+     // Use requestIdleCallback if available, otherwise setTimeout
+     if (window.requestIdleCallback) {
+         requestIdleCallback(() => {
+             setTimeout(() => initSocket(), 1000); // Wait 1 second after page load
+         }, { timeout: 5000 });
+     } else {
+         // Fallback: wait for page to be fully loaded
+         window.addEventListener('load', () => {
+             setTimeout(() => initSocket(), 1000); // Wait 1 second after page load
+         });
+     }
      
      // Add direct event listeners to departure and arrival buttons for debugging
      const departureBtn = document.getElementById('departureBtn');

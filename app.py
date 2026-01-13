@@ -138,9 +138,9 @@ login_manager._context_processor = None
 def inject_user():
     from flask import request
     from flask_login import current_user
-    # Only load user data for non-public routes
-    if request.endpoint == 'index':
-        return {}  # Return empty context for public page
+    # Skip context processor for public routes and login to avoid database queries
+    if request.endpoint in ('index', 'auth.login', 'auth.register'):
+        return {}  # Return empty context for public pages
     return dict(current_user=current_user)
 
 # Initialize Socket.IO with threading mode for Python 3.13 compatibility
