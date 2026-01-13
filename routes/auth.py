@@ -28,6 +28,11 @@ def secure_compare(a, b):
 # Rate limiting for failed login attempts
 login_attempts = {}
 
+@auth_bp.route('/staff')
+def staff_portal():
+    """Staff portal page - entry point for employees."""
+    return render_template('auth/staff.html')
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':

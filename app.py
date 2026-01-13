@@ -139,7 +139,7 @@ def inject_user():
     from flask import request
     from flask_login import current_user
     # Skip context processor for public routes and login to avoid database queries
-    if request.endpoint in ('index', 'auth.login', 'auth.register'):
+    if request.endpoint in ('index', 'auth.login', 'auth.register', 'auth.staff_portal'):
         return {}  # Return empty context for public pages
     return dict(current_user=current_user)
 

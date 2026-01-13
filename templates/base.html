@@ -666,9 +666,7 @@
                     <button id="theme-toggle" class="btn">
                         <i class="fas fa-moon"></i>
                     </button>
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
-                        <i class="fas fa-sign-in-alt"></i> <span class="btn-text">Admin Login</span>
-                    </a>
+                    <!-- No login button here - staff can go directly to /staff URL -->
                 {% endif %}
             </div>
         </div>
