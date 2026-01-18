@@ -26,7 +26,7 @@ def test_session():
             'session_info': {
                 'session_id': id(flask_session),
                 'session_keys': list(flask_session.keys()),
-                'user_id_in_session': flask_session.get('user_id', 'NOT_FOUND'),
+                'user_id_in_session': flask_session.get('_user_id', 'NOT_FOUND'),  # Flask-Login uses '_user_id'
                 'current_user_id': current_user.id,
                 'current_user_authenticated': current_user.is_authenticated,
                 'current_user_type': current_user.user_type
@@ -277,7 +277,9 @@ def add_vehicle():
             print(f"🔍 Flask session state after vehicle creation:")
             print(f"   - Flask session ID: {id(flask_session)}")
             print(f"   - Flask session keys: {list(flask_session.keys())}")
-            print(f"   - User ID in Flask session: {flask_session.get('user_id', 'NOT_FOUND')}")
+            # Flask-Login uses '_user_id' (with underscore), not 'user_id'
+            print(f"   - User ID in Flask session: {flask_session.get('_user_id', 'NOT_FOUND')}")
+            print(f"   - All session keys: {list(flask_session.keys())}")
         except Exception as e:
             print(f"❌ Error checking Flask session state: {e}")
         

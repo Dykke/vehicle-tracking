@@ -1,166 +1,246 @@
-# Drive Monitoring System — Feature Breakdown & Pricing Justification
-
-### **Scope Assessment: 70-80% System Overhaul**
-
-This is **NOT** a simple feature addition or minor update. This represents a **major system transformation** that touches nearly every aspect of your application. Here's why this work requires significant investment:
-
-#### **🔄 What Makes This Different from "Small Changes"**
-
-| Small Changes (Free) | This Project (Paid) |
-|----------------------|---------------------|
-| CSS styling updates | Complete UI/UX overhaul |
-| Adding simple forms | Advanced face verification system |
-| Basic CRUD operations | Real-time GPS tracking & mapping |
-| Text/content updates | OTP security implementation |
-| Minor bug fixes | Complex role-based permissions |
-| Database field additions | Real-time seat monitoring system |
-
-#### **🚀 Advanced Features Requiring Specialized Development**
-
-1. **Face Verification System** - Requires integration with biometric APIs
-2. **OTP Security** - SMS/email integration for admin accounts
-3. **Live Seat Monitoring** - Real-time database updates and synchronization
-4. **Proximity-based Boarding** - GPS accuracy within 20-40 meters
-5. **ETA Calculations** - Advanced algorithms using speed and distance data
-
-#### **⏱️ Development Time & Complexity**
-
-- **Previous Projects**: 6,000 PHP for ~60% system changes
-- **This Project**: 70-80% system overhaul with advanced features
-- **Testing Requirements**: Extensive testing for real-time features and security
-
-
--Changes Breakdown
-
-1. Page URL and Login Flow
-Change customer and admin page URLs so customers don’t need to log in first.
-
-2. Full-featured Tracking Overhaul
-Customers can view free slots in buses on a map.
-Admin controls accounts; drivers log in with admin-provided accounts.
-Admin (terminal) dashboard: See departed vehicles, vacant slots.
-Driver: Can change password, update profile (with photo, license, etc.), adjust slot count (updates map).
-User: Registration with selfie (face verification), full info, password show/hide, view vans, see available slots, “sakay/in” within 20-40m, driver confirmation, “baba/out” (driver decrements slot).
-OTP for admin.
-ETA calculation (from pickup, based on speed).
-Departure/arrival tracking.
-Seat monitoring.
-Location/time accuracy improvements.
-Font style/size consistency.
-Face verification for users.
-Terms and policy update (user info visible on map).
-Logging: Track who “sakay/in” or “baba/out” per trip, with timestamp.
-Paper (UI) alignment fixes.
-Scope and Complexity Analysis
-Major Modules/Features
-Authentication Overhaul: Multi-role, OTP, face verification, registration changes.
-Vehicle Tracking: Real-time map, slot management, ETA, seat monitoring.
-Admin/Driver/User Dashboards: Role-based UI, profile management, logging.
-UI/UX: Font consistency, alignment, password visibility, terms update.
-Backend: Logging, accuracy improvements, new endpoints for all above.
-Estimated System Impact
-This is a major overhaul: new features, UI/UX changes, backend logic, and security.
-Based on your previous pricing (6k PHP for 60% system change), this request is at least 70-80% of a full system rewrite, due to:
-New modules (face verification, OTP, logging, ETA, map logic)
-Major changes to registration, login, and dashboard flows
-UI/UX and policy/legal updates
-
-## **Suggested Investment: 7,000-8,000 PHP**
-
-**Rationale:**
-- 70-80% system overhaul (vs. 60% in previous projects)
-- Advanced features requiring specialized development
-- Real-time functionality requiring robust infrastructure
-- Security implementations requiring careful development
-- Professional-grade UI/UX overhaul
-
----
-
-## **📋 Complete Feature Breakdown**
-
-### **1. Page URL and Login Flow Overhaul**
-- Change customer and admin page URLs
-- Customers can access features without logging in first
-
-### **2. Full-featured Vehicle Tracking System**
-- Real-time map showing vehicle locations
-- Customers can view free slots in buses/vans on map
-- Live updates of vehicle status and availability
-
-### **3. Role-based Account Management**
-- Admin controls all accounts
-- Drivers log in with admin-provided accounts only
-- Drivers can change password but not username
-- Centralized account management system
-
-### **4. Admin Terminal Dashboard**
-- View which vehicles have departed from terminal
-- Monitor vacant slots for each departed vehicle
-- Real-time fleet status monitoring
-- Operational oversight dashboard
-
-### **5. Driver Profile & Slot Management**
-- Drivers can update profile (name, license, vehicle, profile pic)
-- Real-time slot increase/decrease functionality
-- Profile picture verification system
-- Vehicle assignment and management
-
-### **6. User Registration with Face Verification**
-- Selfie verification during registration (like GCash/Backride)
-- Complete user information collection (name, address, contact)
-- Username and password with show/hide option
-- Face verification for security
-
-### **7. Customer Map Interaction & Boarding Logic**
-- View vans departed from terminal on map
-- See available slots for each vehicle
-- "Sakay/in" (board) option within 20-40 meters of vehicle
-- Driver confirmation for boarding requests
-- "Baba/out" (alight) handled by driver
-- Real-time slot count updates
-
-### **8. Admin OTP (One-Time Password) Security**
-- OTP verification for admin logins
-- SMS/email integration for security codes
-- Enhanced admin account protection
-
-### **9. ETA (Estimated Time of Arrival) Calculation**
-- Show estimated arrival time for vehicles
-- Calculation based on pickup location and current speed
-- Real-time ETA updates
-
-### **10. Departure and Arrival Tracking**
-- Track when vehicles depart from terminals
-- Monitor arrival times at destinations
-- Trip monitoring and reporting system
-
-### **11. Seat Monitoring**
-- Real-time seat availability display
-- Live seat count updates
-- Prevents overbooking system
-
-### **12. Location and Time Accuracy Improvements**
-- Enhanced GPS accuracy
-- Improved arrival time predictions
-- Better location tracking precision
-
-### **13. UI/UX Consistency**
-- Standardized font styles and sizes
-- Fixed paper (UI) alignment issues
-- Professional interface design
-
-### **14. Face Verification for Users**
-- Face verification during registration
-- Optional face verification for login
-- Biometric security implementation
-
-### **15. Terms and Policy Update**
-- Updated terms and privacy policy
-- User consent for map visibility
-- Legal compliance documentation
-
-### **16. Trip Logging**
-- Log every boarding ("sakay/in") event
-- Log every alighting ("baba/out") event
-- Include user, timestamp, and vehicle information
-- Complete audit trail for trips
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.18.39.1 - - [18/Jan/2026:08:24:03 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 313 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.17.240.2 - - [18/Jan/2026:08:24:03 +0000] "GET /socket.io/?EIO=4&transport=polling&t=PlGD3dI HTTP/1.1" 200 97 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+🔍 Vehicle 1: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 1: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Puerto Princesa, Palawan, Philippines', 'route_set_at': '2026-01-18T08:16:19.863179', 'route_set_by': 2}
+✓ Vehicle 1: Driver = James R. Ret
+📊 Vehicle 1: active_trip_id=51, current_passengers=0
+🔍 Vehicle 6: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 6: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Bataraza, Palawan, Philippines', 'route_set_at': '2026-01-18T08:13:05.134164', 'route_set_by': 5}
+✓ Vehicle 6: Driver = Mark G. Clam
+📊 Vehicle 6: active_trip_id=52, current_passengers=3
+10.18.39.1 - - [18/Jan/2026:08:24:03 +0000] "GET /public/vehicles/active?force_refresh=true HTTP/1.1" 200 1966 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:03,919 - app - DEBUG - Client connected: Nv92krRFqhr4OGT3AAAD
+DEBUG:app:Client connected: Nv92krRFqhr4OGT3AAAD
+10.18.2.66 - - [18/Jan/2026:08:24:03 +0000] "POST /socket.io/?EIO=4&transport=polling&t=PlGD3er&sid=HH49SCBhWVtO0UHaAAAC HTTP/1.1" 200 2 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+10.18.2.66 - - [18/Jan/2026:08:24:03 +0000] "GET /socket.io/?EIO=4&transport=polling&t=PlGD3er.0&sid=HH49SCBhWVtO0UHaAAAC HTTP/1.1" 200 104 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+10.17.240.2 - - [18/Jan/2026:08:24:04 +0000] "POST /socket.io/?EIO=4&transport=polling&t=PlGD3gT&sid=HH49SCBhWVtO0UHaAAAC HTTP/1.1" 200 2 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:04,031 - app - DEBUG - Vehicle positions cache updated with 2 vehicles
+DEBUG:app:Vehicle positions cache updated with 2 vehicles
+2026-01-18 08:24:04,032 - app - DEBUG - Sent vehicle positions to client: Nv92krRFqhr4OGT3AAAD
+DEBUG:app:Sent vehicle positions to client: Nv92krRFqhr4OGT3AAAD
+10.17.27.65 - - [18/Jan/2026:08:24:04 +0000] "GET /socket.io/?EIO=4&transport=polling&t=PlGD3gU&sid=HH49SCBhWVtO0UHaAAAC HTTP/1.1" 200 543 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:04,305 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.102.5 - - [18/Jan/2026:08:24:04 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.19.102.5 - - [18/Jan/2026:08:24:05 +0000] "GET /favicon.ico HTTP/1.1" 404 232 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:05,291 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.173.1 - - [18/Jan/2026:08:24:05 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:06,299 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.18.39.1 - - [18/Jan/2026:08:24:06 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.209.22.76 - - [18/Jan/2026:08:24:06 +0000] "GET /health HTTP/1.1" 200 62 "-" "Render/1.0"
+10.17.240.2 - - [18/Jan/2026:08:24:06 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1966 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:07,337 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.21.56.66 - - [18/Jan/2026:08:24:07 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:08,301 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.102.5 - - [18/Jan/2026:08:24:08 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:09,299 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.21.56.66 - - [18/Jan/2026:08:24:09 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+🔍 Vehicle 1: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 1: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Puerto Princesa, Palawan, Philippines', 'route_set_at': '2026-01-18T08:16:19.863179', 'route_set_by': 2}
+✓ Vehicle 1: Driver = James R. Ret
+📊 Vehicle 1: active_trip_id=51, current_passengers=0
+🔍 Vehicle 6: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 6: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Bataraza, Palawan, Philippines', 'route_set_at': '2026-01-18T08:13:05.134164', 'route_set_by': 5}
+✓ Vehicle 6: Driver = Mark G. Clam
+📊 Vehicle 6: active_trip_id=52, current_passengers=3
+10.18.2.66 - - [18/Jan/2026:08:24:10 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1967 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:10,310 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.185.129 - - [18/Jan/2026:08:24:10 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.209.22.76 - - [18/Jan/2026:08:24:11 +0000] "GET /health HTTP/1.1" 200 62 "-" "Render/1.0"
+10.19.102.5 - - [18/Jan/2026:08:24:11 +0000] "GET /socket.io/?EIO=4&transport=polling&t=PlGC_MG.0&sid=0tieNuTxsxAzFmyIAAAA HTTP/1.1" 200 1 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:11,369 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.18.39.1 - - [18/Jan/2026:08:24:11 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:12,594 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.18.2.66 - - [18/Jan/2026:08:24:12 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.18.2.66 - - [18/Jan/2026:08:24:13 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1967 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:13,385 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.18.39.1 - - [18/Jan/2026:08:24:13 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:14,282 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.17.27.65 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 287 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:14,315 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.17.240.2 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 289 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.18.2.66 - - [18/Jan/2026:08:24:14 +0000] "GET /driver/dashboard HTTP/1.1" 200 73253 "https://drive-monitoring-xlm2.onrender.com/login" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:14,328 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.18.39.1 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 289 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:14,349 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.18.39.1 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 290 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:14,384 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.19.173.1 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 289 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:14,396 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.19.102.5 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 290 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:14,409 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.21.56.66 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 289 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+🔄 Vehicle cache cleared
+2026-01-18 08:24:14,423 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.17.27.65 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 301 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.18.39.1 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/trip/end HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:14,509 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.21.56.66 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 288 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.18.39.1 - - [18/Jan/2026:08:24:14 +0000] "GET /static/css/main.css HTTP/1.1" 200 0 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.18.2.66 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/trip/end HTTP/1.1" 404 56 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.18.2.66 - - [18/Jan/2026:08:24:14 +0000] "GET /static/js/https_redirect.js HTTP/1.1" 200 0 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:14,540 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.102.5 - - [18/Jan/2026:08:24:14 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.19.173.1 - - [18/Jan/2026:08:24:14 +0000] "GET /static/js/driver_actions.js HTTP/1.1" 200 0 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.19.173.1 - - [18/Jan/2026:08:24:14 +0000] "GET /static/js/driver-dashboard.js HTTP/1.1" 200 0 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.19.102.5 - - [18/Jan/2026:08:24:14 +0000] "GET /static/js/driver-settings.js HTTP/1.1" 200 0 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.17.27.65 - - [18/Jan/2026:08:24:14 +0000] "GET /driver/vehicle-assignment HTTP/1.1" 200 666 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.21.56.66 - - [18/Jan/2026:08:24:14 +0000] "GET /driver/trip-stats HTTP/1.1" 200 86 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.21.56.66 - - [18/Jan/2026:08:24:15 +0000] "GET /driver/current-trip/1 HTTP/1.1" 200 39 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.18.2.66 - - [18/Jan/2026:08:24:15 +0000] "GET /driver/current-trip/1 HTTP/1.1" 200 39 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:15,310 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.173.1 - - [18/Jan/2026:08:24:15 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.18.39.1 - - [18/Jan/2026:08:24:15 +0000] "GET /driver/current-trip/1 HTTP/1.1" 200 39 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.18.39.1 - - [18/Jan/2026:08:24:15 +0000] "GET /driver/current-trip/1 HTTP/1.1" 200 39 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.18.2.66 - - [18/Jan/2026:08:24:15 +0000] "GET /driver/current-trip/1 HTTP/1.1" 200 39 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+🔍 Vehicle 6: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 6: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Bataraza, Palawan, Philippines', 'route_set_at': '2026-01-18T08:13:05.134164', 'route_set_by': 5}
+✓ Vehicle 6: Driver = Mark G. Clam
+📊 Vehicle 6: active_trip_id=52, current_passengers=3
+10.17.240.2 - - [18/Jan/2026:08:24:16 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1044 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+10.209.22.76 - - [18/Jan/2026:08:24:16 +0000] "GET /health HTTP/1.1" 200 62 "-" "Render/1.0"
+2026-01-18 08:24:16,336 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.17.240.2 - - [18/Jan/2026:08:24:16 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:17,301 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.102.5 - - [18/Jan/2026:08:24:17 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:18,306 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.21.56.66 - - [18/Jan/2026:08:24:18 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+🔄 Vehicle cache cleared
+10.19.173.1 - - [18/Jan/2026:08:24:19 +0000] "POST /driver/trip/start HTTP/1.1" 200 269 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.19.102.5 - - [18/Jan/2026:08:24:19 +0000] "GET /driver/trip-stats HTTP/1.1" 200 86 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.17.27.65 - - [18/Jan/2026:08:24:19 +0000] "GET /driver/current-trip/1 HTTP/1.1" 200 332 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+🔍 Vehicle 6: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 6: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Bataraza, Palawan, Philippines', 'route_set_at': '2026-01-18T08:13:05.134164', 'route_set_by': 5}
+✓ Vehicle 6: Driver = Mark G. Clam
+📊 Vehicle 6: active_trip_id=52, current_passengers=3
+🔍 Vehicle 1: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 1: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Puerto Princesa, Palawan, Philippines', 'route_set_at': '2026-01-18T08:16:19.863179', 'route_set_by': 2}
+✓ Vehicle 1: Driver = James R. Ret
+📊 Vehicle 1: active_trip_id=53, current_passengers=0
+10.17.27.65 - - [18/Jan/2026:08:24:19 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1968 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:19,323 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.185.129 - - [18/Jan/2026:08:24:19 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:20,330 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.102.5 - - [18/Jan/2026:08:24:20 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 315 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.209.22.76 - - [18/Jan/2026:08:24:21 +0000] "GET /health HTTP/1.1" 200 62 "-" "Render/1.0"
+10.209.22.76 - - [18/Jan/2026:08:24:21 +0000] "GET /health HTTP/1.1" 200 62 "-" "Render/1.0"
+2026-01-18 08:24:21,327 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.18.2.66 - - [18/Jan/2026:08:24:21 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:21,883 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.21.56.66 - - [18/Jan/2026:08:24:21 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 289 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.18.2.66 - - [18/Jan/2026:08:24:22 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1968 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:22,336 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.102.5 - - [18/Jan/2026:08:24:22 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 315 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:23,362 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.173.1 - - [18/Jan/2026:08:24:23 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:24,421 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.18.39.1 - - [18/Jan/2026:08:24:24 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+🔍 Vehicle 1: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 1: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Puerto Princesa, Palawan, Philippines', 'route_set_at': '2026-01-18T08:16:19.863179', 'route_set_by': 2}
+✓ Vehicle 1: Driver = James R. Ret
+📊 Vehicle 1: active_trip_id=53, current_passengers=0
+🔍 Vehicle 6: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 6: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Bataraza, Palawan, Philippines', 'route_set_at': '2026-01-18T08:13:05.134164', 'route_set_by': 5}
+✓ Vehicle 6: Driver = Mark G. Clam
+📊 Vehicle 6: active_trip_id=52, current_passengers=3
+10.18.2.66 - - [18/Jan/2026:08:24:24 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1970 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:25,346 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.17.240.2 - - [18/Jan/2026:08:24:25 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.209.22.76 - - [18/Jan/2026:08:24:26 +0000] "GET /health HTTP/1.1" 200 61 "-" "Render/1.0"
+10.17.240.2 - - [18/Jan/2026:08:24:26 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1970 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:26,350 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.102.5 - - [18/Jan/2026:08:24:26 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 315 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:27,020 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.17.27.65 - - [18/Jan/2026:08:24:27 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 289 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:27,352 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.21.56.66 - - [18/Jan/2026:08:24:27 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 315 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.17.27.65 - - [18/Jan/2026:08:24:27 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1970 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:28,309 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.185.129 - - [18/Jan/2026:08:24:28 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.17.27.65 - - [18/Jan/2026:08:24:28 +0000] "GET /socket.io/?EIO=4&transport=polling&t=PlGD3iA&sid=HH49SCBhWVtO0UHaAAAC HTTP/1.1" 200 1 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+10.18.2.66 - - [18/Jan/2026:08:24:28 +0000] "POST /socket.io/?EIO=4&transport=polling&t=PlGD9lU&sid=HH49SCBhWVtO0UHaAAAC HTTP/1.1" 200 2 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:29,069 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.21.56.66 - - [18/Jan/2026:08:24:29 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 300 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:29,312 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.18.2.66 - - [18/Jan/2026:08:24:29 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:29,987 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.21.56.66 - - [18/Jan/2026:08:24:29 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 302 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:30,314 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.102.5 - - [18/Jan/2026:08:24:30 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+🔍 Vehicle 1: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 1: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Puerto Princesa, Palawan, Philippines', 'route_set_at': '2026-01-18T08:16:19.863179', 'route_set_by': 2}
+✓ Vehicle 1: Driver = James R. Ret
+📊 Vehicle 1: active_trip_id=53, current_passengers=0
+🔍 Vehicle 6: route_info keys=['origin', 'destination', 'route_set_at', 'route_set_by']
+⚠ Vehicle 6: route_info exists but no valid dest_coords or origin_coords found. route_info={'origin': "Brooke's Point, Palawan, Philippines", 'destination': 'Bataraza, Palawan, Philippines', 'route_set_at': '2026-01-18T08:13:05.134164', 'route_set_by': 5}
+✓ Vehicle 6: Driver = Mark G. Clam
+📊 Vehicle 6: active_trip_id=52, current_passengers=3
+10.18.2.66 - - [18/Jan/2026:08:24:30 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1969 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:31,243 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.19.173.1 - - [18/Jan/2026:08:24:31 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 300 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+10.209.22.76 - - [18/Jan/2026:08:24:31 +0000] "GET /health HTTP/1.1" 200 62 "-" "Render/1.0"
+2026-01-18 08:24:31,339 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.17.240.2 - - [18/Jan/2026:08:24:31 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:32,278 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.18.2.66 - - [18/Jan/2026:08:24:32 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 304 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:32,360 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.173.1 - - [18/Jan/2026:08:24:32 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 317 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:33,280 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.17.240.2 - - [18/Jan/2026:08:24:33 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 302 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:33,347 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.173.1 - - [18/Jan/2026:08:24:33 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+10.17.240.2 - - [18/Jan/2026:08:24:34 +0000] "GET /public/vehicles/active HTTP/1.1" 200 1969 "https://drive-monitoring-xlm2.onrender.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:34,276 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1
+10.18.39.1 - - [18/Jan/2026:08:24:34 +0000] "POST /driver/vehicle/1/location HTTP/1.1" 200 300 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36"
+2026-01-18 08:24:34,636 - app - DEBUG - Emitted vehicle_updated for vehicle 6
+DEBUG:app:Emitted vehicle_updated for vehicle 6
+10.19.102.5 - - [18/Jan/2026:08:24:34 +0000] "POST /driver/vehicle/6/location HTTP/1.1" 200 316 "https://drive-monitoring-xlm2.onrender.com/driver/dashboard" "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+2026-01-18 08:24:35,252 - app - DEBUG - Emitted vehicle_updated for vehicle 1
+DEBUG:app:Emitted vehicle_updated for vehicle 1

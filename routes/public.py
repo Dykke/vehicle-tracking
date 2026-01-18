@@ -158,36 +158,69 @@ def get_active_vehicles():
                 if not active_trip:
                     continue  # Skip vehicles without active trips
                 
-                # Calculate route distance and ETA from route_info
+                # Calculate route distance and ETA from route_info - ALWAYS calculate, no delays!
                 route_distance_km = None
                 eta_minutes = None
                 
-                if vehicle.route_info:
+                # Always calculate distance/ETA if we have vehicle coordinates
+                if vehicle.current_latitude and vehicle.current_longitude:
                     try:
-                        route_info = json.loads(vehicle.route_info) if isinstance(vehicle.route_info, str) else vehicle.route_info
+                        route_info = None
+                        if vehicle.route_info:
+                            route_info = json.loads(vehicle.route_info) if isinstance(vehicle.route_info, str) else vehicle.route_info
                         
-                        # Get destination coordinates
-                        if 'dest_coords' in route_info and route_info['dest_coords']:
-                            dest_coords = route_info['dest_coords']
-                            dest_lat = float(dest_coords.get('lat'))
-                            dest_lon = float(dest_coords.get('lon'))
+                        # Try to get destination coordinates from route_info
+                        dest_lat = None
+                        dest_lon = None
+                        
+                        # Debug: Log route_info structure
+                        if route_info:
+                            print(f"🔍 Vehicle {vehicle.id}: route_info keys={list(route_info.keys()) if isinstance(route_info, dict) else 'not dict'}")
+                        
+                        # Check for dest_coords (primary destination)
+                        if route_info and isinstance(route_info, dict):
+                            if 'dest_coords' in route_info and route_info['dest_coords']:
+                                dest_coords = route_info['dest_coords']
+                                if isinstance(dest_coords, dict):
+                                    dest_lat = float(dest_coords.get('lat')) if dest_coords.get('lat') is not None else None
+                                    dest_lon = float(dest_coords.get('lon')) if dest_coords.get('lon') is not None else None
+                                    print(f"🔍 Vehicle {vehicle.id}: dest_coords found - lat={dest_lat}, lon={dest_lon}")
                             
-                            # Calculate distance from current position to destination
+                            # Fallback: Use origin_coords if dest_coords is missing or invalid
+                            if (not dest_lat or not dest_lon) and 'origin_coords' in route_info and route_info['origin_coords']:
+                                origin_coords = route_info['origin_coords']
+                                if isinstance(origin_coords, dict):
+                                    dest_lat = float(origin_coords.get('lat')) if origin_coords.get('lat') is not None else None
+                                    dest_lon = float(origin_coords.get('lon')) if origin_coords.get('lon') is not None else None
+                                    print(f"🔍 Vehicle {vehicle.id}: Using origin_coords as destination - lat={dest_lat}, lon={dest_lon}")
+                        
+                        # Calculate distance if we have destination coordinates
+                        if dest_lat is not None and dest_lon is not None:
                             route_distance_km = round(calculate_distance_km(
                                 vehicle.current_latitude, vehicle.current_longitude,
                                 dest_lat, dest_lon
                             ), 2)
                             
-                            # Calculate ETA based on current speed
-                            speed_kmh = vehicle.last_speed_kmh or 40  # Default 40 km/h
+                            # Calculate ETA based on current speed (always provide ETA, never show "Calculating")
+                            speed_kmh = vehicle.last_speed_kmh or 40  # Default 40 km/h for instant calculation
                             if speed_kmh > 0 and route_distance_km > 0:
                                 eta_minutes = round((route_distance_km / speed_kmh) * 60)
+                            else:
+                                # Fallback: calculate with default speed if speed is 0
+                                eta_minutes = round((route_distance_km / 40) * 60)
                             
                             print(f"✓ Vehicle {vehicle.id}: distance={route_distance_km}km, eta={eta_minutes}min, speed={speed_kmh}km/h")
                         else:
-                            print(f"✗ Vehicle {vehicle.id}: No dest_coords in route_info")
+                            if not vehicle.route_info:
+                                print(f"⚠ Vehicle {vehicle.id}: No route_info at all")
+                            elif not route_info:
+                                print(f"⚠ Vehicle {vehicle.id}: route_info is None or empty after parsing")
+                            else:
+                                print(f"⚠ Vehicle {vehicle.id}: route_info exists but no valid dest_coords or origin_coords found. route_info={route_info}")
                     except Exception as e:
                         print(f"✗ Error calculating route info for vehicle {vehicle.id}: {e}")
+                        import traceback
+                        traceback.print_exc()
                 
                 # Get driver information (already loaded via joinedload, no extra query!)
                 driver_name = None

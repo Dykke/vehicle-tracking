@@ -6,6 +6,7 @@ from models import db
 from datetime import datetime
 from werkzeug.security import check_password_hash, generate_password_hash
 import json
+import math
 
 driver_bp = Blueprint('driver', __name__)
 
@@ -1016,6 +1017,26 @@ def update_vehicle_location(vehicle_id):
     except ValueError:
         return jsonify({'error': 'Invalid location format'}), 400
     
+    # Calculate speed if we have previous location (SAME LOGIC AS events_optimized.py)
+    speed_kmh = None
+    if vehicle.current_latitude and vehicle.current_longitude and vehicle.last_updated:
+        # Calculate distance in kilometers using Haversine formula
+        distance_km = _calculate_distance_km(
+            vehicle.current_latitude, vehicle.current_longitude,
+            latitude, longitude
+        )
+        
+        # Calculate time difference in hours
+        time_diff = (datetime.utcnow() - vehicle.last_updated).total_seconds() / 3600
+        
+        # Calculate speed if time difference is significant
+        if time_diff > 0:
+            speed_kmh = distance_km / time_diff
+            
+            # Filter out unrealistic speeds (e.g., GPS jumps)
+            if speed_kmh > 120:  # Max 120 km/h as sanity check
+                speed_kmh = None
+    
     # Update vehicle location
     vehicle.current_latitude = latitude
     vehicle.current_longitude = longitude
@@ -1024,6 +1045,10 @@ def update_vehicle_location(vehicle_id):
     if occupancy_status and occupancy_status in ['vacant', 'full']:
         vehicle.occupancy_status = occupancy_status
     vehicle.last_updated = datetime.utcnow()
+    
+    # Store calculated speed
+    if speed_kmh:
+        vehicle.last_speed_kmh = speed_kmh
     
     # Create location log
     from models.location_log import LocationLog
@@ -1058,6 +1083,29 @@ def update_vehicle_location(vehicle_id):
             'longitude': longitude,
             'accuracy': accuracy,
             'occupancy_status': vehicle.occupancy_status,
-            'last_updated': vehicle.last_updated.isoformat()
+            'last_updated': vehicle.last_updated.isoformat(),
+            'speed_kmh': round(speed_kmh, 2) if speed_kmh else None
         }
     })
+
+def _calculate_distance_km(lat1, lon1, lat2, lon2):
+    """Calculate distance between two points using Haversine formula (in kilometers)."""
+    # Earth radius in kilometers
+    R = 6371
+    
+    # Convert degrees to radians
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+    
+    # Differences
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+    
+    # Haversine formula
+    a = math.sin(dlat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    distance = R * c
+    
+    return distance

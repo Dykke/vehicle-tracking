@@ -142,43 +142,43 @@ def get_sqlalchemy_config():
         max_overflow = 5 if is_production else 0  # Allow overflow on Standard plan
         
         config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            # Connection pool size (increased for Standard plan)
+            # Connection pool size (increased for Starter DB plan)
             'pool_size': pool_size,
-            # Recycle connection every 5 minutes to prevent stale connections
+            # Recycle connection every 5 minutes to prevent stale connections (critical for SSL errors)
             'pool_recycle': 300,
-            # Enable pre-ping for Standard plan to detect dead connections
-            'pool_pre_ping': True if is_production else False,
-            # Connection timeout (increased for Standard plan)
-            'pool_timeout': 10 if is_production else 3,
-            # Allow overflow connections on Standard plan
+            # Enable pre-ping to detect dead connections before using them
+            'pool_pre_ping': True,  # Always enable for PostgreSQL
+            # Connection timeout (increased for network stability)
+            'pool_timeout': 20 if is_production else 3,
+            # Allow overflow connections on Starter DB plan
             'max_overflow': max_overflow,
-            # Reset connections on return
-            'pool_reset_on_return': 'commit',
+            # Reset connections on return to clean state
+            'pool_reset_on_return': 'rollback',  # Changed to rollback for safety
             # Last in, first out for better cache locality
             'pool_use_lifo': True,
             'connect_args': connect_args
         }
     elif database_url.startswith('mysql'):
         # RENDER OPTIMIZATION: Connection pooling settings
-        # For Standard plan ($25/month): Use larger pool for better performance
+        # For Standard plan ($25/month web + Starter DB): Use optimal pool settings
         # For Free tier: Use pool_size=1 to avoid connection exhaustion
         is_production = 'render.com' in database_url or os.getenv('RENDER')
-        pool_size = 5 if is_production else 1  # Standard plan can handle more connections
-        max_overflow = 5 if is_production else 0  # Allow overflow on Standard plan
+        pool_size = 10 if is_production else 1  # Increased for Starter DB plan
+        max_overflow = 10 if is_production else 0  # Allow overflow for Starter DB
         
         config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            # Connection pool size (increased for Standard plan)
+            # Connection pool size (increased for Starter DB plan)
             'pool_size': pool_size,
             # Recycle connection every 5 minutes to prevent stale connections
             'pool_recycle': 300,
-            # Enable pre-ping for Standard plan to detect dead connections
-            'pool_pre_ping': True if is_production else False,
-            # Connection timeout (increased for Standard plan)
-            'pool_timeout': 10 if is_production else 3,
-            # Allow overflow connections on Standard plan
+            # Enable pre-ping to detect dead connections before using them
+            'pool_pre_ping': True,  # Always enable for MySQL
+            # Connection timeout (increased for network stability)
+            'pool_timeout': 20 if is_production else 3,
+            # Allow overflow connections on Starter DB plan
             'max_overflow': max_overflow,
-            # Reset connections on return
-            'pool_reset_on_return': 'commit',
+            # Reset connections on return to clean state
+            'pool_reset_on_return': 'rollback',  # Changed to rollback for safety
             # Last in, first out for better cache locality
             'pool_use_lifo': True,
             'connect_args': {

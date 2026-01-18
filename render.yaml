@@ -6,20 +6,9 @@ services:
     pythonVersion: 3.11.8
     buildCommand: pip install --prefer-binary -r requirements.txt
     startCommand: |
-      echo "Testing database connection..." &&
-      python test_db.py &&
-      echo "Checking database structure..." &&
-      python check_db.py &&
-      echo "Running database migrations..." &&
-      python run_migrations.py &&
-      echo "Adding missing columns directly (backup approach)..." &&
-      python add_missing_columns.py &&
-      echo "Updating vehicle locations from logs..." &&
-      python update_vehicle_locations.py &&
-      echo "Setting vehicles with coordinates to active status..." &&
-      python set_vehicles_active.py &&
       echo "Starting web server..." &&
-      gunicorn --worker-class gunicorn.workers.gthread.ThreadWorker -w 1 --threads 4 --preload --timeout 60 --keep-alive 30 --max-requests 500 --max-requests-jitter 50 --worker-connections 1000 --log-level warning wsgi:app
+      gunicorn --bind 0.0.0.0:$PORT --worker-class gunicorn.workers.gthread.ThreadWorker -w 1 --threads 4 --timeout 120 --keep-alive 60 --max-requests 1000 --max-requests-jitter 100 --worker-connections 1000 --log-level info wsgi:app
+    healthCheckPath: /health
     envVars:
       - key: SECRET_KEY
         generateValue: true

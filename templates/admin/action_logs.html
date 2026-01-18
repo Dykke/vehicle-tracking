@@ -114,8 +114,8 @@
     <div class="d-flex justify-content-center p-3 bg-light border-top mt-3" id="paginationContainer">
         <div aria-label="Logs pagination" style="position: static !important; display: block !important;">
             <ul class="pagination mb-0" id="pagination">
-                <!-- Pagination will be generated here -->
-            </ul>
+                        <!-- Pagination will be generated here -->
+                    </ul>
         </div>
     </div>
 </div>
@@ -609,7 +609,7 @@
                     } else if (log.action === 'vehicle_assigned_to_driver' || log.action === 'vehicle_unassigned_from_driver') {
                         if (metaData.vehicle_registration) detailItems.push(`Vehicle: ${metaData.vehicle_registration}`);
                         if (metaData.driver_username) detailItems.push(`Driver: ${metaData.driver_username}`);
-                    } else {
+            } else {
                         // Generic: show all metadata except excluded keys
                         const excludeKeys = ['timestamp', 'profile_image_url', 'image_url', 'driver_profile_image_url', 'created_at', 'updated_at'];
                         for (const [key, value] of Object.entries(metaData)) {
@@ -688,9 +688,9 @@
             }
         } else {
             // Show first page, ellipsis, current page range, ellipsis, last page
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(totalPages, startPage + 4);
-            
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, startPage + 4);
+        
             // First page
             if (startPage > 1) {
                 html += `
@@ -704,12 +704,12 @@
             }
             
             // Page range around current page
-            for (let i = startPage; i <= endPage; i++) {
-                html += `
-                    <li class="page-item ${i === currentPage ? 'active' : ''}">
-                        <a class="page-link" href="#" data-page="${i}">${i}</a>
-                    </li>
-                `;
+        for (let i = startPage; i <= endPage; i++) {
+            html += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `;
             }
             
             // Last page

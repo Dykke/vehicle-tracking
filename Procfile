@@ -1,1 +1,1 @@
-web: gunicorn -k sync -w 1 --timeout 60 --keep-alive 2 --max-requests 100 --max-requests-jitter 10 wsgi:app
+web: gunicorn --bind 0.0.0.0:$PORT --worker-class gunicorn.workers.gthread.ThreadWorker -w 1 --threads 4 --timeout 120 --keep-alive 60 --max-requests 1000 --max-requests-jitter 100 --worker-connections 1000 --log-level info wsgi:app

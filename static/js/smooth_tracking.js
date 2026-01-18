@@ -6,7 +6,8 @@
  */
 
 // Configuration
-const ANIMATION_DURATION = 1000; // milliseconds for position animation
+const ANIMATION_DURATION = 1000; // milliseconds for position animation (1 second for near real-time updates)
+const ANIMATION_STEPS = 40; // Number of interpolation steps for smooth animation
 const PREDICTION_INTERVAL = 1000; // milliseconds between position predictions
 const MAX_PREDICTION_TIME = 30000; // maximum time to predict positions (30 seconds)
 const FADE_START_TIME = 10000; // time when marker starts fading (10 seconds)
@@ -61,11 +62,73 @@ function updateVehiclePosition(marker, newPosition, speed) {
         updateMarkerOpacity(marker, 1.0);
     }
     
-    // Animate the marker to the new position
-    marker.setLatLng(newPosition);
+    // Animate the marker smoothly to the new position
+    animateMarkerSmoothly(marker, currentPosition, newPosition, ANIMATION_DURATION);
     
     // Start position prediction for low-signal situations
     startPositionPrediction(vehicleId, marker);
+}
+
+/**
+ * Animate marker smoothly from old position to new position
+ * 
+ * @param {Object} marker - The Leaflet marker object
+ * @param {Object} startPos - Starting LatLng object
+ * @param {Array} endPos - [latitude, longitude] destination
+ * @param {Number} duration - Animation duration in milliseconds
+ */
+function animateMarkerSmoothly(marker, startPos, endPos, duration) {
+    if (!marker) return;
+    
+    const startLat = startPos.lat;
+    const startLng = startPos.lng;
+    const endLat = endPos[0];
+    const endLng = endPos[1];
+    
+    // Cancel any existing animation for this marker
+    if (marker._animationFrame) {
+        cancelAnimationFrame(marker._animationFrame);
+    }
+    
+    const startTime = performance.now();
+    let animationId;
+    
+    function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1); // 0 to 1
+        
+        // Use easing function for smoother animation (ease-in-out)
+        const easedProgress = easeInOutQuad(progress);
+        
+        // Interpolate position
+        const currentLat = startLat + (endLat - startLat) * easedProgress;
+        const currentLng = startLng + (endLng - startLng) * easedProgress;
+        
+        // Update marker position
+        marker.setLatLng([currentLat, currentLng]);
+        
+        // Continue animation if not complete
+        if (progress < 1) {
+            marker._animationFrame = requestAnimationFrame(animate);
+        } else {
+            // Ensure final position is exact
+            marker.setLatLng([endLat, endLng]);
+            marker._animationFrame = null;
+        }
+    }
+    
+    // Start animation
+    marker._animationFrame = requestAnimationFrame(animate);
+}
+
+/**
+ * Easing function for smooth animation (ease-in-out quadratic)
+ * 
+ * @param {Number} t - Progress value between 0 and 1
+ * @returns {Number} - Eased progress value
+ */
+function easeInOutQuad(t) {
+    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
 
 /**

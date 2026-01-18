@@ -235,11 +235,16 @@ def register():
 @auth_bp.route('/logout')
 @login_required
 def logout():
-    """Logout route - optimized for fast response."""
+    """Logout route - redirects to login page."""
     try:
         logout_user()
     except Exception as e:
         # Log error but don't fail logout
         print(f"Logout error (non-critical): {str(e)}")
-    # Always redirect regardless of errors
-    return redirect(url_for('index'))
+    # Always redirect to login page regardless of errors
+    response = redirect(url_for('auth.login'))
+    # Add cache-busting headers to ensure page refreshes
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response

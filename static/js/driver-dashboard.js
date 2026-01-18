@@ -431,21 +431,21 @@ function updateOccupancyButtons(status) {
     
     if (status === 'vacant') {
         if (vacantBtn) {
-            vacantBtn.classList.remove('btn-outline-success');
-            vacantBtn.classList.add('btn-success');
+        vacantBtn.classList.remove('btn-outline-success');
+        vacantBtn.classList.add('btn-success');
         }
         if (fullBtn) {
-            fullBtn.classList.remove('btn-danger');
-            fullBtn.classList.add('btn-outline-danger');
+        fullBtn.classList.remove('btn-danger');
+        fullBtn.classList.add('btn-outline-danger');
         }
     } else {
         if (vacantBtn) {
-            vacantBtn.classList.remove('btn-success');
-            vacantBtn.classList.add('btn-outline-success');
+        vacantBtn.classList.remove('btn-success');
+        vacantBtn.classList.add('btn-outline-success');
         }
         if (fullBtn) {
-            fullBtn.classList.remove('btn-outline-danger');
-            fullBtn.classList.add('btn-danger');
+        fullBtn.classList.remove('btn-outline-danger');
+        fullBtn.classList.add('btn-danger');
         }
     }
 }
@@ -537,7 +537,7 @@ function startLocationBroadcasting() {
         },
         {
             enableHighAccuracy: true,
-            maximumAge: 5000,
+            maximumAge: 2000,  // Reduced from 5000ms to 2000ms for more real-time updates (2 seconds)
             timeout: 15000
         }
     );

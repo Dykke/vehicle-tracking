@@ -560,8 +560,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadVehicles(true);  // Force refresh on initial load to get fresh data
             initSocketConnection();
             
-            // Refresh vehicles every 15 seconds (cache is 10s, so this ensures fresh data)
-            setInterval(() => loadVehicles(false), 15000);
+            // Refresh vehicles every 3 seconds for near real-time updates (cache is 5s, so we'll get fresh data)
+            setInterval(() => loadVehicles(false), 3000);
             
             // Initialize user location tracking
             initUserLocationTracking();
@@ -658,6 +658,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Global socket variable to allow cleanup
     let mapSocket = null;
+    let socketConnectionState = 'disconnected'; // Track actual connection state
+    let consecutiveFailures = 0; // Track consecutive API failures
+    const MAX_FAILURES_BEFORE_TOAST = 3; // Only show toast after 3+ failures
     
     function initSocketConnection() {
         // Skip Socket.IO if not available
@@ -671,8 +674,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             reconnection: true,
             reconnectionDelay: 2000,
             reconnectionDelayMax: 10000,
-            reconnectionAttempts: 3,  // Limited attempts to avoid blocking
-            timeout: 5000,
+            reconnectionAttempts: 5,  // Increased attempts for better resilience
+            timeout: 10000,  // Increased timeout
             transports: ['polling'],  // Start with polling only
             upgrade: false  // Don't upgrade to prevent connection issues
         });
@@ -705,33 +708,55 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Socket connection event handlers
         mapSocket.on('connect', function() {
-            console.log('Connected to server');
+            console.log('✅ Connected to server');
+            socketConnectionState = 'connected';
             updateConnectionStatus('connected');
+            consecutiveFailures = 0; // Reset failure counter on successful connection
             
             // Request initial vehicle positions
             mapSocket.emit('request_vehicle_positions');
         });
         
-        mapSocket.on('disconnect', function() {
-            console.log('Disconnected from server');
+        mapSocket.on('disconnect', function(reason) {
+            console.log('⚠️ Disconnected from server:', reason);
+            socketConnectionState = 'disconnected';
+            // Only show disconnected status if it's not a temporary error
+            if (reason === 'io server disconnect' || reason === 'transport close') {
+                // Server-initiated disconnect - show disconnected
             updateConnectionStatus('disconnected');
+            } else {
+                // Client-side disconnect or network error - show connecting (will reconnect)
+                updateConnectionStatus('connecting');
+            }
+        });
+        
+        mapSocket.on('connect_error', function(error) {
+            console.warn('⚠️ Socket.IO connection error:', error);
+            socketConnectionState = 'connecting';
+            updateConnectionStatus('connecting');
+            // Don't show toast for Socket.IO errors - they're handled by reconnection
         });
         
         mapSocket.on('reconnecting', function(attemptNumber) {
-            console.log(`Reconnecting... (attempt ${attemptNumber})`);
+            console.log(`🔄 Reconnecting... (attempt ${attemptNumber})`);
+            socketConnectionState = 'connecting';
             updateConnectionStatus('connecting');
         });
         
         mapSocket.on('reconnect', function() {
-            console.log('Reconnected to server');
+            console.log('✅ Reconnected to server');
+            socketConnectionState = 'connected';
             updateConnectionStatus('connected');
+            consecutiveFailures = 0; // Reset failure counter
             
             // Request vehicle positions after reconnection
             mapSocket.emit('request_vehicle_positions');
         });
         
         mapSocket.on('reconnect_failed', function() {
-            console.warn('Socket.IO reconnection failed - using HTTP polling for updates');
+            console.warn('❌ Socket.IO reconnection failed - using HTTP polling for updates');
+            socketConnectionState = 'disconnected';
+            updateConnectionStatus('disconnected');
             mapSocket = null;
         });
         
@@ -749,6 +774,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     function updateConnectionStatus(status) {
         const indicator = document.getElementById('connection-indicator');
         const text = document.getElementById('connection-text');
+        
+        if (!indicator || !text) return; // Safety check
         
         indicator.className = 'status-indicator';
         
@@ -770,10 +797,38 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     
-    async function loadVehicles(forceRefresh = false) {
+    async function loadVehicles(forceRefresh = false, retryCount = 0) {
+        const maxRetries = 3;
+        const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff, max 10s
+        
         try {
             const url = forceRefresh ? '/public/vehicles/active?force_refresh=true' : '/public/vehicles/active';
-            const response = await fetch(url);
+            
+            // Create abort signal with timeout (fallback for browsers without AbortSignal.timeout)
+            let abortController;
+            let timeoutId;
+            if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+                abortController = { signal: AbortSignal.timeout(15000) };
+            } else {
+                abortController = new AbortController();
+                timeoutId = setTimeout(() => abortController.abort(), 15000);
+            }
+            
+            const response = await fetch(url, {
+                signal: abortController.signal
+            });
+            
+            // Handle 502 Bad Gateway (worker restarting) - retry automatically
+            if (response.status === 502 && retryCount < maxRetries) {
+                // Clear timeout before retrying
+                if (timeoutId) clearTimeout(timeoutId);
+                console.warn(`⚠️ 502 Bad Gateway (worker restarting), retrying in ${retryDelay}ms... (attempt ${retryCount + 1}/${maxRetries})`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                return loadVehicles(forceRefresh, retryCount + 1);
+            }
+            
+            // Clear timeout if manually created (after successful response)
+            if (timeoutId) clearTimeout(timeoutId);
             
             if (!response.ok) {
                 throw new Error(`Server error: ${response.status}`);
@@ -785,13 +840,39 @@ document.addEventListener('DOMContentLoaded', async function() {
                 allVehicles = data.vehicles; // Store all vehicles
                 updateRouteFilter(data.vehicles); // Update route filter dropdown
                 applyCurrentFilter(); // Apply any active filter
+                
+                // Reset failure counter on success
+                consecutiveFailures = 0;
             } else {
                 console.error('Error loading vehicles:', data.error);
+                consecutiveFailures++;
+                
+                // Only show toast after multiple consecutive failures
+                if (consecutiveFailures >= MAX_FAILURES_BEFORE_TOAST) {
                 showToast('Vehicle Data Error', data.error || 'Failed to load vehicle information', 'error');
+                }
             }
         } catch (error) {
+            // Clear timeout in case of error
+            if (timeoutId) clearTimeout(timeoutId);
+            
             console.error('Error fetching vehicles:', error);
+            consecutiveFailures++;
+            
+            // Handle network errors with retry
+            if (error.name === 'AbortError' || error.name === 'TypeError' || error.message?.includes('fetch')) {
+                // Network timeout or connection error - retry if we haven't exceeded max retries
+                if (retryCount < maxRetries) {
+                    console.warn(`⚠️ Network error, retrying in ${retryDelay}ms... (attempt ${retryCount + 1}/${maxRetries})`);
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                    return loadVehicles(forceRefresh, retryCount + 1);
+                }
+            }
+            
+            // Only show toast after multiple consecutive failures
+            if (consecutiveFailures >= MAX_FAILURES_BEFORE_TOAST) {
             showToast('Connection Error', 'Unable to load vehicles. Please check your connection.', 'error');
+            }
         }
     }
     
@@ -1118,7 +1199,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     function createVehiclePopup(vehicle) {
-        const lastUpdated = vehicle.last_updated ? new Date(vehicle.last_updated).toLocaleString() : 'Unknown';
+        // Fix timezone issue: ensure UTC timestamp is converted to local time correctly
+        let lastUpdated = 'Unknown';
+        if (vehicle.last_updated) {
+            const date = new Date(vehicle.last_updated);
+            // Force UTC interpretation if not already (add 'Z' if missing)
+            const isoString = vehicle.last_updated.endsWith('Z') ? vehicle.last_updated : vehicle.last_updated + 'Z';
+            const utcDate = new Date(isoString);
+            lastUpdated = utcDate.toLocaleString();
+        }
         const occupancyStatus = vehicle.occupancy_status === 'full' ? 'Full' : 'Vacant';
         const occupancyClass = vehicle.occupancy_status === 'full' ? 'occupancy-full' : 'occupancy-vacant';
         const etaText = (typeof vehicle.eta_minutes === 'number') ? `${vehicle.eta_minutes} min` : '<span class="loading-dots">Calculating</span>';
@@ -1610,10 +1699,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         // Add user location toggle button to the map
+        // Don't automatically request location - wait for user to click the button
         addUserLocationToggle();
-        
-        // Try to get initial location
-        getCurrentUserLocation();
     }
     
     function addUserLocationToggle() {
