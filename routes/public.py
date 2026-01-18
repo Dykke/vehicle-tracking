@@ -162,6 +162,10 @@ def get_active_vehicles():
                 route_distance_km = None
                 eta_minutes = None
                 
+                # Variables for coordinates (used for both ETA calculation and route_info)
+                dest_lat = None
+                dest_lon = None
+                
                 # Always calculate distance/ETA if we have vehicle coordinates
                 if vehicle.current_latitude and vehicle.current_longitude:
                     try:
@@ -170,8 +174,6 @@ def get_active_vehicles():
                             route_info = json.loads(vehicle.route_info) if isinstance(vehicle.route_info, str) else vehicle.route_info
                         
                         # Try to get destination coordinates from route_info
-                        dest_lat = None
-                        dest_lon = None
                         
                         # Debug: Log route_info structure
                         if route_info:
@@ -193,6 +195,19 @@ def get_active_vehicles():
                                     dest_lat = float(origin_coords.get('lat')) if origin_coords.get('lat') is not None else None
                                     dest_lon = float(origin_coords.get('lon')) if origin_coords.get('lon') is not None else None
                                     print(f"🔍 Vehicle {vehicle.id}: Using origin_coords as destination - lat={dest_lat}, lon={dest_lon}")
+                            
+                            # Final fallback: Geocode destination string if coordinates are still missing
+                            if (not dest_lat or not dest_lon) and 'destination' in route_info:
+                                destination_name = route_info['destination']
+                                print(f"🔍 Vehicle {vehicle.id}: No coordinates found, geocoding destination: {destination_name}")
+                                try:
+                                    geocoded = geocode_place_for_eta(destination_name)
+                                    if geocoded:
+                                        dest_lat = geocoded.get('lat')
+                                        dest_lon = geocoded.get('lon')
+                                        print(f"✓ Vehicle {vehicle.id}: Geocoded destination - lat={dest_lat}, lon={dest_lon}")
+                                except Exception as geocode_error:
+                                    print(f"⚠ Vehicle {vehicle.id}: Geocoding failed: {geocode_error}")
                         
                         # Calculate distance if we have destination coordinates
                         if dest_lat is not None and dest_lon is not None:
@@ -242,6 +257,31 @@ def get_active_vehicles():
                     except json.JSONDecodeError:
                         print(f"⚠ Vehicle {vehicle.id}: Failed to parse route_info")
                         parsed_route_info = None
+                
+                # Add geocoded coordinates to route_info if missing (for map markers)
+                # We already geocoded destination for ETA calculation, so reuse it here
+                if parsed_route_info and isinstance(parsed_route_info, dict):
+                    # If we geocoded destination during ETA calculation, add it to route_info
+                    if dest_lat is not None and dest_lon is not None:
+                        if not parsed_route_info.get('dest_coords'):
+                            parsed_route_info['dest_coords'] = {'lat': dest_lat, 'lon': dest_lon}
+                            print(f"✓ Vehicle {vehicle.id}: Added geocoded dest_coords to route_info for map markers")
+                    
+                    # Only geocode origin if dest_coords exists (means geocoding is working)
+                    # Skip if network is down to prevent 502 errors
+                    if not parsed_route_info.get('origin_coords') and 'origin' in parsed_route_info:
+                        # Only try if we successfully have dest_coords (indicates geocoding is working)
+                        if parsed_route_info.get('dest_coords'):
+                            origin_name = parsed_route_info.get('origin')
+                            if origin_name:
+                                try:
+                                    origin_geocoded = geocode_place_for_eta(origin_name)
+                                    if origin_geocoded:
+                                        parsed_route_info['origin_coords'] = origin_geocoded
+                                        print(f"✓ Vehicle {vehicle.id}: Geocoded and added origin_coords to route_info")
+                                except Exception:
+                                    # Silently skip if geocoding fails - don't block the request
+                                    pass
                 
                 current_passengers = 0
                 active_trip_id = None
@@ -393,6 +433,28 @@ def calculate_eta(vehicle_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+def geocode_place_for_eta(place_name):
+    """Geocode a place name for ETA calculation - lightweight fallback with fast failure."""
+    try:
+        # Very short timeout to prevent blocking - if Nominatim is unreachable, fail fast
+        resp = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": place_name, "format": "json", "limit": 1},
+            headers={"User-Agent": "drive-monitoring/1.0"},
+            timeout=1  # Reduced from 3s to 1s - fail fast if network is down
+        )
+        data = resp.json()
+        if isinstance(data, list) and data:
+            return {"lat": float(data[0]["lat"]), "lon": float(data[0]["lon"])}
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        # Network errors - fail silently to prevent 502s
+        # Don't log every failure (too noisy), only log occasionally
+        pass
+    except Exception as e:
+        # Other errors - log but don't block
+        print(f"Geocoding error for '{place_name}': {e}")
+    return None
 
 def calculate_distance_km(lat1, lon1, lat2, lon2):
     """Calculate distance between two points using Haversine formula."""

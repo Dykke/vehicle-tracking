@@ -6,7 +6,7 @@
  */
 
 // Configuration
-const ANIMATION_DURATION = 1000; // milliseconds for position animation (1 second for near real-time updates)
+const ANIMATION_DURATION = 2800; // milliseconds for position animation (2.8 seconds to smoothly cover 3s update interval)
 const ANIMATION_STEPS = 40; // Number of interpolation steps for smooth animation
 const PREDICTION_INTERVAL = 1000; // milliseconds between position predictions
 const MAX_PREDICTION_TIME = 30000; // maximum time to predict positions (30 seconds)

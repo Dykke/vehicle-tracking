@@ -529,14 +529,18 @@ async function loadMapResources() {
         }
     }
     
-    try {
-        // Try to load Socket.IO with timeout
-        await loadExternalScript('https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js', 5000);
-        console.log('Socket.IO loaded successfully');
-    } catch (error) {
-        console.warn('Socket.IO failed to load, continuing without real-time updates:', error);
-        // Continue without Socket.IO - map will still work
-    }
+    // Socket.IO disabled - not needed since we're using HTTP polling every 2 seconds
+    // This prevents 25+ second delays and choppy tracking
+    // HTTP polling is more reliable and doesn't block browser connections
+    console.log('Socket.IO disabled - using HTTP polling for vehicle updates (every 2 seconds)');
+    // try {
+    //     // Try to load Socket.IO with timeout
+    //     await loadExternalScript('https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js', 5000);
+    //     console.log('Socket.IO loaded successfully');
+    // } catch (error) {
+    //     console.warn('Socket.IO failed to load, continuing without real-time updates:', error);
+    //     // Continue without Socket.IO - map will still work
+    // }
     
     return true;
 }
@@ -560,8 +564,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             loadVehicles(true);  // Force refresh on initial load to get fresh data
             initSocketConnection();
             
-            // Refresh vehicles every 3 seconds for near real-time updates (cache is 5s, so we'll get fresh data)
-            setInterval(() => loadVehicles(false), 3000);
+            // Refresh vehicles every 2 seconds for smooth real-time tracking (matches driver update frequency)
+            setInterval(() => loadVehicles(false), 2000);
             
             // Initialize user location tracking
             initUserLocationTracking();
@@ -622,6 +626,41 @@ document.addEventListener('DOMContentLoaded', async function() {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
         
+        // Add map click handler to deselect vehicle and remove route line when clicking outside
+        // Note: Marker clicks don't bubble to map, so this only fires on map clicks
+        // Use a flag to prevent deselection during map dragging
+        let isDragging = false;
+        map.on('dragstart', function() {
+            isDragging = true;
+        });
+        map.on('dragend', function() {
+            isDragging = false;
+        });
+        
+        map.on('click', function(e) {
+            // Don't deselect if user is dragging the map
+            if (isDragging) {
+                isDragging = false;
+                return;
+            }
+            
+            // Close any open popups
+            map.eachLayer(function(layer) {
+                if (layer instanceof L.Marker && layer.isPopupOpen()) {
+                    layer.closePopup();
+                }
+            });
+            
+            // Deselect vehicle and remove route line
+            if (selectedVehicle) {
+                selectedVehicle = null;
+                removeRouteLine();
+                currentRouteVehicleId = null; // Reset when deselected
+                routeDrawnForVehicle = null; // Clear route drawn flag
+                console.log('Vehicle deselected by map click - route line removed');
+            }
+        });
+        
         // Try to center the map on user's location
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -663,6 +702,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     const MAX_FAILURES_BEFORE_TOAST = 3; // Only show toast after 3+ failures
     
     function initSocketConnection() {
+        // Socket.IO disabled - using HTTP polling instead (every 2 seconds)
+        // HTTP polling is more reliable and doesn't block browser connections
+        // Socket.IO was causing 25+ second delays and choppy tracking
+        console.log('Socket.IO disabled - using HTTP polling for vehicle updates (every 2 seconds)');
+        return;
+        
+        // OLD CODE - DISABLED:
         // Skip Socket.IO if not available
         if (typeof io === 'undefined') {
             console.warn('Socket.IO not available - using polling for vehicle updates');
@@ -838,6 +884,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (data.success) {
                 allVehicles = data.vehicles; // Store all vehicles
+                
+                // If no vehicle is selected, ensure route line is removed (especially on refresh)
+                if (selectedVehicle === null && currentRouteLine !== null) {
+                    removeRouteLine();
+                    currentRouteVehicleId = null;
+                    routeDrawnForVehicle = null;
+                }
+                
                 updateRouteFilter(data.vehicles); // Update route filter dropdown
                 applyCurrentFilter(); // Apply any active filter
                 
@@ -913,6 +967,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     function applyCurrentFilter() {
         const filterSelect = document.getElementById('routeFilter');
         const selectedRoute = filterSelect.value;
+        
+        // Clear selected vehicle route line if no vehicle is selected (before processing vehicles)
+        if (selectedVehicle === null && currentRouteLine !== null) {
+            removeRouteLine();
+            currentRouteVehicleId = null;
+            routeDrawnForVehicle = null;
+        }
         
         let filteredVehicles;
         if (selectedRoute === '') {
@@ -1137,6 +1198,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (selectedVehicle && selectedVehicle.id === vehicle.id) {
                     selectedVehicle = null;
                     removeRouteLine();
+                    currentRouteVehicleId = null; // Reset when popup is closed
+                    routeDrawnForVehicle = null; // Clear route drawn flag
                     console.log('Vehicle popup closed - route line removed');
                 }
             });
@@ -1147,11 +1210,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (selectedVehicle && selectedVehicle.id === vehicle.id) {
                     selectedVehicle = null;
                     removeRouteLine();
+                    currentRouteVehicleId = null; // Reset when deselected
+                    routeDrawnForVehicle = null; // Clear route drawn flag
                 } else {
                     selectedVehicle = vehicle;
-                    // Show route line if vehicle is departed
+                    // Show route line if vehicle is departed (initial draw - should fit bounds)
                     if (vehicle.trip_status === 'departed') {
-                        drawRouteLine(vehicle);
+                        drawRouteLine(vehicle, true); // true = fit bounds on initial draw
                     }
                 }
             });
@@ -1168,6 +1233,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (selectedVehicle && selectedVehicle.id === vehicle.id) {
                 selectedVehicle = null;
                 removeRouteLine();
+                currentRouteVehicleId = null; // Reset when popup is closed
+                routeDrawnForVehicle = null; // Clear route drawn flag
                 console.log('Vehicle popup closed - route line removed');
             }
         });
@@ -1351,6 +1418,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (selectedVehicle && selectedVehicle.id === vehicleId) {
                 selectedVehicle = null;
                 removeRouteLine();
+                currentRouteVehicleId = null; // Reset when deselected
+                routeDrawnForVehicle = null; // Clear route drawn flag
                 marker.closePopup();
                 console.log('Vehicle deselected from list - route line removed');
                 return;
@@ -1367,9 +1436,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const vehicle = data.vehicles.find(v => v.id === vehicleId);
                         if (vehicle) {
                             selectedVehicle = vehicle;
-                            // Show route line if vehicle is departed
+                            // Show route line if vehicle is departed (initial draw - should fit bounds)
                             if (vehicle.trip_status === 'departed') {
-                                drawRouteLine(vehicle);
+                                drawRouteLine(vehicle, true); // true = fit bounds on initial draw
                             }
                         }
                     }
@@ -1379,14 +1448,24 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // Route line functions
-    function drawRouteLine(vehicle) {
-        // Remove existing route line
-        removeRouteLine();
-        
+    // Track if route was just drawn (to only zoom once on initial draw)
+    let routeJustDrawn = false;
+    let routeDrawnForVehicle = null; // Track which vehicle has a route drawn to prevent redraws
+    
+    function drawRouteLine(vehicle, shouldFitBounds = true) {
         // Check if vehicle has route information and is departed
         if (!vehicle.route_info || vehicle.trip_status !== 'departed') {
             return;
         }
+        
+        // Check if route already exists for this vehicle - if so, don't redraw (prevents zoom reset)
+        if (routeDrawnForVehicle === vehicle.id && currentRouteLine !== null) {
+            // Route already exists - don't redraw, just return (preserves user's zoom/pan)
+            return;
+        }
+        
+        // Remove existing route line (for different vehicle or initial draw)
+        removeRouteLine();
         
         try {
             // route_info is already a parsed object from backend
@@ -1421,6 +1500,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }).addTo(map);
             
             currentRouteVehicleId = vehicle.id;
+            routeDrawnForVehicle = vehicle.id; // Mark that route is drawn for this vehicle
             
             // Try to get road-following route using OSRM API
             const osrmApiUrl = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=full&geometries=geojson`;
@@ -1442,17 +1522,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                         currentRouteLine.originMarker = originMarker;
                         currentRouteLine.destMarker = destMarker;
                         
-                        // Fit the map to the route
-                        map.fitBounds(currentRouteLine.getBounds(), { padding: [30, 30] });
+                        // Only fit bounds on initial draw, not on updates
+                        if (shouldFitBounds) {
+                            map.fitBounds(currentRouteLine.getBounds(), { padding: [30, 30] });
+                            routeJustDrawn = true;
+                        }
                     } else {
                         // Fallback to straight line if OSRM fails
-                        drawStraightRouteLine(originCoords, destCoords, originMarker, destMarker);
+                        drawStraightRouteLine(originCoords, destCoords, originMarker, destMarker, shouldFitBounds);
                     }
                 })
                 .catch(error => {
                     console.error('OSRM API error:', error);
                     // Fallback to straight line on error
-                    drawStraightRouteLine(originCoords, destCoords, originMarker, destMarker);
+                    drawStraightRouteLine(originCoords, destCoords, originMarker, destMarker, shouldFitBounds);
                 });
             
             console.log('Route line drawn for vehicle', vehicle.id);
@@ -1472,11 +1555,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 map.removeLayer(currentRouteLine.destMarker);
             }
             currentRouteLine = null;
-            currentRouteVehicleId = null;
+            routeDrawnForVehicle = null; // Clear the flag when route is removed
+            currentRouteVehicleId = null; // Reset vehicle ID when route is removed
         }
     }
     
-    function drawStraightRouteLine(originCoords, destCoords, originMarker, destMarker) {
+    function drawStraightRouteLine(originCoords, destCoords, originMarker, destMarker, shouldFitBounds = true) {
         // Create a straight line between points for fallback
         const routePoints = [
             [parseFloat(originCoords.lat), parseFloat(originCoords.lon)],
@@ -1493,17 +1577,38 @@ document.addEventListener('DOMContentLoaded', async function() {
         currentRouteLine.originMarker = originMarker;
         currentRouteLine.destMarker = destMarker;
         
-        // Fit the map to the route
-        map.fitBounds(currentRouteLine.getBounds(), { padding: [30, 30] });
+        // Only fit bounds on initial draw, not on updates
+        if (shouldFitBounds) {
+            map.fitBounds(currentRouteLine.getBounds(), { padding: [30, 30] });
+            routeJustDrawn = true;
+        }
     }
     
     function updateRouteLineForVehicle(vehicle) {
+        // First, check if no vehicle is selected - if so, remove any existing route line
+        if (selectedVehicle === null && currentRouteLine !== null) {
+            removeRouteLine();
+            currentRouteVehicleId = null;
+            routeDrawnForVehicle = null;
+            return; // Exit early - no vehicle selected, so no route should be shown
+        }
+        
         // Only show route line if this is the selected vehicle and it's departed
         if (selectedVehicle && selectedVehicle.id === vehicle.id && vehicle.trip_status === 'departed') {
-            drawRouteLine(vehicle);
-        } else if (currentRouteVehicleId === vehicle.id && vehicle.trip_status !== 'departed') {
-            // Remove route line if vehicle is no longer departed
+            // Check if route is already drawn for this vehicle BEFORE calling drawRouteLine
+            // (drawRouteLine removes the route first, so we need to check before)
+            const isUpdate = currentRouteVehicleId === vehicle.id && currentRouteLine !== null;
+            
+            if (!isUpdate) {
+                // Only draw if it's not already drawn (initial draw)
+                drawRouteLine(vehicle, true); // true = fit bounds on initial draw only
+            }
+            // If it's an update, don't redraw - just keep the existing route line (no zoom reset!)
+        } else if (currentRouteVehicleId === vehicle.id) {
+            // Remove route line if this specific vehicle is no longer selected or no longer departed
             removeRouteLine();
+            currentRouteVehicleId = null;
+            routeDrawnForVehicle = null; // Clear route drawn flag
         }
     }
     
@@ -1746,6 +1851,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     function refreshVehicles() {
         console.log('🔄 Refreshing vehicles...');
+        // Clear selected vehicle and route line before refresh
+        if (selectedVehicle !== null || currentRouteLine !== null) {
+            selectedVehicle = null;
+            removeRouteLine();
+            currentRouteVehicleId = null;
+            routeDrawnForVehicle = null;
+            console.log('Cleared selected vehicle and route line before refresh');
+        }
         loadVehicles(true);  // Force refresh to bypass cache
     }
     
