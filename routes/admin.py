@@ -4,6 +4,7 @@ from models.user import User, DriverActionLog, OperatorActionLog
 from models.vehicle import Vehicle
 from models import db
 from sqlalchemy import desc, and_, or_, func, union_all
+from sqlalchemy import cast, Integer
 from datetime import datetime, timedelta
 import json
 import csv
@@ -79,6 +80,25 @@ def action_logs_data():
     action_types = request.args.get('action_types', 'all')
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 10))
+    
+    # Convert filter IDs to integers if provided (to match database column types)
+    if driver_id:
+        try:
+            driver_id = int(driver_id)
+        except (ValueError, TypeError):
+            driver_id = None
+    
+    if vehicle_id:
+        try:
+            vehicle_id = int(vehicle_id)
+        except (ValueError, TypeError):
+            vehicle_id = None
+    
+    if operator_id:
+        try:
+            operator_id = int(operator_id)
+        except (ValueError, TypeError):
+            operator_id = None
     
     logs = []
     
@@ -177,7 +197,7 @@ def action_logs_data():
                     OperatorActionLog.target_type == 'driver',
                     OperatorActionLog.target_id == driver_id
                 ),
-                func.json_extract(OperatorActionLog.meta_data, '$.driver_id') == driver_id
+                cast(OperatorActionLog.meta_data.op("->>")("driver_id"), Integer) == driver_id
             )
         )
     
