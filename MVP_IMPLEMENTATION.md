@@ -1,6 +1,6 @@
 # MVP Implementation - 55% Scope Plan
 
-This document describes the MVP (Minimum Viable Product) implementation of the 55% scope plan for the SoutPalWatch system.
+This document describes the MVP (Minimum Viable Product) implementation of the 55% scope plan for the SouthPalWatch system.
 
 ## 🚀 What's Implemented
 
