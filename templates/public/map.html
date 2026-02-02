@@ -302,7 +302,7 @@
     #vehicle-panel-toggle {
         position: absolute;
         top: 10px;
-        left: 10px;
+        right: 10px;
         z-index: 1001;
         background-color: white;
         border: none;
@@ -694,6 +694,14 @@
     let userLocationHistoryLine = null;
     let userLocationWatchId = null;
     let isUserLocationEnabled = false;
+
+    // Vehicle tracking state
+    let trackedVehicleId = null;
+    let trackingIntervalId = null;
+
+    // Route display state
+    let displayedRouteVehicleId = null;
+
 
     function initMap() {
         // Hide loading indicator
@@ -1421,14 +1429,20 @@
                     <p><strong>Last Updated:</strong> ${lastUpdated}</p>
                 </div>
                 <div class="vehicle-popup-actions" style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn btn-primary btn-sm" onclick="trackVehicle(${vehicle.id})" style="flex: 1; min-width: 100px;">
-                        <i class="fas fa-crosshairs me-1"></i>Track
-                    </button>
-                    ${vehicle.trip_status === 'departed' ? `
-                        <button class="btn btn-info btn-sm" onclick="showVehicleRoute(${vehicle.id})" style="flex: 1; min-width: 100px;">
-                            <i class="fas fa-route me-1"></i>Show Route
-                        </button>
-                    ` : ''}
+                    ${(() => {
+                // Check if this vehicle is currently being tracked
+                const isTracking = trackedVehicleId === vehicle.id;
+                const trackBtnClass = isTracking ? 'btn-danger' : 'btn-primary';
+                const trackBtnText = isTracking ? '<i class="fas fa-times me-1"></i>Stop Tracking' : '<i class="fas fa-crosshairs me-1"></i>Track';
+                return `<button class="btn ${trackBtnClass} btn-sm" onclick="trackVehicle(${vehicle.id})" style="flex: 1; min-width: 100px;">${trackBtnText}</button>`;
+            })()}
+                    ${vehicle.trip_status === 'departed' ? (() => {
+                // Check if this vehicle's route is currently being shown
+                const isShowingRoute = displayedRouteVehicleId === vehicle.id;
+                const routeBtnClass = isShowingRoute ? 'btn-warning' : 'btn-info';
+                const routeBtnText = isShowingRoute ? '<i class="fas fa-eye-slash me-1"></i>Hide Route' : '<i class="fas fa-route me-1"></i>Show Route';
+                return `<button class="btn ${routeBtnClass} btn-sm" onclick="toggleVehicleRoute(${vehicle.id})" style="flex: 1; min-width: 100px;">${routeBtnText}</button>`;
+            })() : ''}
                 </div>
             </div>
         `;
@@ -1513,7 +1527,7 @@
                 return;
             }
 
-            map.setView(marker.getLatLng(), 15);
+            // Just open popup, don't auto-zoom
             marker.openPopup();
 
             // Find the vehicle data and select it
@@ -1678,18 +1692,19 @@
             return; // Exit early - no vehicle selected, so no route should be shown
         }
 
-        // Only show route line if this is the selected vehicle and it's departed
-        if (selectedVehicle && selectedVehicle.id === vehicle.id && vehicle.trip_status === 'departed') {
-            // Check if route is already drawn for this vehicle BEFORE calling drawRouteLine
-            // (drawRouteLine removes the route first, so we need to check before)
-            const isUpdate = currentRouteVehicleId === vehicle.id && currentRouteLine !== null;
+        // DO NOT auto-draw routes when vehicle is updated
+        // Routes should ONLY be drawn when user clicks "Show Route" button
+        // This function should only manage cleanup, not drawing
 
-            if (!isUpdate) {
-                // Only draw if it's not already drawn (initial draw)
-                drawRouteLine(vehicle, true); // true = fit bounds on initial draw only
-            }
-            // If it's an update, don't redraw - just keep the existing route line (no zoom reset!)
-        } else if (currentRouteVehicleId === vehicle.id) {
+        // Remove route line if the selected vehicle is no longer departed
+        if (selectedVehicle && selectedVehicle.id === vehicle.id && vehicle.trip_status !== 'departed' && currentRouteLine !== null) {
+            removeRouteLine();
+            currentRouteVehicleId = null;
+            routeDrawnForVehicle = null;
+        }
+
+        // Remove route line if this specific vehicle is no longer selected
+        if (currentRouteVehicleId === vehicle.id && (!selectedVehicle || selectedVehicle.id !== vehicle.id)) {
             // Remove route line if this specific vehicle is no longer selected or no longer departed
             removeRouteLine();
             currentRouteVehicleId = null;
@@ -2347,30 +2362,85 @@
      */
     function trackVehicle(vehicleId) {
         const marker = vehicleMarkers[vehicleId];
-        if (marker) {
-            // Center map on vehicle
-            const latlng = marker.getLatLng();
-            map.setView(latlng, 16); // Zoom in closer for tracking
-
-            console.log(`Now tracking vehicle ${vehicleId}`);
-
-            // You could add additional tracking logic here, such as:
-            // - Setting an interval to keep centering on the vehicle
-            // - Highlighting the vehicle differently
-            // - Showing a "tracking active" indicator
-
-            showToast('Tracking Active', `Now tracking vehicle ${vehicleId}`, 'success');
-        } else {
+        if (!marker) {
             console.error(`Vehicle ${vehicleId} not found`);
             showToast('Error', 'Vehicle not found', 'error');
+            return;
+        }
+
+        // Toggle tracking
+        if (trackedVehicleId === vehicleId) {
+            // Stop tracking
+            stopTracking();
+        } else {
+            // Start tracking this vehicle
+            startTracking(vehicleId);
+        }
+    }
+
+    function startTracking(vehicleId) {
+        // Stop any existing tracking first
+        stopTracking();
+
+        trackedVehicleId = vehicleId;
+
+        // Center on vehicle immediately
+        const marker = vehicleMarkers[vehicleId];
+        if (marker) {
+            const latlng = marker.getLatLng();
+            map.setView(latlng, 16);
+        }
+
+        // Set up interval to keep centering on vehicle
+        trackingIntervalId = setInterval(() => {
+            const marker = vehicleMarkers[trackedVehicleId];
+            if (marker) {
+                const latlng = marker.getLatLng();
+                map.panTo(latlng); // Use panTo for smooth movement
+            }
+        }, 3000); // Update every 3 seconds
+
+        // Update all popups to reflect new tracking state
+        updateAllPopups();
+
+        console.log(`Now tracking vehicle ${vehicleId}`);
+        showToast('Tracking Active', `Tracking vehicle ${vehicleId}`, 'success');
+    }
+
+    function stopTracking() {
+        if (trackingIntervalId) {
+            clearInterval(trackingIntervalId);
+            trackingIntervalId = null;
+        }
+
+        if (trackedVehicleId !== null) {
+            const prevTrackedId = trackedVehicleId;
+            trackedVehicleId = null;
+
+            // Update all popups to reflect tracking stopped
+            updateAllPopups();
+
+            console.log(`Stopped tracking vehicle ${prevTrackedId}`);
+            showToast('Tracking Stopped', 'Vehicle tracking disabled', 'info');
         }
     }
 
     /**
-     * Show the route for a specific vehicle
-     * @param {number} vehicleId - The ID of the vehicle whose route to show
+     * Toggle the route display for a specific vehicle
+     * @param {number} vehicleId - The ID of the vehicle whose route to toggle
      */
-    function showVehicleRoute(vehicleId) {
+    function toggleVehicleRoute(vehicleId) {
+        // Check if we're currently showing this vehicle's route
+        if (displayedRouteVehicleId === vehicleId) {
+            // Hide the route
+            hideVehicleRoute();
+        } else {
+            // Show the route for this vehicle
+            showVehicleRouteInternal(vehicleId);
+        }
+    }
+
+    function showVehicleRouteInternal(vehicleId) {
         // Find the vehicle data
         fetch('/public/vehicles/active')
             .then(response => response.json())
@@ -2382,9 +2452,13 @@
 
                         // Only draw route if vehicle is departed
                         if (vehicle.trip_status === 'departed') {
-                            drawRouteLine(vehicle, true); // true = fit bounds to show entire route
+                            drawRouteLine(vehicle, false); // false = DO NOT auto-zoom, keep current view
+                            displayedRouteVehicleId = vehicleId; // Update state
                             console.log(`Showing route for vehicle ${vehicleId}`);
                             showToast('Route Displayed', `Showing route for vehicle ${vehicleId}`, 'info');
+
+                            // Update all popups to reflect new state
+                            updateAllPopups();
                         } else {
                             console.log(`Vehicle ${vehicleId} has not departed yet`);
                             showToast('No Route', 'Vehicle has not departed yet', 'warning');
@@ -2402,6 +2476,32 @@
                 console.error('Error fetching vehicle data:', error);
                 showToast('Error', 'Failed to load vehicle data', 'error');
             });
+    }
+
+    function hideVehicleRoute() {
+        if (currentRouteLine) {
+            removeRouteLine();
+            displayedRouteVehicleId = null; // Clear state
+            console.log('Route hidden');
+            showToast('Route Hidden', 'Route has been hidden', 'info');
+
+            // Update all popups to reflect new state
+            updateAllPopups();
+        }
+    }
+
+    function updateAllPopups() {
+        // Update all open popups to show correct button states
+        Object.keys(vehicleMarkers).forEach(id => {
+            const marker = vehicleMarkers[id];
+            if (marker && marker.isPopupOpen()) {
+                // Find the vehicle data
+                const vehicle = allVehicles.find(v => v.id == id);
+                if (vehicle) {
+                    marker.getPopup().setContent(createVehiclePopup(vehicle));
+                }
+            }
+        });
     }
 
 </script>
