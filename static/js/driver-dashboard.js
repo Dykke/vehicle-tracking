@@ -11,6 +11,7 @@ let geolocationWatchId = null;
 let isBroadcastingLocation = false;
 let passengerCurrentCount = 0;
 let passengerCapacityValue = 15;
+let seatStatus = Array(15).fill(false); // 15 seats: driver (1) + 2 + 4 + 4 + 4
 
 // Helper function to check if we're on a local network
 function isLocalNetwork() {
@@ -203,12 +204,13 @@ function openConfirmationDialog(message, onConfirm) {
                  // Auto-select first vehicle
                  currentVehicleId = vehiclesData[0].id;
                  console.log('🚗 Auto-selecting first vehicle:', currentVehicleId);
-                 updateVehicleInfo(currentVehicleId);
-                 updateRouteInfo(currentVehicleId);
+                updateVehicleInfo(currentVehicleId);
+                updateRouteInfo(currentVehicleId);
                 updatePassengerCapacityDisplay(vehiclesData[0]);
                 setPassengerControlsEnabled(false);
                 setOccupancyControlsEnabled(false);
                 updateTripSummary();
+                loadSeatStatus();
                  enableVehicleControls(); // Enable buttons when vehicle is selected
              } else {
                  console.log('⚠️ No vehicles assigned to driver');
@@ -883,6 +885,125 @@ async function recordPassengerEvent(eventType, countOverride = null) {
          }
      } catch (error) {
          console.error('❌ Error updating trip summary:', error);
+     }
+     
+     // Also update seat status
+     await loadSeatStatus();
+ }
+ 
+ async function loadSeatStatus() {
+     if (!currentVehicleId) return;
+     
+     try {
+         const response = await fetch(`/driver/vehicle/${currentVehicleId}/details`);
+         if (response.ok) {
+             const data = await response.json();
+             if (data.success && data.vehicle) {
+                 if (data.vehicle.seat_status && Array.isArray(data.vehicle.seat_status)) {
+                     seatStatus = data.vehicle.seat_status;
+                     renderSeatVisualization();
+                 }
+             }
+         }
+     } catch (error) {
+         console.error('❌ Error loading seat status:', error);
+     }
+ }
+ 
+ function renderSeatVisualization() {
+     const container = document.getElementById('seatVisualization');
+     if (!container) return;
+     
+     let html = '';
+     let seatIndex = 0;
+     
+     // Row 1: Driver (D) + 1 passenger seat (1)
+     html += '<div style="display: flex; justify-content: center; gap: 6px; margin-bottom: 8px;">';
+     // Driver seat
+     const driverSeat = seatStatus[seatIndex] ? 'occupied' : 'free';
+     html += `<div class="seat-btn driver-seat ${driverSeat}" data-seat-index="${seatIndex}" style="width: 40px; height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; border: 2px solid ${driverSeat === 'occupied' ? '#d32f2f' : '#45a049'}; background-color: ${driverSeat === 'occupied' ? '#F44336' : '#4CAF50'}; color: white; transition: all 0.2s ease;" title="Driver Seat">D</div>`;
+     seatIndex++;
+     // Seat 1
+     const seat1Class = seatStatus[seatIndex] ? 'occupied' : 'free';
+     html += `<div class="seat-btn ${seat1Class}" data-seat-index="${seatIndex}" style="width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; cursor: pointer; border: 2px solid ${seat1Class === 'occupied' ? '#d32f2f' : '#45a049'}; background-color: ${seat1Class === 'occupied' ? '#F44336' : '#4CAF50'}; color: white; transition: all 0.2s ease;" title="Seat ${seatIndex + 1}">${seatIndex + 1}</div>`;
+     seatIndex++;
+     html += '</div>';
+     
+     // Row 2: 3 passenger seats (2, 3, 4)
+     html += '<div style="display: flex; justify-content: center; gap: 6px; margin-bottom: 8px;">';
+     for (let i = 0; i < 3; i++) {
+         const seatClass = seatStatus[seatIndex] ? 'occupied' : 'free';
+         html += `<div class="seat-btn ${seatClass}" data-seat-index="${seatIndex}" style="width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; cursor: pointer; border: 2px solid ${seatClass === 'occupied' ? '#d32f2f' : '#45a049'}; background-color: ${seatClass === 'occupied' ? '#F44336' : '#4CAF50'}; color: white; transition: all 0.2s ease;" title="Seat ${seatIndex + 1}">${seatIndex + 1}</div>`;
+         seatIndex++;
+     }
+     html += '</div>';
+     
+     // Row 3: 4 passenger seats (5, 6, 7, 8)
+     html += '<div style="display: flex; justify-content: center; gap: 6px; margin-bottom: 8px;">';
+     for (let i = 0; i < 4; i++) {
+         const seatClass = seatStatus[seatIndex] ? 'occupied' : 'free';
+         html += `<div class="seat-btn ${seatClass}" data-seat-index="${seatIndex}" style="width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; cursor: pointer; border: 2px solid ${seatClass === 'occupied' ? '#d32f2f' : '#45a049'}; background-color: ${seatClass === 'occupied' ? '#F44336' : '#4CAF50'}; color: white; transition: all 0.2s ease;" title="Seat ${seatIndex + 1}">${seatIndex + 1}</div>`;
+         seatIndex++;
+     }
+     html += '</div>';
+     
+     // Row 4: 4 passenger seats (9, 10, 11, 12)
+     html += '<div style="display: flex; justify-content: center; gap: 6px; margin-bottom: 8px;">';
+     for (let i = 0; i < 4; i++) {
+         const seatClass = seatStatus[seatIndex] ? 'occupied' : 'free';
+         html += `<div class="seat-btn ${seatClass}" data-seat-index="${seatIndex}" style="width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; cursor: pointer; border: 2px solid ${seatClass === 'occupied' ? '#d32f2f' : '#45a049'}; background-color: ${seatClass === 'occupied' ? '#F44336' : '#4CAF50'}; color: white; transition: all 0.2s ease;" title="Seat ${seatIndex + 1}">${seatIndex + 1}</div>`;
+         seatIndex++;
+     }
+     html += '</div>';
+     
+     container.innerHTML = html;
+     
+     // Add click handlers
+     container.querySelectorAll('.seat-btn').forEach(btn => {
+         btn.addEventListener('click', function() {
+             const seatIdx = parseInt(this.getAttribute('data-seat-index'));
+             toggleSeat(seatIdx);
+         });
+     });
+ }
+ 
+ async function toggleSeat(seatIndex) {
+     if (!currentVehicleId) {
+         showToast('Error', 'Please select a vehicle first', 'error');
+         return;
+     }
+     
+     if (seatIndex < 0 || seatIndex >= 15) {
+         showToast('Error', 'Invalid seat index', 'error');
+         return;
+     }
+     
+     const newStatus = !seatStatus[seatIndex];
+     
+     try {
+         const response = await fetch(`/driver/vehicle/${currentVehicleId}/seat-status`, {
+             method: 'POST',
+             headers: {
+                 'Content-Type': 'application/json',
+             },
+             body: JSON.stringify({
+                 seat_index: seatIndex,
+                 occupied: newStatus
+             })
+         });
+         
+         const data = await response.json();
+         
+         if (data.success) {
+             seatStatus[seatIndex] = newStatus;
+             renderSeatVisualization();
+             showToast('Success', `Seat ${seatIndex + 1} ${newStatus ? 'occupied' : 'freed'}`, 'success');
+         } else {
+             showToast('Error', data.error || 'Failed to update seat status', 'error');
+         }
+     } catch (error) {
+         console.error('❌ Error updating seat status:', error);
+         showToast('Error', 'Network error updating seat status', 'error');
      }
  }
  

@@ -4,7 +4,6 @@ from models.user import User, DriverActionLog, OperatorActionLog
 from models.vehicle import Vehicle
 from models import db
 from sqlalchemy import desc, and_, or_, func, union_all
-from sqlalchemy import cast, Integer
 from datetime import datetime, timedelta
 import json
 import csv
@@ -197,7 +196,7 @@ def action_logs_data():
                     OperatorActionLog.target_type == 'driver',
                     OperatorActionLog.target_id == driver_id
                 ),
-                cast(OperatorActionLog.meta_data.op("->>")("driver_id"), Integer) == driver_id
+                func.json_extract(OperatorActionLog.meta_data, '$.driver_id') == driver_id
             )
         )
     

@@ -534,6 +534,8 @@
                                             Start a trip to enable passenger updates.
                                         </div>
                                     </div>
+                                    <!-- Occupancy Status Control - DISABLED FOR NOW -->
+                                    <!--
                                     <h6 class="mb-3">Occupancy Status Control</h6>
                                     <div class="row g-4 mb-3">
                                         <div class="col-6">
@@ -555,6 +557,21 @@
                                      </div>
                                         </div>
                                             </button>
+                                        </div>
+                                    </div>
+                                    -->
+                                    
+                                    <h6 class="mb-3 mt-4">Seat Management</h6>
+                                    <div class="border rounded p-3 mb-4" style="background: var(--hover-color);">
+                                        <div class="text-center mb-3">
+                                            <div class="text-muted text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">Click seats to toggle</div>
+                                        </div>
+                                        <div id="seatVisualization" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                                            <!-- Seats will be rendered here by JavaScript -->
+                                        </div>
+                                        <div class="text-muted small text-center mt-3">
+                                            <span style="display: inline-block; width: 20px; height: 20px; background-color: #4CAF50; border-radius: 4px; margin-right: 8px; vertical-align: middle;"></span> Free
+                                            <span style="display: inline-block; width: 20px; height: 20px; background-color: #F44336; border-radius: 4px; margin-left: 16px; margin-right: 8px; vertical-align: middle;"></span> Occupied
                                         </div>
                                     </div>
                                 </div>

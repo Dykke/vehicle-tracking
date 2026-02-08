@@ -293,6 +293,10 @@ def get_active_vehicles():
 
                 capacity = vehicle.capacity or 15  # default capacity if not set
                 
+                # Get seat status from vehicle
+                seat_status = vehicle.get_seat_status()
+                occupied_seats = vehicle.get_occupied_seat_count()
+                
                 vehicles_data.append({
                     'id': vehicle.id,
                     'registration_number': vehicle.registration_number,
@@ -314,7 +318,9 @@ def get_active_vehicles():
                     'capacity': capacity,
                     'current_passengers': current_passengers,
                     'available_seats': max(capacity - current_passengers, 0),
-                    'active_trip_id': active_trip_id
+                    'active_trip_id': active_trip_id,
+                    'seat_status': seat_status,
+                    'occupied_seats': occupied_seats
                 })
             
             # Cache the result

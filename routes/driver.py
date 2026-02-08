@@ -101,10 +101,10 @@ def update_occupancy(vehicle_id):
         'occupancy_status': new_status
     })
 
-@driver_bp.route('/vehicle/<int:vehicle_id>/details')
+@driver_bp.route('/vehicle/<int:vehicle_id>/seat-status', methods=['POST'])
 @login_required
-def get_vehicle_details(vehicle_id):
-    """Get detailed vehicle information for the driver."""
+def update_seat_status(vehicle_id):
+    """Update seat status for a specific seat."""
     if current_user.user_type != 'driver':
         return jsonify({'error': 'Access denied. Driver account required.'}), 403
     
@@ -115,18 +115,154 @@ def get_vehicle_details(vehicle_id):
     if vehicle.assigned_driver_id != current_user.id:
         return jsonify({'error': 'Access denied. You are not assigned to this vehicle.'}), 403
     
-    # Return vehicle details
+    # Get the seat data from the request
+    data = request.get_json()
+    seat_index = data.get('seat_index')
+    occupied = data.get('occupied')
+    
+    if seat_index is None or occupied is None:
+        return jsonify({'error': 'Missing required fields: seat_index and occupied'}), 400
+    
+    if not isinstance(seat_index, int) or seat_index < 0 or seat_index >= 15:
+        return jsonify({'error': 'Invalid seat_index. Must be between 0 and 14.'}), 400
+    
+    if not isinstance(occupied, bool):
+        return jsonify({'error': 'Invalid occupied value. Must be boolean.'}), 400
+    
     try:
-        # Safely handle route_info - it might be a JSON string or dict
-        route_info = vehicle.route_info
-        if isinstance(route_info, str):
+        # Update seat status
+        vehicle.set_seat_status(seat_index, occupied)
+        db.session.commit()
+        
+        # Create a driver action log
+        log = DriverActionLog(
+            driver_id=current_user.id,
+            vehicle_id=vehicle_id,
+            action='seat_status_change',
+            meta_data={
+                'seat_index': seat_index,
+                'occupied': occupied,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+        )
+        db.session.add(log)
+        db.session.commit()
+        
+        # Emit WebSocket event for real-time updates
+        try:
+            from events_optimized import emit_vehicle_update
+            emit_vehicle_update(vehicle_id, 'seat_updated', {
+                'seat_index': seat_index,
+                'occupied': occupied,
+                'seat_status': vehicle.get_seat_status(),
+                'occupied_seats': vehicle.get_occupied_seat_count()
+            })
+        except ImportError:
+            pass  # WebSocket events not available
+        
+        return jsonify({
+            'success': True,
+            'message': f'Seat {seat_index + 1} status updated',
+            'seat_index': seat_index,
+            'occupied': occupied,
+            'seat_status': vehicle.get_seat_status(),
+            'occupied_seats': vehicle.get_occupied_seat_count()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+@driver_bp.route('/vehicle/<int:vehicle_id>/seat-status/bulk', methods=['POST'])
+@login_required
+def update_seat_status_bulk(vehicle_id):
+    """Update multiple seat statuses at once."""
+    if current_user.user_type != 'driver':
+        return jsonify({'error': 'Access denied. Driver account required.'}), 403
+    
+    # Get the vehicle
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    
+    # Check if the driver is assigned to this vehicle
+    if vehicle.assigned_driver_id != current_user.id:
+        return jsonify({'error': 'Access denied. You are not assigned to this vehicle.'}), 403
+    
+    # Get the seat status array from the request
+    data = request.get_json()
+    seat_status = data.get('seat_status')
+    
+    if not isinstance(seat_status, list) or len(seat_status) != 15:
+        return jsonify({'error': 'Invalid seat_status. Must be an array of 15 boolean values.'}), 400
+    
+    try:
+        import json
+        # Get current route_info
+        if vehicle.route_info:
             try:
-                import json
-                route_info = json.loads(route_info)
-            except (json.JSONDecodeError, ValueError):
-                route_info = None
-    except Exception:
-        route_info = None
+                route_data = json.loads(vehicle.route_info) if isinstance(vehicle.route_info, str) else vehicle.route_info
+            except (json.JSONDecodeError, TypeError):
+                route_data = {}
+        else:
+            route_data = {}
+        
+        # Update seat status
+        route_data['seat_status'] = seat_status
+        vehicle.route_info = json.dumps(route_data) if isinstance(route_data, dict) else route_data
+        db.session.commit()
+        
+        # Calculate occupied passenger seats (exclude driver seat at index 0)
+        # Only count passenger seats (indices 1-12), exclude driver seat (index 0)
+        occupied_passenger_seats = sum(1 for i, s in enumerate(seat_status) if s and i > 0 and i < 13)
+        
+        # Create a driver action log
+        log = DriverActionLog(
+            driver_id=current_user.id,
+            vehicle_id=vehicle_id,
+            action='seat_status_bulk_update',
+            meta_data={
+                'seat_status': seat_status,
+                'occupied_count': occupied_passenger_seats,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+         )
+        db.session.add(log)
+        db.session.commit()
+        
+        # Emit WebSocket event for real-time updates
+        try:
+            from events_optimized import emit_vehicle_update
+            emit_vehicle_update(vehicle_id, 'seat_updated', {
+                'seat_status': seat_status,
+                'occupied_seats': occupied_passenger_seats
+            })
+        except ImportError:
+            pass  # WebSocket events not available
+        
+        return jsonify({
+            'success': True,
+            'message': 'Seat status updated',
+            'seat_status': seat_status,
+            'occupied_seats': occupied_passenger_seats
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+@driver_bp.route('/vehicle/<int:vehicle_id>/details')
+@login_required
+def get_vehicle_details(vehicle_id):
+    """Get detailed vehicle information for the driver."""
+    if current_user.user_type != 'driver':
+        return jsonify({'error': 'Access denied. Driver account required.'}), 403
+    
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    
+    # Check if the driver is assigned to this vehicle
+    if vehicle.assigned_driver_id != current_user.id:
+        return jsonify({'error': 'Access denied. You are not assigned to this vehicle.'}), 403
+    
+    # Get seat status
+    seat_status = vehicle.get_seat_status()
+    occupied_seats = vehicle.get_occupied_seat_count()
     
     return jsonify({
         'success': True,
@@ -134,12 +270,13 @@ def get_vehicle_details(vehicle_id):
             'id': vehicle.id,
             'registration_number': vehicle.registration_number,
             'vehicle_type': vehicle.vehicle_type,
+            'capacity': vehicle.capacity,
             'status': vehicle.status,
             'occupancy_status': vehicle.occupancy_status,
             'route': vehicle.route,
-            'route_info': route_info,
-            'assigned_driver_id': vehicle.assigned_driver_id,
-            'last_location_update': vehicle.last_location_update.isoformat() if vehicle.last_location_update else None
+            'route_info': vehicle.route_info,
+            'seat_status': seat_status,
+            'occupied_seats': occupied_seats
         }
     })
 
